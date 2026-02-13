@@ -8,8 +8,20 @@ import kotlinx.coroutines.flow.Flow
 class RoomSpellRepository(
     private val spellDao: SpellDao,
 ) : SpellRepository {
-    override fun observeSpells(query: String): Flow<List<SpellListItem>> {
-        return spellDao.observeSpellList(query.trim())
+    override fun observeSpells(
+        query: String,
+        rank: Int?,
+        tradition: String?,
+        rarity: String?,
+        trait: String?,
+    ): Flow<List<SpellListItem>> {
+        return spellDao.observeSpellList(
+            query = query.trim(),
+            rank = rank,
+            tradition = tradition.orEmpty().trim(),
+            rarity = rarity.orEmpty().trim(),
+            trait = trait.orEmpty().trim(),
+        )
     }
 
     override suspend fun getSpellDetail(spellId: String): SpellDetail? {
@@ -35,15 +47,10 @@ class RoomSpellRepository(
     }
 
     override suspend fun seedFromDatasetIfEmpty(datasetJson: String) {
-        if (spellDao.getSpellCount() > 0) {
-            return
-        }
-
         val entities = SpellDatasetParser.parseEntities(datasetJson)
         if (entities.isEmpty()) {
             error("Spell dataset did not contain any valid spell entities.")
         }
-
-        spellDao.upsertAll(entities)
+        spellDao.replaceAll(entities)
     }
 }

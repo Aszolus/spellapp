@@ -37,7 +37,7 @@ if (-not (Test-Path -LiteralPath $normalizedPath)) {
     throw "Importer did not generate normalized dataset: $normalizedPath"
 }
 
-$normalized = Get-Content -LiteralPath $normalizedPath -Raw | ConvertFrom-Json -Depth 100
+$normalized = Get-Content -LiteralPath $normalizedPath -Raw | ConvertFrom-Json
 $spellCount = [int]$normalized.spellCount
 if ($spellCount -lt $MinSpellCount) {
     throw "Spell count ($spellCount) is below MinSpellCount ($MinSpellCount). Aborting asset update."

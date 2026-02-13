@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.spellapp.core.data"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 28

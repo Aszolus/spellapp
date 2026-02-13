@@ -12,6 +12,78 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Get-NestedValue {
+    param(
+        [Parameter(Mandatory = $false)]
+        [object]$Object,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Path
+    )
+
+    $current = $Object
+    foreach ($segment in $Path) {
+        if ($null -eq $current) {
+            return $null
+        }
+
+        $prop = $current.PSObject.Properties[$segment]
+        if ($null -eq $prop) {
+            return $null
+        }
+
+        $current = $prop.Value
+    }
+
+    return $current
+}
+
+function Convert-FoundryMarkupToPlainText {
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$InputText
+    )
+
+    if ([string]::IsNullOrWhiteSpace($InputText)) {
+        return ""
+    }
+
+    $text = $InputText
+
+    # Foundry inline UUID links with explicit label: keep only human label.
+    $text = [regex]::Replace($text, '@UUID\[[^\]]+\]\{([^}]+)\}', '$1')
+    # UUID links without explicit label: keep trailing segment as readable fallback.
+    $text = [regex]::Replace($text, '@UUID\[[^\]]*\.([^.\]]+)\]', '$1')
+
+    # Convert common Foundry inline macros into readable text.
+    $text = [regex]::Replace($text, '@Damage\[(.*?)\]', 'Damage: $1')
+    $text = [regex]::Replace($text, '@Check\[(.*?)\]', 'Check: $1')
+    $text = [regex]::Replace($text, '@Template\[(.*?)\]', 'Template: $1')
+    $text = [regex]::Replace($text, '@Localize\[(.*?)\]', '$1')
+    $text = [regex]::Replace($text, '\[\[/[^\]]+\]\]', '')
+
+    # Normalize block-level HTML into readable plain text structure.
+    $text = [regex]::Replace($text, '<\s*br\s*/?\s*>', "`n")
+    $text = [regex]::Replace($text, '<\s*hr\s*/?\s*>', "`n---`n")
+    $text = [regex]::Replace($text, '<\s*/p\s*>', "`n")
+    $text = [regex]::Replace($text, '<\s*p[^>]*\s*>', '')
+    $text = [regex]::Replace($text, '<\s*li[^>]*\s*>', '- ')
+    $text = [regex]::Replace($text, '<\s*/li\s*>', "`n")
+    $text = [regex]::Replace($text, '<\s*/?(ul|ol)[^>]*\s*>', "`n")
+
+    # Strip remaining HTML tags and decode entities.
+    $text = [regex]::Replace($text, '<[^>]+>', '')
+    $text = [System.Net.WebUtility]::HtmlDecode($text)
+
+    # Whitespace cleanup.
+    $text = $text -replace "`r", ""
+    $text = $text -replace "[`t ]+", " "
+    $text = $text -replace " *`n *", "`n"
+    $text = $text -replace "(`n){3,}", "`n`n"
+
+    return $text.Trim()
+}
+
 if (-not (Test-Path -LiteralPath $InputDir)) {
     throw "Input directory not found: $InputDir"
 }
@@ -20,8 +92,8 @@ if (-not (Test-Path -LiteralPath $OutputDir)) {
     New-Item -ItemType Directory -Path $OutputDir | Out-Null
 }
 
-$allowedLicenses = @("ORC Notice", "OGL")
-$spellFiles = Get-ChildItem -LiteralPath $InputDir -Filter *.json -File -Recurse
+$allowedLicenses = @("ORC", "ORC Notice", "OGL")
+$spellFiles = @(Get-ChildItem -LiteralPath $InputDir -Filter *.json -File -Recurse)
 
 if ($spellFiles.Count -eq 0) {
     throw "No spell JSON files found in $InputDir"
@@ -37,7 +109,7 @@ foreach ($file in $spellFiles) {
     $json = $null
     try {
         $raw = Get-Content -LiteralPath $file.FullName -Raw
-        $json = $raw | ConvertFrom-Json -Depth 100
+        $json = $raw | ConvertFrom-Json
     }
     catch {
         $parseErrors += [PSCustomObject]@{
@@ -47,7 +119,8 @@ foreach ($file in $spellFiles) {
         continue
     }
 
-    if ($null -ne $json.type -and $json.type -ne "spell") {
+    $entryType = Get-NestedValue -Object $json -Path @("type")
+    if ($entryType -ne "spell") {
         continue
     }
 
@@ -62,10 +135,10 @@ foreach ($file in $spellFiles) {
 
     $license = $null
     $candidateLicenses = @(
-        $json.system.publication.license,
-        $json.system.license,
-        $json._stats.license,
-        $json.system.source.license
+        (Get-NestedValue -Object $json -Path @("system", "publication", "license")),
+        (Get-NestedValue -Object $json -Path @("system", "license")),
+        (Get-NestedValue -Object $json -Path @("_stats", "license")),
+        (Get-NestedValue -Object $json -Path @("system", "source", "license"))
     )
 
     foreach ($candidate in $candidateLicenses) {
@@ -84,41 +157,59 @@ foreach ($file in $spellFiles) {
     }
 
     $level = 0
-    if ($null -ne $json.system.level.value) {
-        $level = [int]$json.system.level.value
+    $levelValue = Get-NestedValue -Object $json -Path @("system", "level", "value")
+    if ($null -ne $levelValue -and "$levelValue" -ne "") {
+        $level = [int]$levelValue
     }
 
     $traits = @()
-    if ($null -ne $json.system.traits.value) {
-        $traits = @($json.system.traits.value)
+    $traitsValue = Get-NestedValue -Object $json -Path @("system", "traits", "value")
+    if ($null -ne $traitsValue) {
+        $traits = @($traitsValue)
     }
 
     $traditions = @()
-    if ($null -ne $json.system.traits.traditions) {
-        $traditions = @($json.system.traits.traditions)
+    $traditionsValue = Get-NestedValue -Object $json -Path @("system", "traits", "traditions")
+    if ($null -ne $traditionsValue) {
+        $traditions = @($traditionsValue)
     }
 
-    $publication = $json.system.publication
+    $publicationTitle = Get-NestedValue -Object $json -Path @("system", "publication", "title")
+    $publicationPage = Get-NestedValue -Object $json -Path @("system", "publication", "page")
+    $spellName = Get-NestedValue -Object $json -Path @("name")
+    if ([string]::IsNullOrWhiteSpace($spellName)) {
+        continue
+    }
+    $rarity = Get-NestedValue -Object $json -Path @("system", "traits", "rarity")
+    $castValue = Get-NestedValue -Object $json -Path @("system", "time", "value")
+    $rangeValue = Get-NestedValue -Object $json -Path @("system", "range", "value")
+    $targetValue = Get-NestedValue -Object $json -Path @("system", "target", "value")
+    $areaValue = Get-NestedValue -Object $json -Path @("system", "area", "value")
+    $durationValue = Get-NestedValue -Object $json -Path @("system", "duration", "value")
+    $saveValue = Get-NestedValue -Object $json -Path @("system", "defense", "save", "basic")
+    $descriptionRaw = Get-NestedValue -Object $json -Path @("system", "description", "value")
+    $descriptionValue = Convert-FoundryMarkupToPlainText -InputText $descriptionRaw
 
     $spells += [PSCustomObject]@{
         id = $spellId
-        name = $json.name
+        name = $spellName
         rank = $level
-        rarity = $json.system.traits.rarity
+        rarity = $rarity
         traits = $traits
         traditions = $traditions
-        cast = $json.system.time.value
-        range = $json.system.range.value
-        target = $json.system.target.value
-        area = $json.system.area.value
-        duration = $json.system.duration.value
-        save = $json.system.defense.save.basic
+        cast = $castValue
+        range = $rangeValue
+        target = $targetValue
+        area = $areaValue
+        duration = $durationValue
+        save = $saveValue
         source = [PSCustomObject]@{
-            book = $publication.title
-            page = $publication.page
+            book = $publicationTitle
+            page = $publicationPage
         }
         license = $license
-        description = $json.system.description.value
+        descriptionRaw = $descriptionRaw
+        description = $descriptionValue
     }
 }
 

@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.spellapp.core.ui"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 28
@@ -35,7 +35,7 @@ dependencies {
     implementation(libs.androidx.material3)
 
     constraints {
-        implementation("androidx.core:core:1.17.0")
-        implementation("androidx.core:core-ktx:1.17.0")
+        implementation("androidx.core:core:1.13.1")
+        implementation("androidx.core:core-ktx:1.13.1")
     }
 }
