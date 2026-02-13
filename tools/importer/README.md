@@ -25,3 +25,19 @@ powershell -ExecutionPolicy Bypass -File .\tools\importer\import_spells.ps1 `
   -OutputDir ".\tools\importer\out" `
   -SourceCommit "<foundry-commit-hash>"
 ```
+
+Notes:
+1. Input directory is scanned recursively for JSON files.
+2. Non-spell entries are skipped.
+3. Import fails on parse errors, duplicate IDs, and invalid/missing licenses.
+
+## Project-Level Dataset Update
+To regenerate and install the dataset into app assets:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\update_spell_dataset.ps1 `
+  -FoundrySpellsDir "<path-to-foundry\packs\data\spells>" `
+  -SourceCommit "<foundry-commit-hash>"
+```
+
+This script also enforces a minimum spell count guard (`MinSpellCount`, default `1000`).

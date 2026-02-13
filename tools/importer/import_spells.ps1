@@ -21,7 +21,7 @@ if (-not (Test-Path -LiteralPath $OutputDir)) {
 }
 
 $allowedLicenses = @("ORC Notice", "OGL")
-$spellFiles = Get-ChildItem -LiteralPath $InputDir -Filter *.json -File
+$spellFiles = Get-ChildItem -LiteralPath $InputDir -Filter *.json -File -Recurse
 
 if ($spellFiles.Count -eq 0) {
     throw "No spell JSON files found in $InputDir"
@@ -29,10 +29,36 @@ if ($spellFiles.Count -eq 0) {
 
 $spells = @()
 $licenseErrors = @()
+$duplicateIdErrors = @()
+$parseErrors = @()
+$seenIds = New-Object System.Collections.Generic.HashSet[string]
 
 foreach ($file in $spellFiles) {
-    $raw = Get-Content -LiteralPath $file.FullName -Raw
-    $json = $raw | ConvertFrom-Json -Depth 100
+    $json = $null
+    try {
+        $raw = Get-Content -LiteralPath $file.FullName -Raw
+        $json = $raw | ConvertFrom-Json -Depth 100
+    }
+    catch {
+        $parseErrors += [PSCustomObject]@{
+            file = $file.FullName
+            error = $_.Exception.Message
+        }
+        continue
+    }
+
+    if ($null -ne $json.type -and $json.type -ne "spell") {
+        continue
+    }
+
+    $spellId = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+    if (-not $seenIds.Add($spellId)) {
+        $duplicateIdErrors += [PSCustomObject]@{
+            file = $file.FullName
+            id = $spellId
+        }
+        continue
+    }
 
     $license = $null
     $candidateLicenses = @(
@@ -75,7 +101,7 @@ foreach ($file in $spellFiles) {
     $publication = $json.system.publication
 
     $spells += [PSCustomObject]@{
-        id = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+        id = $spellId
         name = $json.name
         rank = $level
         rarity = $json.system.traits.rarity
@@ -96,11 +122,29 @@ foreach ($file in $spellFiles) {
     }
 }
 
+if ($parseErrors.Count -gt 0) {
+    $parseErrorFile = Join-Path $OutputDir "parse-errors.json"
+    $parseErrors | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $parseErrorFile -Encoding UTF8
+    throw "JSON parse errors detected in $($parseErrors.Count) files. See $parseErrorFile"
+}
+
+if ($duplicateIdErrors.Count -gt 0) {
+    $duplicateErrorFile = Join-Path $OutputDir "duplicate-id-errors.json"
+    $duplicateIdErrors | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $duplicateErrorFile -Encoding UTF8
+    throw "Duplicate spell IDs detected in $($duplicateIdErrors.Count) files. See $duplicateErrorFile"
+}
+
 if ($licenseErrors.Count -gt 0) {
     $licenseErrorFile = Join-Path $OutputDir "license-errors.json"
     $licenseErrors | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $licenseErrorFile -Encoding UTF8
     throw "License validation failed for $($licenseErrors.Count) files. See $licenseErrorFile"
 }
+
+if ($spells.Count -eq 0) {
+    throw "No valid spell entries produced by importer."
+}
+
+$spells = $spells | Sort-Object -Property rank, name
 
 $datasetVersion = Get-Date -Format "yyyyMMdd-HHmmss"
 

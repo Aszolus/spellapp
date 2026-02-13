@@ -1,0 +1,62 @@
+{
+  "datasetVersion": "20260213-000001",
+  "sourceCommit": "local-seed-sample",
+  "generatedAtUtc": "2026-02-13T00:00:01Z",
+  "spellCount": 3,
+  "spells": [
+    {
+      "id": "magic-missile",
+      "name": "Magic Missile",
+      "rank": 1,
+      "rarity": "common",
+      "traits": ["evocation", "force"],
+      "traditions": ["arcane", "occult"],
+      "cast": "1 to 3 actions",
+      "range": "120 feet",
+      "target": "1 to 3 creatures",
+      "duration": "instantaneous",
+      "description": "You send a dart of force streaking toward a creature that you can see.",
+      "license": "ORC Notice",
+      "source": {
+        "book": "Player Core",
+        "page": 331
+      }
+    },
+    {
+      "id": "heal",
+      "name": "Heal",
+      "rank": 1,
+      "rarity": "common",
+      "traits": ["healing", "necromancy", "vitality"],
+      "traditions": ["divine", "primal"],
+      "cast": "1 to 3 actions",
+      "range": "varies",
+      "target": "1 willing living creature or 1 undead",
+      "duration": "instantaneous",
+      "description": "You channel vital energy to heal the living or damage the undead.",
+      "license": "ORC Notice",
+      "source": {
+        "book": "Player Core",
+        "page": 334
+      }
+    },
+    {
+      "id": "fireball",
+      "name": "Fireball",
+      "rank": 3,
+      "rarity": "common",
+      "traits": ["evocation", "fire"],
+      "traditions": ["arcane", "primal"],
+      "cast": "2 actions",
+      "range": "500 feet",
+      "target": "20-foot burst",
+      "duration": "instantaneous",
+      "description": "An explosion of fire appears in a 20-foot burst.",
+      "license": "OGL",
+      "source": {
+        "book": "Core Rulebook",
+        "page": 341
+      }
+    }
+  ]
+}

@@ -12,3 +12,6 @@ local.properties
 
 # Logs
 *.log
+
+# Importer artifacts
+tools/importer/out/

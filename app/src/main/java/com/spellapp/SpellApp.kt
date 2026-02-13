@@ -1,18 +1,26 @@
 package com.spellapp
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.spellapp.core.data.SpellRepository
+import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.ui.SpellAppTheme
 import com.spellapp.feature.spells.SpellDetailRoute
 import com.spellapp.feature.spells.SpellListRoute
 
 @Composable
-fun SpellApp() {
+fun SpellApp(
+    spellRepository: SpellRepository,
+) {
     val navController = rememberNavController()
+    val spells by spellRepository.observeSpells().collectAsState(initial = emptyList())
 
     SpellAppTheme {
         NavHost(
@@ -21,6 +29,7 @@ fun SpellApp() {
         ) {
             composable(route = AppDestinations.SpellList.route) {
                 SpellListRoute(
+                    spells = spells,
                     onSpellClick = { spellId ->
                         navController.navigate(AppDestinations.SpellDetail.routeFor(spellId))
                     },
@@ -35,8 +44,11 @@ fun SpellApp() {
                 val spellId = backStackEntry.arguments
                     ?.getString(AppDestinations.SpellDetail.argSpellId)
                     .orEmpty()
+                val spell by produceState<SpellDetail?>(initialValue = null, key1 = spellId) {
+                    value = spellRepository.getSpellDetail(spellId)
+                }
                 SpellDetailRoute(
-                    spellId = spellId,
+                    spell = spell,
                     onBack = { navController.popBackStack() },
                 )
             }
