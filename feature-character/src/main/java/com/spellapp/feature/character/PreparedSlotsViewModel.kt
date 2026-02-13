@@ -3,7 +3,9 @@ package com.spellapp.feature.character
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.spellapp.core.data.CharacterRepository
+import com.spellapp.core.data.FocusStateRepository
+import com.spellapp.core.data.PreparedSlotRepository
+import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEventType
@@ -18,8 +20,11 @@ import kotlinx.coroutines.launch
 
 data class PreparedSlotsUiState(
     val selectedRank: Int = 1,
+    val allSlots: List<PreparedSlot> = emptyList(),
     val slotsForRank: List<PreparedSlot> = emptyList(),
     val spellNameById: Map<String, String> = emptyMap(),
+    val focusCurrentPoints: Int = 0,
+    val focusMaxPoints: Int = 1,
     val recentEventLines: List<String> = emptyList(),
     val canUndoLastCast: Boolean = false,
 )
@@ -31,6 +36,7 @@ class PreparedSlotsViewModel(
     private val selectedRank = MutableStateFlow(1)
     private val preparedSlots = service.observePreparedSlots(characterId)
     private val sessionEvents = service.observeSessionEvents(characterId)
+    private val focusState = service.observeFocusState(characterId)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val spellNameById = combine(preparedSlots, sessionEvents) { slots, events ->
@@ -51,18 +57,24 @@ class PreparedSlotsViewModel(
         preparedSlots,
         sessionEvents,
         spellNameById,
-    ) { rank, slots, events, names ->
+        focusState,
+    ) { rank, slots, events, names, focus ->
+        val sortedSlots = slots.sortedWith(
+            compareBy<PreparedSlot> { it.rank }.thenBy { it.slotIndex },
+        )
         PreparedSlotsUiState(
             selectedRank = rank,
-            slotsForRank = slots
-                .filter { it.rank == rank }
-                .sortedBy { it.slotIndex },
+            allSlots = sortedSlots,
+            slotsForRank = sortedSlots
+                .filter { it.rank == rank },
             spellNameById = names,
+            focusCurrentPoints = focus.currentPoints,
+            focusMaxPoints = focus.maxPoints,
             recentEventLines = service.formatRecentEventLines(
                 sessionEvents = events,
                 spellNameById = names,
             ),
-            canUndoLastCast = events.firstOrNull()?.type == SessionEventType.CAST_SPELL,
+            canUndoLastCast = events.any { event -> event.type == SessionEventType.CAST_SPELL },
         )
     }.stateIn(
         scope = viewModelScope,
@@ -118,11 +130,49 @@ class PreparedSlotsViewModel(
             service.undoLastCast(characterId)
         }
     }
+
+    fun useFocusPoint() {
+        viewModelScope.launch {
+            service.useFocusPoint(characterId)
+        }
+    }
+
+    fun increaseFocusMax() {
+        viewModelScope.launch {
+            service.increaseFocusMax(characterId)
+        }
+    }
+
+    fun decreaseFocusMax() {
+        viewModelScope.launch {
+            service.decreaseFocusMax(characterId)
+        }
+    }
+
+    fun refocus() {
+        viewModelScope.launch {
+            service.refocus(characterId)
+        }
+    }
+
+    fun rest() {
+        viewModelScope.launch {
+            service.rest(characterId)
+        }
+    }
+
+    fun newDayPreparation() {
+        viewModelScope.launch {
+            service.newDayPreparation(characterId)
+        }
+    }
 }
 
 class PreparedSlotsViewModelFactory(
     private val characterId: Long,
-    private val characterRepository: CharacterRepository,
+    private val preparedSlotRepository: PreparedSlotRepository,
+    private val sessionEventRepository: SessionEventRepository,
+    private val focusStateRepository: FocusStateRepository,
     private val spellRepository: SpellRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
@@ -131,7 +181,9 @@ class PreparedSlotsViewModelFactory(
             throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
         }
         val service = PreparedSlotsService(
-            characterRepository = characterRepository,
+            preparedSlotRepository = preparedSlotRepository,
+            sessionEventRepository = sessionEventRepository,
+            focusStateRepository = focusStateRepository,
             spellRepository = spellRepository,
         )
         return PreparedSlotsViewModel(

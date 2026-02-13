@@ -82,8 +82,8 @@ fun CharacterListRoute(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             items(items = characters, key = { it.id }) { character ->
                 CharacterRow(
@@ -112,20 +112,20 @@ private fun CharacterRow(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = character.name,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
             )
             Text(
                 text = "Level ${character.level} ${character.characterClass.label(classDefinitionsByClass)}",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
             )
             Text(
                 text = "DC ${character.spellDc} | Attack ${character.spellAttackModifier.withSign()}",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -137,10 +137,10 @@ private fun CharacterRow(
                 TextButton(onClick = onDelete) {
                     Text("Delete")
                 }
-                Button(onClick = onOpenPreparedSlots) {
+                TextButton(onClick = onOpenPreparedSlots) {
                     Text("Prepare")
                 }
-                Button(onClick = onOpenSpells) {
+                TextButton(onClick = onOpenSpells) {
                     Text("Spells")
                 }
             }

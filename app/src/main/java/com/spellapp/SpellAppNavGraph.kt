@@ -1,10 +1,10 @@
 package com.spellapp
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -12,12 +12,12 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.spellapp.core.data.CharacterRepository
+import com.spellapp.core.data.FocusStateRepository
+import com.spellapp.core.data.PreparedSlotRepository
+import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CharacterProfile
-import com.spellapp.core.model.SpellListItem
 import com.spellapp.feature.character.CharacterEditorDialog
-import com.spellapp.feature.character.CharacterListUiState
 import com.spellapp.feature.character.CharacterListRoute
 import com.spellapp.feature.character.CharacterListViewModel
 import com.spellapp.feature.character.PreparedSlotsRoute
@@ -27,27 +27,21 @@ import com.spellapp.feature.spells.SpellDetailRoute
 import com.spellapp.feature.spells.SpellDetailViewModel
 import com.spellapp.feature.spells.SpellDetailViewModelFactory
 import com.spellapp.feature.spells.SpellListRoute
-import com.spellapp.feature.spells.SpellListUiState
 import com.spellapp.feature.spells.SpellListViewModel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 
 @Composable
 fun SpellAppNavGraph(
     navController: NavHostController,
     spellRepository: SpellRepository,
-    characterRepository: CharacterRepository,
+    preparedSlotRepository: PreparedSlotRepository,
+    sessionEventRepository: SessionEventRepository,
+    focusStateRepository: FocusStateRepository,
+    characterListViewModel: CharacterListViewModel,
+    spellListViewModel: SpellListViewModel,
+    navigationViewModel: SpellAppNavigationViewModel,
     seedUiState: SeedUiState,
     onRetrySeed: () -> Unit,
-    characterListUiState: CharacterListUiState,
-    characterListViewModel: CharacterListViewModel,
-    spellListUiState: SpellListUiState,
-    spellListViewModel: SpellListViewModel,
-    spells: List<SpellListItem>,
-    navigationUiState: SpellAppNavigationUiState,
-    onOpenPreparedSlots: (Long) -> Unit,
-    onOpenSpellList: (Long) -> Unit,
-    onStartPreparedSlotAssignment: (Long, Int, Int) -> Unit,
-    onClearPreparedSlotTarget: () -> Unit,
 ) {
     NavHost(
         navController = navController,
@@ -55,32 +49,25 @@ fun SpellAppNavGraph(
     ) {
         characterListDestination(
             navController = navController,
-            characterListUiState = characterListUiState,
             characterListViewModel = characterListViewModel,
-            onOpenPreparedSlots = onOpenPreparedSlots,
-            onOpenSpellList = onOpenSpellList,
+            navigationViewModel = navigationViewModel,
         )
         preparedSlotsDestination(
             navController = navController,
-            characterListUiState = characterListUiState,
-            characterRepository = characterRepository,
+            characterListViewModel = characterListViewModel,
+            preparedSlotRepository = preparedSlotRepository,
+            sessionEventRepository = sessionEventRepository,
+            focusStateRepository = focusStateRepository,
             spellRepository = spellRepository,
-            spellListViewModel = spellListViewModel,
-            onOpenSpellList = onOpenSpellList,
-            onStartPreparedSlotAssignment = onStartPreparedSlotAssignment,
-            onClearPreparedSlotTarget = onClearPreparedSlotTarget,
+            navigationViewModel = navigationViewModel,
         )
         spellListDestination(
             navController = navController,
-            spells = spells,
-            spellListUiState = spellListUiState,
             spellListViewModel = spellListViewModel,
-            characterListUiState = characterListUiState,
-            navigationUiState = navigationUiState,
-            characterRepository = characterRepository,
+            characterListViewModel = characterListViewModel,
+            navigationViewModel = navigationViewModel,
             seedUiState = seedUiState,
             onRetrySeed = onRetrySeed,
-            onClearPreparedSlotTarget = onClearPreparedSlotTarget,
         )
         spellDetailDestination(
             navController = navController,
@@ -91,12 +78,11 @@ fun SpellAppNavGraph(
 
 private fun NavGraphBuilder.characterListDestination(
     navController: NavHostController,
-    characterListUiState: CharacterListUiState,
     characterListViewModel: CharacterListViewModel,
-    onOpenPreparedSlots: (Long) -> Unit,
-    onOpenSpellList: (Long) -> Unit,
+    navigationViewModel: SpellAppNavigationViewModel,
 ) {
     composable(route = AppDestinations.CharacterList.route) {
+        val characterListUiState by characterListViewModel.uiState.collectAsState()
         CharacterListRoute(
             characters = characterListUiState.characters,
             classDefinitionsByClass = characterListUiState.classDefinitionsByClass,
@@ -104,11 +90,11 @@ private fun NavGraphBuilder.characterListDestination(
             onEditCharacter = characterListViewModel::onEditCharacterRequest,
             onDeleteCharacter = { character -> characterListViewModel.deleteCharacter(character.id) },
             onOpenPreparedSlots = { character ->
-                onOpenPreparedSlots(character.id)
+                navigationViewModel.openPreparedSlots(character.id)
                 navController.navigate(AppDestinations.PreparedSlots.routeFor(character.id))
             },
             onOpenSpells = { character ->
-                onOpenSpellList(character.id)
+                navigationViewModel.openSpellList(character.id)
                 navController.navigate(AppDestinations.SpellList.route)
             },
         )
@@ -126,13 +112,12 @@ private fun NavGraphBuilder.characterListDestination(
 
 private fun NavGraphBuilder.preparedSlotsDestination(
     navController: NavHostController,
-    characterListUiState: CharacterListUiState,
-    characterRepository: CharacterRepository,
+    characterListViewModel: CharacterListViewModel,
+    preparedSlotRepository: PreparedSlotRepository,
+    sessionEventRepository: SessionEventRepository,
+    focusStateRepository: FocusStateRepository,
     spellRepository: SpellRepository,
-    spellListViewModel: SpellListViewModel,
-    onOpenSpellList: (Long) -> Unit,
-    onStartPreparedSlotAssignment: (Long, Int, Int) -> Unit,
-    onClearPreparedSlotTarget: () -> Unit,
+    navigationViewModel: SpellAppNavigationViewModel,
 ) {
     composable(
         route = AppDestinations.PreparedSlots.route,
@@ -143,13 +128,16 @@ private fun NavGraphBuilder.preparedSlotsDestination(
         val characterId = backStackEntry.arguments
             ?.getLong(AppDestinations.PreparedSlots.argCharacterId)
             ?: 0L
+        val characterListUiState by characterListViewModel.uiState.collectAsState()
         val character = characterListUiState.characters.firstOrNull { it.id == characterId }
         val preparedSlotsViewModel: PreparedSlotsViewModel = viewModel(
             key = "prepared-slots-$characterId",
             factory = remember(characterId) {
                 PreparedSlotsViewModelFactory(
                     characterId = characterId,
-                    characterRepository = characterRepository,
+                    preparedSlotRepository = preparedSlotRepository,
+                    sessionEventRepository = sessionEventRepository,
+                    focusStateRepository = focusStateRepository,
                     spellRepository = spellRepository,
                 )
             },
@@ -159,25 +147,40 @@ private fun NavGraphBuilder.preparedSlotsDestination(
         PreparedSlotsRoute(
             characterName = character?.name ?: "Character",
             selectedRank = preparedSlotsUiState.selectedRank,
+            allSlots = preparedSlotsUiState.allSlots,
             slotsForRank = preparedSlotsUiState.slotsForRank,
             spellNameById = preparedSlotsUiState.spellNameById,
             onRankChange = preparedSlotsViewModel::onRankChange,
             onAddSlot = preparedSlotsViewModel::addSlot,
             onRemoveSlot = preparedSlotsViewModel::removeSlot,
-            onChooseSpell = { rank, slotIndex ->
-                onStartPreparedSlotAssignment(characterId, rank, slotIndex)
-                spellListViewModel.setRank(rank)
-                spellListViewModel.clearTextFilters()
+            onChooseSpell = { rank, slotIndex, trackKey ->
+                navigationViewModel.startPreparedSlotAssignment(
+                    characterId = characterId,
+                    rank = rank,
+                    slotIndex = slotIndex,
+                    trackKey = trackKey,
+                )
                 navController.navigate(AppDestinations.SpellList.route)
             },
             onClearSpell = preparedSlotsViewModel::clearSpell,
             onCastSlot = preparedSlotsViewModel::castSlot,
+            focusCurrentPoints = preparedSlotsUiState.focusCurrentPoints,
+            focusMaxPoints = preparedSlotsUiState.focusMaxPoints,
+            onUseFocusPoint = preparedSlotsViewModel::useFocusPoint,
+            onIncreaseFocusMax = preparedSlotsViewModel::increaseFocusMax,
+            onDecreaseFocusMax = preparedSlotsViewModel::decreaseFocusMax,
+            onRefocus = preparedSlotsViewModel::refocus,
+            onRest = preparedSlotsViewModel::rest,
+            onNewDayPreparation = preparedSlotsViewModel::newDayPreparation,
             canUndoLastCast = preparedSlotsUiState.canUndoLastCast,
             onUndoLastCast = preparedSlotsViewModel::undoLastCast,
             onOpenSpellBrowser = {
-                onClearPreparedSlotTarget()
-                onOpenSpellList(characterId)
+                navigationViewModel.clearPreparedSlotTarget()
+                navigationViewModel.openSpellList(characterId)
                 navController.navigate(AppDestinations.SpellList.route)
+            },
+            onOpenPreparedSpell = { spellId ->
+                navController.navigate(AppDestinations.SpellDetail.routeFor(spellId))
             },
             recentEvents = preparedSlotsUiState.recentEventLines,
             onBack = { navController.popBackStack() },
@@ -187,22 +190,37 @@ private fun NavGraphBuilder.preparedSlotsDestination(
 
 private fun NavGraphBuilder.spellListDestination(
     navController: NavHostController,
-    spells: List<SpellListItem>,
-    spellListUiState: SpellListUiState,
     spellListViewModel: SpellListViewModel,
-    characterListUiState: CharacterListUiState,
-    navigationUiState: SpellAppNavigationUiState,
-    characterRepository: CharacterRepository,
+    characterListViewModel: CharacterListViewModel,
+    navigationViewModel: SpellAppNavigationViewModel,
     seedUiState: SeedUiState,
     onRetrySeed: () -> Unit,
-    onClearPreparedSlotTarget: () -> Unit,
 ) {
     composable(route = AppDestinations.SpellList.route) {
-        val coroutineScope = rememberCoroutineScope()
+        val spellListUiState by spellListViewModel.uiState.collectAsState()
+        val spells by spellListViewModel.spells.collectAsState()
+        val navigationUiState by navigationViewModel.uiState.collectAsState()
+        val characterListUiState by characterListViewModel.uiState.collectAsState()
+        LaunchedEffect(Unit) {
+            navigationViewModel.slotAssignmentResult.collect { success ->
+                if (success) {
+                    navController.popBackStack()
+                }
+            }
+        }
+
+        val target = navigationUiState.preparedSlotTarget
+        LaunchedEffect(target) {
+            if (target != null) {
+                spellListViewModel.setRank(target.rank)
+                spellListViewModel.clearTextFilters()
+            }
+        }
+
         SpellListRoute(
             spells = spells,
             title = spellListTitle(
-                target = navigationUiState.preparedSlotTarget,
+                target = target,
                 activeCharacter = characterListUiState.characters.firstOrNull {
                     it.id == navigationUiState.activeCharacterId
                 },
@@ -222,24 +240,14 @@ private fun NavGraphBuilder.spellListDestination(
             onRetryLoad = onRetrySeed,
             onClearFilters = spellListViewModel::clearAllFilters,
             onSpellClick = { spellId ->
-                val target = navigationUiState.preparedSlotTarget
-                if (target != null) {
-                    coroutineScope.launch {
-                        characterRepository.assignSpellToPreparedSlot(
-                            characterId = target.characterId,
-                            rank = target.rank,
-                            slotIndex = target.slotIndex,
-                            spellId = spellId,
-                        )
-                        onClearPreparedSlotTarget()
-                        navController.popBackStack()
-                    }
+                if (navigationUiState.preparedSlotTarget != null) {
+                    navigationViewModel.completeSlotAssignment(spellId)
                 } else {
                     navController.navigate(AppDestinations.SpellDetail.routeFor(spellId))
                 }
             },
             onBack = {
-                onClearPreparedSlotTarget()
+                navigationViewModel.clearPreparedSlotTarget()
                 navController.popBackStack()
             },
         )

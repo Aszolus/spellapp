@@ -191,20 +191,41 @@ class RoomCharacterRepository(
         }
     }
 
-    override suspend fun undoLastCast(characterId: Long): Boolean {
+    override suspend fun clearPreparedSlotsForTrack(
+        characterId: Long,
+        trackKey: String,
+    ): Int {
         return database.withTransaction {
-            val latestEvent = sessionEventDao.getLatestByCharacter(characterId)
-                ?.takeIf { it.type == SessionEventType.CAST_SPELL.name }
+            preparedSlotDao.clearPreparedSpellsForTrack(
+                characterId = characterId,
+                trackKey = trackKey,
+            )
+        }
+    }
+
+    override suspend fun undoLastCast(
+        characterId: Long,
+        trackKey: String?,
+    ): Boolean {
+        return database.withTransaction {
+            val latestEvent = sessionEventDao.getByCharacter(characterId)
+                .firstOrNull { event ->
+                    event.type == SessionEventType.CAST_SPELL.name &&
+                        (
+                            trackKey == null ||
+                                SessionEventMetadata.trackKeyOrDefault(event.metadataJson) == trackKey
+                            )
+                }
                 ?: return@withTransaction false
 
             val rank = latestEvent.spellRank ?: return@withTransaction false
             val slotIndex = SessionEventMetadata.slotIndexOrNull(latestEvent.metadataJson)
                 ?: return@withTransaction false
-            val trackKey = SessionEventMetadata.trackKeyOrDefault(latestEvent.metadataJson)
+            val eventTrackKey = SessionEventMetadata.trackKeyOrDefault(latestEvent.metadataJson)
 
             val updateCount = preparedSlotDao.setExpendedState(
                 characterId = characterId,
-                trackKey = trackKey,
+                trackKey = eventTrackKey,
                 rank = rank,
                 slotIndex = slotIndex,
                 isExpended = false,
@@ -237,9 +258,16 @@ class RoomCharacterRepository(
         focusStateDao.upsert(state.toEntity())
     }
 
-    override fun observeSessionEvents(characterId: Long): Flow<List<SessionEvent>> {
+    override fun observeSessionEvents(
+        characterId: Long,
+        trackKey: String?,
+    ): Flow<List<SessionEvent>> {
         return sessionEventDao.observeByCharacter(characterId).map { entities ->
-            entities.map { it.toDomain() }
+            entities
+                .filter { entity ->
+                    trackKey == null || SessionEventMetadata.trackKeyOrDefault(entity.metadataJson) == trackKey
+                }
+                .map { it.toDomain() }
         }
     }
 

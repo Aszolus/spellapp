@@ -27,6 +27,15 @@ interface SessionEventDao {
     )
     suspend fun getLatestByCharacter(characterId: Long): SessionEventEntity?
 
+    @Query(
+        """
+        SELECT * FROM session_events
+        WHERE characterId = :characterId
+        ORDER BY createdAtEpochMillis DESC, id DESC
+        """,
+    )
+    suspend fun getByCharacter(characterId: Long): List<SessionEventEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(event: SessionEventEntity): Long
 }

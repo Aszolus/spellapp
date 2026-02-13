@@ -19,7 +19,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -27,6 +26,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -59,11 +62,13 @@ fun SpellListRoute(
     onSpellClick: (String) -> Unit,
     onBack: (() -> Unit)? = null,
 ) {
+    var showAdvancedFilters by rememberSaveable { mutableStateOf(false) }
     val hasActiveFilters = query.isNotBlank() ||
         traitQuery.isNotBlank() ||
         selectedRank != null ||
         selectedTradition != null ||
         selectedRarity != null
+    val filtersExpanded = showAdvancedFilters || hasActiveFilters
 
     Scaffold(
         topBar = {
@@ -84,89 +89,86 @@ fun SpellListRoute(
                 .fillMaxSize()
                 .padding(innerPadding),
             contentPadding = PaddingValues(
-                start = 12.dp,
-                top = 12.dp,
-                end = 12.dp,
-                bottom = 12.dp,
+                start = 8.dp,
+                top = 8.dp,
+                end = 8.dp,
+                bottom = 8.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             item {
                 OutlinedTextField(
                     value = query,
                     onValueChange = onQueryChange,
-                    label = { Text("Search by spell name") },
+                    label = { Text("Search spells") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
             item {
-                OutlinedTextField(
-                    value = traitQuery,
-                    onValueChange = onTraitQueryChange,
-                    label = { Text("Filter by trait text") },
-                    singleLine = true,
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            item {
-                Text(
-                    text = "Rank",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    items(filterRanks, key = { "rank-$it" }) { rank ->
-                        val rankLabel = if (rank == 0) "Cantrip" else "Rank $rank"
-                        FilterChip(
-                            selected = selectedRank == rank,
-                            onClick = { onRankChange(rank) },
-                            label = { Text(rankLabel) },
-                        )
+                    TextButton(onClick = { showAdvancedFilters = !showAdvancedFilters }) {
+                        Text(if (filtersExpanded) "Hide Filters" else "Show Filters")
+                    }
+                    if (hasActiveFilters) {
+                        TextButton(onClick = onClearFilters) {
+                            Text("Clear")
+                        }
                     }
                 }
             }
-            item {
-                Text(
-                    text = "Tradition",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(filterTraditions, key = { "trad-$it" }) { tradition ->
-                        FilterChip(
-                            selected = selectedTradition == tradition,
-                            onClick = { onTraditionChange(tradition) },
-                            label = { Text(tradition.replaceFirstChar { it.uppercase() }) },
-                        )
+            if (filtersExpanded) {
+                item {
+                    OutlinedTextField(
+                        value = traitQuery,
+                        onValueChange = onTraitQueryChange,
+                        label = { Text("Trait filter") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                item {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        items(filterRanks, key = { "rank-$it" }) { rank ->
+                            val rankLabel = if (rank == 0) "Cantrip" else "Rank $rank"
+                            FilterChip(
+                                selected = selectedRank == rank,
+                                onClick = { onRankChange(rank) },
+                                label = { Text(rankLabel) },
+                            )
+                        }
                     }
                 }
-            }
-            item {
-                Text(
-                    text = "Rarity",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(filterRarities, key = { "rarity-$it" }) { rarity ->
-                        FilterChip(
-                            selected = selectedRarity == rarity,
-                            onClick = { onRarityChange(rarity) },
-                            label = { Text(rarity.replaceFirstChar { it.uppercase() }) },
-                        )
+                item {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        items(filterTraditions, key = { "trad-$it" }) { tradition ->
+                            FilterChip(
+                                selected = selectedTradition == tradition,
+                                onClick = { onTraditionChange(tradition) },
+                                label = { Text(tradition.replaceFirstChar { it.uppercase() }) },
+                            )
+                        }
+                    }
+                }
+                item {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        items(filterRarities, key = { "rarity-$it" }) { rarity ->
+                            FilterChip(
+                                selected = selectedRarity == rarity,
+                                onClick = { onRarityChange(rarity) },
+                                label = { Text(rarity.replaceFirstChar { it.uppercase() }) },
+                            )
+                        }
                     }
                 }
             }
@@ -174,18 +176,13 @@ fun SpellListRoute(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
+                        .padding(top = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
                         text = if (hasActiveFilters) "Filtered: ${spells.size}" else "Spells: ${spells.size}",
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
-                    if (hasActiveFilters) {
-                        TextButton(onClick = onClearFilters) {
-                            Text("Clear Filters")
-                        }
-                    }
                 }
             }
             item {
@@ -266,15 +263,22 @@ fun SpellListRoute(
                     .map { it.trim() }
                     .filter { it.isNotEmpty() }
                     .joinToString(", ") { it.replaceFirstChar { ch -> ch.uppercase() } }
-                ListItem(
-                    headlineContent = { Text(text = spell.name) },
-                    supportingContent = {
-                        Text(text = "$rankLabel | $traditions")
-                    },
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSpellClick(spell.id) },
-                )
+                        .clickable { onSpellClick(spell.id) }
+                        .padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = spell.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "$rankLabel | $traditions",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 HorizontalDivider()
             }
         }
@@ -306,8 +310,8 @@ fun SpellDetailRoute(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             if (isLoading) {
                 Row(

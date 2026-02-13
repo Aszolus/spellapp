@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.spellapp.feature.spells"
+    namespace = "com.spellapp.feature.character"
     compileSdk = 35
 
     defaultConfig {
@@ -35,7 +35,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.kotlinx.coroutines.core)
-
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.tooling.preview)

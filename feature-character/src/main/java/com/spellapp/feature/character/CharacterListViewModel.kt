@@ -3,7 +3,7 @@ package com.spellapp.feature.character
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.spellapp.core.data.CharacterRepository
+import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +22,7 @@ data class CharacterListUiState(
 )
 
 class CharacterListViewModel(
-    private val characterRepository: CharacterRepository,
+    private val characterRepository: CharacterCrudRepository,
     private val classDefinitionSource: CharacterClassDefinitionSource,
 ) : ViewModel() {
     private val editingCharacter = MutableStateFlow<CharacterProfile?>(null)
@@ -79,7 +79,7 @@ class CharacterListViewModel(
 }
 
 class CharacterListViewModelFactory(
-    private val characterRepository: CharacterRepository,
+    private val characterRepository: CharacterCrudRepository,
     private val classDefinitionSource: CharacterClassDefinitionSource = StaticCharacterClassDefinitionSource,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")

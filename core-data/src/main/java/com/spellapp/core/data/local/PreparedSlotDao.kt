@@ -110,6 +110,20 @@ interface PreparedSlotDao {
 
     @Query(
         """
+        UPDATE prepared_slots
+        SET preparedSpellId = NULL,
+            isExpended = 0
+        WHERE characterId = :characterId
+          AND trackKey = :trackKey
+        """,
+    )
+    suspend fun clearPreparedSpellsForTrack(
+        characterId: Long,
+        trackKey: String,
+    ): Int
+
+    @Query(
+        """
         DELETE FROM prepared_slots
         WHERE characterId = :characterId
           AND trackKey = :trackKey
