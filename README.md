@@ -10,6 +10,7 @@ Android-first Pathfinder 2e spell list manager with a strict offline runtime mod
    - `requirements.md`
    - `technical-requirements.md`
    - `phase-0-plan.md`
+   - `phase-1-plan.md`
 
 ## JDK Setup
 1. Gradle runtime JDK: 21 (project/tool execution).

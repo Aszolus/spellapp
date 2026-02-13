@@ -41,6 +41,7 @@ private val filterRanks = (0..10).toList()
 @Composable
 fun SpellListRoute(
     spells: List<SpellListItem>,
+    title: String = "Spell List",
     query: String,
     onQueryChange: (String) -> Unit,
     traitQuery: String,
@@ -56,6 +57,7 @@ fun SpellListRoute(
     onRetryLoad: () -> Unit,
     onClearFilters: () -> Unit,
     onSpellClick: (String) -> Unit,
+    onBack: (() -> Unit)? = null,
 ) {
     val hasActiveFilters = query.isNotBlank() ||
         traitQuery.isNotBlank() ||
@@ -66,7 +68,14 @@ fun SpellListRoute(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Spell List") },
+                title = { Text(text = title) },
+                navigationIcon = {
+                    if (onBack != null) {
+                        TextButton(onClick = onBack) {
+                            Text("Back")
+                        }
+                    }
+                },
             )
         },
     ) { innerPadding ->

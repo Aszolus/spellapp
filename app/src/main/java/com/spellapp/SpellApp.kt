@@ -1,119 +1,69 @@
 package com.spellapp
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import com.spellapp.core.data.CharacterRepository
 import com.spellapp.core.data.SpellRepository
-import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.ui.SpellAppTheme
-import com.spellapp.feature.spells.SpellDetailRoute
-import com.spellapp.feature.spells.SpellListRoute
-import kotlinx.coroutines.delay
+import com.spellapp.feature.character.CharacterClassDefinitionSource
+import com.spellapp.feature.character.CharacterListViewModel
+import com.spellapp.feature.character.CharacterListViewModelFactory
+import com.spellapp.feature.spells.SpellListViewModel
+import com.spellapp.feature.spells.SpellListViewModelFactory
 
 @Composable
 fun SpellApp(
     spellRepository: SpellRepository,
+    characterRepository: CharacterRepository,
+    classDefinitionSource: CharacterClassDefinitionSource,
     seedUiState: SeedUiState,
     onRetrySeed: () -> Unit,
 ) {
     val navController = rememberNavController()
-    var queryInput by remember { mutableStateOf("") }
-    var traitQueryInput by remember { mutableStateOf("") }
-    var query by remember { mutableStateOf("") }
-    var traitQuery by remember { mutableStateOf("") }
-    var selectedRank by remember { mutableStateOf<Int?>(null) }
-    var selectedTradition by remember { mutableStateOf<String?>(null) }
-    var selectedRarity by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(queryInput) {
-        delay(250)
-        query = queryInput
-    }
-    LaunchedEffect(traitQueryInput) {
-        delay(250)
-        traitQuery = traitQueryInput
-    }
-
-    val spells by spellRepository.observeSpells(
-        query = query,
-        rank = selectedRank,
-        tradition = selectedTradition,
-        rarity = selectedRarity,
-        trait = traitQuery,
-    ).collectAsState(initial = emptyList())
+    val characterListViewModel: CharacterListViewModel = viewModel(
+        key = "character-list",
+        factory = remember {
+            CharacterListViewModelFactory(
+                characterRepository = characterRepository,
+                classDefinitionSource = classDefinitionSource,
+            )
+        },
+    )
+    val characterListUiState by characterListViewModel.uiState.collectAsState()
+    val spellListViewModel: SpellListViewModel = viewModel(
+        key = "spell-list",
+        factory = remember {
+            SpellListViewModelFactory(spellRepository = spellRepository)
+        },
+    )
+    val spellListUiState by spellListViewModel.uiState.collectAsState()
+    val spells by spellListViewModel.spells.collectAsState()
+    val navigationViewModel: SpellAppNavigationViewModel = viewModel(
+        key = "app-navigation",
+    )
+    val navigationUiState by navigationViewModel.uiState.collectAsState()
 
     SpellAppTheme {
-        NavHost(
+        SpellAppNavGraph(
             navController = navController,
-            startDestination = AppDestinations.SpellList.route,
-        ) {
-            composable(route = AppDestinations.SpellList.route) {
-                SpellListRoute(
-                    spells = spells,
-                    query = queryInput,
-                    onQueryChange = { queryInput = it },
-                    traitQuery = traitQueryInput,
-                    onTraitQueryChange = { traitQueryInput = it },
-                    selectedRank = selectedRank,
-                    onRankChange = { rank ->
-                        selectedRank = if (selectedRank == rank) null else rank
-                    },
-                    selectedTradition = selectedTradition,
-                    onTraditionChange = { tradition ->
-                        selectedTradition = if (selectedTradition == tradition) null else tradition
-                    },
-                    selectedRarity = selectedRarity,
-                    onRarityChange = { rarity ->
-                        selectedRarity = if (selectedRarity == rarity) null else rarity
-                    },
-                    isLoading = seedUiState == SeedUiState.Loading,
-                    loadError = (seedUiState as? SeedUiState.Error)?.message,
-                    onRetryLoad = onRetrySeed,
-                    onClearFilters = {
-                        queryInput = ""
-                        traitQueryInput = ""
-                        query = ""
-                        traitQuery = ""
-                        selectedRank = null
-                        selectedTradition = null
-                        selectedRarity = null
-                    },
-                    onSpellClick = { spellId ->
-                        navController.navigate(AppDestinations.SpellDetail.routeFor(spellId))
-                    },
-                )
-            }
-            composable(
-                route = AppDestinations.SpellDetail.route,
-                arguments = listOf(navArgument(AppDestinations.SpellDetail.argSpellId) {
-                    type = NavType.StringType
-                }),
-            ) { backStackEntry ->
-                val spellId = backStackEntry.arguments
-                    ?.getString(AppDestinations.SpellDetail.argSpellId)
-                    .orEmpty()
-                var spell by remember(spellId) { mutableStateOf<SpellDetail?>(null) }
-                var isSpellLoading by remember(spellId) { mutableStateOf(true) }
-                LaunchedEffect(spellId) {
-                    isSpellLoading = true
-                    spell = spellRepository.getSpellDetail(spellId)
-                    isSpellLoading = false
-                }
-                SpellDetailRoute(
-                    spell = spell,
-                    isLoading = isSpellLoading,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-        }
+            spellRepository = spellRepository,
+            characterRepository = characterRepository,
+            seedUiState = seedUiState,
+            onRetrySeed = onRetrySeed,
+            characterListUiState = characterListUiState,
+            characterListViewModel = characterListViewModel,
+            spellListUiState = spellListUiState,
+            spellListViewModel = spellListViewModel,
+            spells = spells,
+            navigationUiState = navigationUiState,
+            onOpenPreparedSlots = navigationViewModel::openPreparedSlots,
+            onOpenSpellList = navigationViewModel::openSpellList,
+            onStartPreparedSlotAssignment = navigationViewModel::startPreparedSlotAssignment,
+            onClearPreparedSlotTarget = navigationViewModel::clearPreparedSlotTarget,
+        )
     }
 }

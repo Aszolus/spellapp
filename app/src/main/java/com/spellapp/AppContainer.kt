@@ -1,9 +1,13 @@
 package com.spellapp
 
 import android.content.Context
+import com.spellapp.core.data.CharacterRepository
 import com.spellapp.core.data.SpellRepository
+import com.spellapp.core.data.local.RoomCharacterRepository
 import com.spellapp.core.data.local.RoomSpellRepository
 import com.spellapp.core.data.local.SpellDatabase
+import com.spellapp.feature.character.CharacterClassDefinitionSource
+import com.spellapp.feature.character.StaticCharacterClassDefinitionSource
 
 class AppContainer(
     context: Context,
@@ -15,6 +19,20 @@ class AppContainer(
 
     val spellRepository: SpellRepository by lazy {
         RoomSpellRepository(spellDatabase.spellDao())
+    }
+
+    val characterRepository: CharacterRepository by lazy {
+        RoomCharacterRepository(
+            database = spellDatabase,
+            characterDao = spellDatabase.characterDao(),
+            preparedSlotDao = spellDatabase.preparedSlotDao(),
+            focusStateDao = spellDatabase.focusStateDao(),
+            sessionEventDao = spellDatabase.sessionEventDao(),
+        )
+    }
+
+    val characterClassDefinitionSource: CharacterClassDefinitionSource by lazy {
+        StaticCharacterClassDefinitionSource
     }
 
     suspend fun seedSpellsIfNeeded() {

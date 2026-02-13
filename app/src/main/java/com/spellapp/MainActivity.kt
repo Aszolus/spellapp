@@ -19,6 +19,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             SpellApp(
                 spellRepository = appContainer.spellRepository,
+                characterRepository = appContainer.characterRepository,
+                classDefinitionSource = appContainer.characterClassDefinitionSource,
                 seedUiState = seedUiState,
                 onRetrySeed = ::syncSpellData,
             )
