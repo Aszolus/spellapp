@@ -111,6 +111,19 @@ interface PreparedSlotDao {
     @Query(
         """
         UPDATE prepared_slots
+        SET isExpended = 0
+        WHERE characterId = :characterId
+          AND trackKey = :trackKey
+        """,
+    )
+    suspend fun restoreAllSlotsForTrack(
+        characterId: Long,
+        trackKey: String,
+    ): Int
+
+    @Query(
+        """
+        UPDATE prepared_slots
         SET preparedSpellId = NULL,
             isExpended = 0
         WHERE characterId = :characterId
