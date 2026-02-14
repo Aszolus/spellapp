@@ -34,14 +34,21 @@ data class TrackSpellLegalityProfile(
     val explicitlyAllowedSpellIds: Set<String> = emptySet(),
     val exceptionPolicy: TrackSpellExceptionPolicy = TrackSpellExceptionPolicy.EXPLICIT_ONLY,
 ) {
-    fun isSpellLegal(spellId: String, spellTradition: SpellTradition): Boolean {
+    fun isSpellLegal(spellId: String, spellTraditions: Set<SpellTradition>): Boolean {
         if (exceptionPolicy == TrackSpellExceptionPolicy.ALLOW_ANY) {
             return true
         }
         if (spellId in explicitlyAllowedSpellIds) {
             return true
         }
-        return spellTradition in allowedTraditions
+        return spellTraditions.any { tradition -> tradition in allowedTraditions }
+    }
+
+    fun isSpellLegal(spellId: String, spellTradition: SpellTradition): Boolean {
+        return isSpellLegal(
+            spellId = spellId,
+            spellTraditions = setOf(spellTradition),
+        )
     }
 
     companion object {
@@ -177,8 +184,22 @@ class DefaultCastingStateDeriver : CastingStateDeriver {
         buildState.effects.forEach { effect ->
             when (effect) {
                 is GrantSpellcastingTrackEffect -> {
-                    trackStateByKey[effect.track.trackKey] = MutableTrackState.from(effect.track)
-                        .also { state -> state.contributingSources += effect.source }
+                    val existingTrack = trackStateByKey[effect.track.trackKey]
+                    if (existingTrack == null) {
+                        trackStateByKey[effect.track.trackKey] = MutableTrackState.from(effect.track)
+                            .also { state -> state.contributingSources += effect.source }
+                    } else {
+                        existingTrack.progressionType = effect.track.progressionType
+                        existingTrack.castingStyle = effect.track.castingStyle
+                        existingTrack.tradition = effect.track.tradition
+                        existingTrack.allowedTraditions += effect.track.legalityProfile.allowedTraditions
+                        existingTrack.explicitlyAllowedSpellIds +=
+                            effect.track.legalityProfile.explicitlyAllowedSpellIds
+                        if (effect.track.legalityProfile.exceptionPolicy == TrackSpellExceptionPolicy.ALLOW_ANY) {
+                            existingTrack.exceptionPolicy = TrackSpellExceptionPolicy.ALLOW_ANY
+                        }
+                        existingTrack.contributingSources += effect.source
+                    }
                 }
                 is GrantPreparedSlotsEffect -> {
                     val track = trackStateByKey[effect.trackKey]

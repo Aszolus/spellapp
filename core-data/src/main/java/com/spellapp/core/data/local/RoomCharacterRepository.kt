@@ -289,19 +289,22 @@ class RoomCharacterRepository private constructor(
             ) ?: return@withTransaction false
 
             val spellId = targetSlot.preparedSpellId ?: return@withTransaction false
-            if (targetSlot.isExpended) {
+            val isCantrip = rank == 0
+            if (!isCantrip && targetSlot.isExpended) {
                 return@withTransaction false
             }
 
-            val updateCount = preparedSlotDao.setExpendedState(
-                characterId = characterId,
-                trackKey = trackKey,
-                rank = rank,
-                slotIndex = slotIndex,
-                isExpended = true,
-            )
-            if (updateCount <= 0) {
-                return@withTransaction false
+            if (!isCantrip) {
+                val updateCount = preparedSlotDao.setExpendedState(
+                    characterId = characterId,
+                    trackKey = trackKey,
+                    rank = rank,
+                    slotIndex = slotIndex,
+                    isExpended = true,
+                )
+                if (updateCount <= 0) {
+                    return@withTransaction false
+                }
             }
 
             sessionEventDao.insert(
@@ -353,15 +356,17 @@ class RoomCharacterRepository private constructor(
                 ?: return@withTransaction false
             val eventTrackKey = SessionEventMetadata.trackKeyOrDefault(latestEvent.metadataJson)
 
-            val updateCount = preparedSlotDao.setExpendedState(
-                characterId = characterId,
-                trackKey = eventTrackKey,
-                rank = rank,
-                slotIndex = slotIndex,
-                isExpended = false,
-            )
-            if (updateCount <= 0) {
-                return@withTransaction false
+            if (rank != 0) {
+                val updateCount = preparedSlotDao.setExpendedState(
+                    characterId = characterId,
+                    trackKey = eventTrackKey,
+                    rank = rank,
+                    slotIndex = slotIndex,
+                    isExpended = false,
+                )
+                if (updateCount <= 0) {
+                    return@withTransaction false
+                }
             }
 
             sessionEventDao.insert(
@@ -426,6 +431,9 @@ class RoomCharacterRepository private constructor(
         if (tracks.isEmpty()) {
             return
         }
+        val selectedBuildOptionIds = characterBuildOptionDao.getByCharacter(character.id)
+            .map { entity -> entity.optionId }
+            .toSet()
 
         val currentByTrackAndRank = preparedSlotDao.getByCharacter(character.id)
             .groupBy { slot -> slot.trackKey to slot.rank }
@@ -451,7 +459,8 @@ class RoomCharacterRepository private constructor(
         tracks.forEach { track ->
             val desiredByRank = slotProgressionEngine.slotCountsByRank(
                 level = character.level,
-                progressionType = track.progressionType,
+                track = track,
+                selectedBuildOptionIds = selectedBuildOptionIds,
             )
             val ranksInPlay = (desiredByRank.keys + currentByTrackAndRank.keys
                 .filter { (trackKey, _) -> trackKey == track.trackKey }

@@ -13,7 +13,7 @@ class DefaultCastingStateDeriverReadableTest {
     private val deriver = DefaultCastingStateDeriver()
 
     @Test
-    fun archetypeSpellcasting_dedicationBasicExpertMaster_matchesExpectedTrackShape() {
+    fun derive_givenExplicitArchetypeEffects_matchesExpectedTrackShape() {
         val dedication = source(CharacterBuildOptionType.ARCHETYPE, "archetype/wizard/wizard-dedication", "Wizard Dedication")
         val basic = source(CharacterBuildOptionType.FEAT, "archetype/wizard/basic-wizard-spellcasting", "Basic Wizard Spellcasting")
         val expert = source(CharacterBuildOptionType.FEAT, "archetype/wizard/expert-wizard-spellcasting", "Expert Wizard Spellcasting")
@@ -150,6 +150,64 @@ class DefaultCastingStateDeriverReadableTest {
     }
 
     @Test
+    fun grantSpellcastingTrackEffect_onExistingTrack_mergesWithoutResettingAccumulatedState() {
+        val classSource = source(CharacterBuildOptionType.CLASS, "cleric", "Cleric")
+        val featureSource = source(CharacterBuildOptionType.CLASS_FEATURE, "feature/reframe-track", "Reframe Track")
+
+        val buildState = CharacterBuildState(
+            characterId = 1004L,
+            level = 6,
+            primaryClass = CharacterClass.CLERIC,
+            baseTracks = listOf(
+                BuildTrackDefinition(
+                    trackKey = "primary",
+                    progressionType = CastingProgressionType.FULL_PREPARED,
+                    castingStyle = SpellcastingStyle.PREPARED,
+                    tradition = SpellTradition.DIVINE,
+                    source = classSource,
+                ),
+            ),
+            effects = listOf(
+                GrantPreparedSlotsEffect(
+                    source = classSource,
+                    trackKey = "primary",
+                    rank = 1,
+                    slotCount = 2,
+                ),
+                GrantCantripsEffect(
+                    source = classSource,
+                    trackKey = "primary",
+                    count = 4,
+                ),
+                GrantSpellcastingTrackEffect(
+                    source = featureSource,
+                    track = BuildTrackDefinition(
+                        trackKey = "primary",
+                        progressionType = CastingProgressionType.FULL_PREPARED,
+                        castingStyle = SpellcastingStyle.PREPARED,
+                        tradition = SpellTradition.DIVINE,
+                        source = featureSource,
+                    ),
+                ),
+                GrantPreparedSlotsEffect(
+                    source = classSource,
+                    trackKey = "primary",
+                    rank = 2,
+                    slotCount = 1,
+                ),
+            ),
+        )
+
+        val result = deriver.derive(buildState)
+        val track = result.tracks.single { it.trackKey == "primary" }
+
+        assertEquals(mapOf(1 to 2, 2 to 1), track.slotCapsByRank)
+        assertEquals(4, track.grantedCantrips)
+        assertTrue(track.contributingSources.any { it.optionId == "cleric" })
+        assertTrue(track.contributingSources.any { it.optionId == "feature/reframe-track" })
+    }
+
+    @Test
     fun filterLegalPreparedSpellTargets_allowsTrackTradition_and_explicitExceptions() {
         val track = DerivedCastingTrackState(
             trackKey = "primary-cleric",
@@ -176,6 +234,43 @@ class DefaultCastingStateDeriverReadableTest {
 
         assertEquals(setOf("divine-ok", "arcane-exception"), legal.map { it.id }.toSet())
         assertFalse(legal.any { it.id == "arcane-blocked" })
+    }
+
+    @Test
+    fun filterLegalPreparedSpellTargets_acceptsAnyMatchingTraditionFromSummary() {
+        val track = DerivedCastingTrackState(
+            trackKey = "primary-cleric",
+            progressionType = CastingProgressionType.FULL_PREPARED,
+            castingStyle = SpellcastingStyle.PREPARED,
+            tradition = SpellTradition.DIVINE,
+            slotCapsByRank = mapOf(1 to 2),
+            grantedCantrips = 5,
+            permanentPreparedSpells = emptyList(),
+            legalityProfile = TrackSpellLegalityProfile(
+                allowedTraditions = setOf(SpellTradition.DIVINE),
+            ),
+            contributingSources = emptySet(),
+        )
+
+        val candidates = listOf(
+            SpellListItem(
+                id = "heal",
+                name = "Heal",
+                rank = 1,
+                tradition = "divine, primal, occult",
+            ),
+            SpellListItem(
+                id = "arcane-only",
+                name = "Arcane Only",
+                rank = 1,
+                tradition = "arcane",
+            ),
+        )
+
+        val legal = track.filterLegalPreparedSpellTargets(candidates)
+
+        assertEquals(setOf("heal"), legal.map { it.id }.toSet())
+        assertFalse(legal.any { it.id == "arcane-only" })
     }
 
     private fun source(

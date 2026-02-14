@@ -3,13 +3,32 @@ package com.spellapp.core.rules
 import com.spellapp.core.model.SpellListItem
 
 fun parseSpellTradition(rawTradition: String?): SpellTradition {
-    return when (rawTradition?.trim()?.lowercase()) {
+    return when (rawTradition?.trim()?.lowercase()?.removeSurrounding("\"")) {
         "arcane" -> SpellTradition.ARCANE
         "divine" -> SpellTradition.DIVINE
         "occult" -> SpellTradition.OCCULT
         "primal" -> SpellTradition.PRIMAL
         else -> SpellTradition.OTHER
     }
+}
+
+fun parseSpellTraditions(rawTraditionSummary: String?): Set<SpellTradition> {
+    if (rawTraditionSummary.isNullOrBlank()) {
+        return setOf(SpellTradition.OTHER)
+    }
+
+    val parts = rawTraditionSummary
+        .split(',', ';', '|', '/')
+        .map { part -> part.trim() }
+        .filter { part -> part.isNotBlank() }
+
+    if (parts.isEmpty()) {
+        return setOf(SpellTradition.OTHER)
+    }
+
+    return parts
+        .map { part -> parseSpellTradition(part) }
+        .toSet()
 }
 
 fun DerivedCastingTrackState.isLegalPreparedSpell(
@@ -22,10 +41,20 @@ fun DerivedCastingTrackState.isLegalPreparedSpell(
     )
 }
 
+fun DerivedCastingTrackState.isLegalPreparedSpell(
+    spellId: String,
+    spellTraditions: Set<SpellTradition>,
+): Boolean {
+    return legalityProfile.isSpellLegal(
+        spellId = spellId,
+        spellTraditions = spellTraditions,
+    )
+}
+
 fun DerivedCastingTrackState.isLegalPreparedSpell(spell: SpellListItem): Boolean {
     return isLegalPreparedSpell(
         spellId = spell.id,
-        spellTradition = parseSpellTradition(spell.tradition),
+        spellTraditions = parseSpellTraditions(spell.tradition),
     )
 }
 
