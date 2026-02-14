@@ -21,6 +21,7 @@ class MainActivity : ComponentActivity() {
                 spellRepository = appContainer.spellRepository,
                 characterRepository = appContainer.characterRepository,
                 classDefinitionSource = appContainer.characterClassDefinitionSource,
+                archetypeSpellcastingCatalogSource = appContainer.archetypeSpellcastingCatalogSource,
                 seedUiState = seedUiState,
                 onRetrySeed = ::syncSpellData,
             )

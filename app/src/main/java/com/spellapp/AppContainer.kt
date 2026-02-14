@@ -6,6 +6,8 @@ import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.data.local.RoomCharacterRepository
 import com.spellapp.core.data.local.RoomSpellRepository
 import com.spellapp.core.data.local.SpellDatabase
+import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
+import com.spellapp.feature.character.AssetArchetypeSpellcastingCatalogSource
 import com.spellapp.feature.character.AssetCharacterClassDefinitionSource
 import com.spellapp.feature.character.CharacterClassDefinitionSource
 
@@ -36,6 +38,10 @@ class AppContainer(
 
     val characterClassDefinitionSource: CharacterClassDefinitionSource by lazy {
         AssetCharacterClassDefinitionSource(appContext)
+    }
+
+    val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource by lazy {
+        AssetArchetypeSpellcastingCatalogSource(appContext)
     }
 
     suspend fun seedSpellsIfNeeded() {

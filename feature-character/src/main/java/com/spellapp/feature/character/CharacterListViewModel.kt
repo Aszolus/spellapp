@@ -3,12 +3,14 @@ package com.spellapp.feature.character
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.model.CastingProgressionType
 import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CastingTrackSourceType
+import com.spellapp.core.model.CharacterBuildOption
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,39 +23,47 @@ import kotlinx.coroutines.launch
 data class CharacterListUiState(
     val characters: List<CharacterProfile> = emptyList(),
     val editingCharacter: CharacterProfile? = null,
-    val editingArchetypeTrackCount: Int = 0,
+    val editingSelectedBuildOptionIds: Set<String> = emptySet(),
     val isEditorVisible: Boolean = false,
     val classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition> = emptyMap(),
     val availableClasses: List<CharacterClassDefinition> = emptyList(),
+    val archetypeSpellcastingPackages: List<ArchetypeSpellcastingPackage> = emptyList(),
 )
 
 class CharacterListViewModel(
-    private val characterRepository: CharacterCrudRepository,
+    private val characterCrudRepository: CharacterCrudRepository,
+    private val characterBuildRepository: CharacterBuildRepository,
     private val castingTrackRepository: CastingTrackRepository,
     private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
     private val classDefinitionSource: CharacterClassDefinitionSource,
+    private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
 ) : ViewModel() {
     private val editingCharacter = MutableStateFlow<CharacterProfile?>(null)
-    private val editingArchetypeTrackCount = MutableStateFlow(0)
+    private val editingSelectedBuildOptionIds = MutableStateFlow<Set<String>>(emptySet())
     private val isEditorVisible = MutableStateFlow(false)
     private val classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition> =
         classDefinitionSource.allDefinitions().associateBy { it.characterClass }
     private val availableClasses: List<CharacterClassDefinition> =
         classDefinitionSource.phaseOneDefinitions()
+    private val archetypeSpellcastingPackages: List<ArchetypeSpellcastingPackage> =
+        archetypeSpellcastingCatalogSource.phaseOnePackages()
+    private val managedArchetypeOptionIds: Set<String> =
+        archetypeSpellcastingCatalogSource.managedOptionIds()
 
     val uiState = combine(
-        characterRepository.observeCharacters(),
+        characterCrudRepository.observeCharacters(),
         editingCharacter,
-        editingArchetypeTrackCount,
+        editingSelectedBuildOptionIds,
         isEditorVisible,
-    ) { characters, editing, archetypeCount, visible ->
+    ) { characters, editing, selectedOptionIds, visible ->
         CharacterListUiState(
             characters = characters,
             editingCharacter = editing,
-            editingArchetypeTrackCount = archetypeCount,
+            editingSelectedBuildOptionIds = selectedOptionIds,
             isEditorVisible = visible,
             classDefinitionsByClass = classDefinitionsByClass,
             availableClasses = availableClasses,
+            archetypeSpellcastingPackages = archetypeSpellcastingPackages,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -63,19 +73,21 @@ class CharacterListViewModel(
 
     fun onAddCharacterRequest() {
         editingCharacter.update { null }
-        editingArchetypeTrackCount.update { 0 }
+        editingSelectedBuildOptionIds.update { emptySet() }
         isEditorVisible.update { true }
     }
 
     fun onEditCharacterRequest(character: CharacterProfile) {
         editingCharacter.update { character }
-        editingArchetypeTrackCount.update { 0 }
+        editingSelectedBuildOptionIds.update { emptySet() }
         isEditorVisible.update { true }
         viewModelScope.launch {
-            val archetypeCount = castingTrackRepository.getCastingTracks(character.id)
-                .count { it.sourceType == CastingTrackSourceType.ARCHETYPE }
+            val selectedOptionIds = characterBuildRepository.getBuildOptions(character.id)
+                .map { it.optionId }
+                .filter { optionId -> optionId in managedArchetypeOptionIds }
+                .toSet()
             if (editingCharacter.value?.id == character.id) {
-                editingArchetypeTrackCount.update { archetypeCount }
+                editingSelectedBuildOptionIds.update { selectedOptionIds }
             }
         }
     }
@@ -86,14 +98,17 @@ class CharacterListViewModel(
 
     fun saveCharacter(
         character: CharacterProfile,
-        archetypeTrackCount: Int,
+        selectedBuildOptionIds: Set<String>,
     ) {
         viewModelScope.launch {
-            val characterId = characterRepository.upsertCharacter(character)
-            reconcileArchetypeTracks(
+            val characterId = characterCrudRepository.upsertCharacter(character)
+            val shouldReconcileArchetypes = persistManagedBuildOptions(
                 characterId = characterId,
-                desiredCount = archetypeTrackCount.coerceAtLeast(0),
+                selectedBuildOptionIds = selectedBuildOptionIds,
             )
+            if (shouldReconcileArchetypes) {
+                reconcileArchetypeTracks(characterId, selectedBuildOptionIds)
+            }
             preparedSlotSyncRepository.syncPreparedSlotsForCharacter(characterId)
             isEditorVisible.update { false }
         }
@@ -101,73 +116,93 @@ class CharacterListViewModel(
 
     fun deleteCharacter(characterId: Long) {
         viewModelScope.launch {
-            characterRepository.deleteCharacter(characterId)
+            characterCrudRepository.deleteCharacter(characterId)
         }
     }
 
     private suspend fun reconcileArchetypeTracks(
         characterId: Long,
-        desiredCount: Int,
+        selectedBuildOptionIds: Set<String>,
     ) {
-        val existingArchetypes = castingTrackRepository.getCastingTracks(characterId)
+        val existingArchetypeTracks = castingTrackRepository.getCastingTracks(characterId)
             .filter { it.sourceType == CastingTrackSourceType.ARCHETYPE }
-        val currentCount = existingArchetypes.size
+        val selectedArchetypes = archetypeSpellcastingPackages
+            .filter { packageDef -> packageDef.dedicationOptionId in selectedBuildOptionIds }
+        val desiredTracksByKey = selectedArchetypes.associateBy { packageDef ->
+            trackKeyForArchetype(packageDef.archetypeId)
+        }
 
-        if (currentCount < desiredCount) {
-            repeat(desiredCount - currentCount) {
-                val nextIndex = nextArchetypeIndex(
-                    existingArchetypes = castingTrackRepository.getCastingTracks(characterId)
-                        .filter { track -> track.sourceType == CastingTrackSourceType.ARCHETYPE },
-                )
-                castingTrackRepository.upsertCastingTrack(
-                    CastingTrack(
-                        characterId = characterId,
-                        trackKey = "archetype-$nextIndex",
-                        sourceType = CastingTrackSourceType.ARCHETYPE,
-                        sourceId = "Archetype $nextIndex",
-                        progressionType = CastingProgressionType.ARCHETYPE_PREPARED,
-                    ),
-                )
-            }
-        } else if (currentCount > desiredCount) {
-            val toRemove = existingArchetypes
-                .sortedByDescending { archetypeTrackOrder(it.trackKey) }
-                .take(currentCount - desiredCount)
-            toRemove.forEach { track ->
+        existingArchetypeTracks
+            .filterNot { track -> track.trackKey in desiredTracksByKey.keys }
+            .forEach { track ->
                 castingTrackRepository.deleteCastingTrack(
                     characterId = characterId,
                     trackKey = track.trackKey,
                 )
             }
+
+        desiredTracksByKey.forEach { (trackKey, packageDef) ->
+            castingTrackRepository.upsertCastingTrack(
+                CastingTrack(
+                    characterId = characterId,
+                    trackKey = trackKey,
+                    sourceType = CastingTrackSourceType.ARCHETYPE,
+                    sourceId = packageDef.label,
+                    progressionType = CastingProgressionType.ARCHETYPE_PREPARED,
+                ),
+            )
         }
     }
 
-    private fun nextArchetypeIndex(existingArchetypes: List<CastingTrack>): Int {
-        val used = existingArchetypes.map { archetypeTrackOrder(it.trackKey) }
-            .filter { it > 0 }
+    private suspend fun persistManagedBuildOptions(
+        characterId: Long,
+        selectedBuildOptionIds: Set<String>,
+    ): Boolean {
+        val existingOptions = characterBuildRepository.getBuildOptions(characterId)
+        val existingManagedOptions = existingOptions
+            .filter { option -> option.optionId in managedArchetypeOptionIds }
+        val selectedManagedOptionIds = selectedBuildOptionIds
+            .filter { optionId -> optionId in managedArchetypeOptionIds }
             .toSet()
-        var candidate = 1
-        while (candidate in used) {
-            candidate += 1
+        val hasManagedState = existingManagedOptions.isNotEmpty() || selectedManagedOptionIds.isNotEmpty()
+        if (!hasManagedState) {
+            return false
         }
-        return candidate
+
+        val retainedOptions = existingOptions
+            .filterNot { option -> option.optionId in managedArchetypeOptionIds }
+        val managedOptions = selectedManagedOptionIds
+            .sorted()
+            .mapNotNull { optionId ->
+                val optionType = archetypeSpellcastingCatalogSource.optionTypeForOptionId(optionId)
+                    ?: return@mapNotNull null
+                CharacterBuildOption(
+                    characterId = characterId,
+                    optionType = optionType,
+                    optionId = optionId,
+                )
+            }
+
+        characterBuildRepository.replaceBuildOptions(
+            characterId = characterId,
+            options = retainedOptions + managedOptions,
+        )
+        return true
     }
 
-    private fun archetypeTrackOrder(trackKey: String): Int {
-        return Regex("^archetype-(\\d+)$")
-            .matchEntire(trackKey)
-            ?.groupValues
-            ?.getOrNull(1)
-            ?.toIntOrNull()
-            ?: 0
+    private fun trackKeyForArchetype(archetypeId: String): String {
+        return "archetype-$archetypeId"
     }
 }
 
 class CharacterListViewModelFactory(
-    private val characterRepository: CharacterCrudRepository,
+    private val characterCrudRepository: CharacterCrudRepository,
+    private val characterBuildRepository: CharacterBuildRepository,
     private val castingTrackRepository: CastingTrackRepository,
     private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
     private val classDefinitionSource: CharacterClassDefinitionSource = StaticCharacterClassDefinitionSource,
+    private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource =
+        StaticArchetypeSpellcastingCatalogSource,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -175,10 +210,12 @@ class CharacterListViewModelFactory(
             throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
         }
         return CharacterListViewModel(
-            characterRepository = characterRepository,
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
             castingTrackRepository = castingTrackRepository,
             preparedSlotSyncRepository = preparedSlotSyncRepository,
             classDefinitionSource = classDefinitionSource,
+            archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
         ) as T
     }
 }

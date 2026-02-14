@@ -1,0 +1,85 @@
+﻿{
+    "datasetVersion":  "20260214-091234",
+    "sourceCommit":  "local-unknown",
+    "entries":  [
+                    {
+                        "license":  "OGL",
+                        "count":  214,
+                        "sourceTypes":  [
+                                            "background",
+                                            "class",
+                                            "classFeature",
+                                            "feat"
+                                        ],
+                        "sources":  [
+                                        "Pathfinder #147: Tomorrow Must Burn",
+                                        "Pathfinder #148: Fires of the Haunted City",
+                                        "Pathfinder #153: Life\u0027s Long Shadows",
+                                        "Pathfinder #156: The Apocalypse Prophet",
+                                        "Pathfinder #163: Ruins of Gauntlight",
+                                        "Pathfinder #164: Hands of the Devil",
+                                        "Pathfinder #166: Despair on Danger Island",
+                                        "Pathfinder #168: King of the Mountain",
+                                        "Pathfinder #170: Spoken on the Song Wind",
+                                        "Pathfinder #172: Secrets of the Temple-City",
+                                        "Pathfinder #174: Shadows of the Ancients",
+                                        "Pathfinder #191: The Destiny War",
+                                        "Pathfinder #192: Worst of All Possible Worlds",
+                                        "Pathfinder #195: Heavy is the Crown",
+                                        "Pathfinder Advanced Player\u0027s Guide",
+                                        "Pathfinder Book of the Dead",
+                                        "Pathfinder Core Rulebook",
+                                        "Pathfinder Dark Archive",
+                                        "Pathfinder Dark Archive (Remastered)",
+                                        "Pathfinder Fists of the Ruby Phoenix Hardcover Compilation",
+                                        "Pathfinder Lost Omens Ancestry Guide",
+                                        "Pathfinder Lost Omens Character Guide",
+                                        "Pathfinder Lost Omens Impossible Lands",
+                                        "Pathfinder Lost Omens Knights of Lastwall",
+                                        "Pathfinder Lost Omens Legends",
+                                        "Pathfinder Lost Omens Pathfinder Society Guide",
+                                        "Pathfinder Lost Omens The Grand Bazaar",
+                                        "Pathfinder Lost Omens The Mwangi Expanse",
+                                        "Pathfinder Lost Omens Travel Guide",
+                                        "Pathfinder Lost Omens World Guide",
+                                        "Pathfinder Rage of Elements",
+                                        "Pathfinder Secrets of Magic",
+                                        "Pathfinder Sky King\u0027s Tomb Player\u0027s Guide",
+                                        "Pathfinder Stolen Fate Player\u0027s Guide"
+                                    ]
+                    },
+                    {
+                        "license":  "ORC",
+                        "count":  455,
+                        "sourceTypes":  [
+                                            "background",
+                                            "class",
+                                            "classFeature",
+                                            "feat"
+                                        ],
+                        "sources":  [
+                                        "Pathfinder #213: Thirst for Blood",
+                                        "Pathfinder #215: To Blot Out the Sun",
+                                        "Pathfinder #216: The Acropolis Pyre",
+                                        "Pathfinder Adventure Path: Gatewalkers",
+                                        "Pathfinder Adventure: Prey for Death",
+                                        "Pathfinder Battlecry!",
+                                        "Pathfinder Claws of the Tyrant",
+                                        "Pathfinder Dark Archive (Remastered)",
+                                        "Pathfinder Guns \u0026 Gears",
+                                        "Pathfinder Howl of the Wild",
+                                        "Pathfinder Lost Omens Divine Mysteries",
+                                        "Pathfinder Lost Omens Draconic Codex",
+                                        "Pathfinder Lost Omens Rival Academies",
+                                        "Pathfinder Lost Omens Shining Kingdoms",
+                                        "Pathfinder Lost Omens Tian Xia Character Guide",
+                                        "Pathfinder Player Core",
+                                        "Pathfinder Player Core 2",
+                                        "Pathfinder Revenge of the Runelords Player\u0027s Guide",
+                                        "Pathfinder Shades of Blood Player\u0027s Guide",
+                                        "Pathfinder Treasure Vault (Remastered)",
+                                        "Pathfinder War of Immortals"
+                                    ]
+                    }
+                ]
+}

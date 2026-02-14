@@ -45,5 +45,8 @@ dependencies {
         implementation("androidx.core:core-ktx:1.13.1")
     }
 
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+
     debugImplementation(libs.androidx.ui.tooling)
 }

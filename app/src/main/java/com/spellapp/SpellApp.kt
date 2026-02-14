@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.spellapp.core.data.CharacterRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.ui.SpellAppTheme
+import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
 import com.spellapp.feature.character.CharacterClassDefinitionSource
 import com.spellapp.feature.character.CharacterListViewModel
 import com.spellapp.feature.character.CharacterListViewModelFactory
@@ -18,6 +19,7 @@ fun SpellApp(
     spellRepository: SpellRepository,
     characterRepository: CharacterRepository,
     classDefinitionSource: CharacterClassDefinitionSource,
+    archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
     seedUiState: SeedUiState,
     onRetrySeed: () -> Unit,
 ) {
@@ -26,10 +28,12 @@ fun SpellApp(
         key = "character-list",
         factory = remember {
             CharacterListViewModelFactory(
-                characterRepository = characterRepository,
+                characterCrudRepository = characterRepository,
+                characterBuildRepository = characterRepository,
                 castingTrackRepository = characterRepository,
                 preparedSlotSyncRepository = characterRepository,
                 classDefinitionSource = classDefinitionSource,
+                archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
             )
         },
     )

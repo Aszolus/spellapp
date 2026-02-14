@@ -46,10 +46,19 @@ powershell -ExecutionPolicy Bypass -File .\scripts\update_class_dataset.ps1 `
   -FoundryClassesDir "<path-to-foundry\packs\pf2e\classes>" `
   -SourceCommit "<foundry-commit-hash>"
 ```
-4. Rebuild app. The scripts overwrite:
+4. Update rules catalog:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\update_rules_catalog.ps1 `
+  -FoundryPf2ePacksDir "<path-to-foundry\packs\pf2e>" `
+  -SourceCommit "<foundry-commit-hash>"
+```
+5. Rebuild app. The scripts overwrite:
    - `app/src/main/assets/spells.normalized.json`
    - `app/src/main/assets/spells.attribution.json`
    - `app/src/main/assets/spells.changelog.json`
    - `app/src/main/assets/classes.normalized.json`
    - `app/src/main/assets/classes.attribution.json`
    - `app/src/main/assets/classes.changelog.json`
+   - `app/src/main/assets/rules.catalog.normalized.json`
+   - `app/src/main/assets/rules.catalog.attribution.json`
+   - `app/src/main/assets/rules.catalog.changelog.json`

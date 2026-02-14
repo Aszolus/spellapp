@@ -1,12 +1,13 @@
 package com.spellapp.feature.character
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -152,11 +153,12 @@ private fun CharacterRow(
 @Composable
 fun CharacterEditorDialog(
     initialCharacter: CharacterProfile?,
-    initialArchetypeTrackCount: Int,
+    initialSelectedBuildOptionIds: Set<String>,
     availableClasses: List<CharacterClassDefinition>,
     classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
+    archetypeSpellcastingPackages: List<ArchetypeSpellcastingPackage>,
     onDismiss: () -> Unit,
-    onSave: (CharacterProfile, Int) -> Unit,
+    onSave: (CharacterProfile, Set<String>) -> Unit,
 ) {
     var name by remember(initialCharacter) { mutableStateOf(initialCharacter?.name.orEmpty()) }
     var levelText by remember(initialCharacter) {
@@ -182,14 +184,15 @@ fun CharacterEditorDialog(
     var legacyEnabled by remember(initialCharacter) {
         mutableStateOf(initialCharacter?.legacyTerminologyEnabled ?: false)
     }
-    var archetypeTrackCount by remember(initialCharacter, initialArchetypeTrackCount) {
-        mutableStateOf(initialArchetypeTrackCount.coerceAtLeast(0))
+    var selectedBuildOptionIds by remember(initialCharacter, initialSelectedBuildOptionIds) {
+        mutableStateOf(initialSelectedBuildOptionIds.toSet())
     }
 
     val level = levelText.toIntOrNull()?.coerceIn(1, 20)
     val spellDc = spellDcText.toIntOrNull()?.coerceIn(0, 99)
     val spellAttack = spellAttackText.toIntOrNull()?.coerceIn(-99, 99)
     val canSave = name.isNotBlank() && level != null && spellDc != null && spellAttack != null
+    val packageScroll = rememberScrollState()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -271,30 +274,125 @@ fun CharacterEditorDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
+                Text(
+                    text = "Archetype spellcasting",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                if (archetypeSpellcastingPackages.isEmpty()) {
                     Text(
-                        text = "Archetype tracks",
+                        text = "No phase-one archetype spellcasting packages available.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(
-                            onClick = { archetypeTrackCount = (archetypeTrackCount - 1).coerceAtLeast(0) },
-                            enabled = archetypeTrackCount > 0,
-                        ) {
-                            Text("-")
-                        }
+                } else {
+                    archetypeSpellcastingPackages.forEach { packageDef ->
+                        val dedicationSelected = packageDef.dedicationOptionId in selectedBuildOptionIds
+                        val basicSelected = packageDef.basicSpellcastingOptionId
+                            ?.let { optionId -> optionId in selectedBuildOptionIds }
+                            ?: false
+                        val expertSelected = packageDef.expertSpellcastingOptionId
+                            ?.let { optionId -> optionId in selectedBuildOptionIds }
+                            ?: false
+                        val masterSelected = packageDef.masterSpellcastingOptionId
+                            ?.let { optionId -> optionId in selectedBuildOptionIds }
+                            ?: false
+
                         Text(
-                            text = archetypeTrackCount.toString(),
-                            modifier = Modifier.width(24.dp),
+                            text = packageDef.label,
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                        TextButton(
-                            onClick = { archetypeTrackCount += 1 },
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(packageScroll),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text("+")
+                            FilterChip(
+                                selected = dedicationSelected,
+                                onClick = {
+                                    val next = selectedBuildOptionIds.toMutableSet()
+                                    if (dedicationSelected) {
+                                        next -= packageDef.dedicationOptionId
+                                        listOfNotNull(
+                                            packageDef.basicSpellcastingOptionId,
+                                            packageDef.expertSpellcastingOptionId,
+                                            packageDef.masterSpellcastingOptionId,
+                                        ).forEach { optionId -> next -= optionId }
+                                    } else {
+                                        next += packageDef.dedicationOptionId
+                                    }
+                                    selectedBuildOptionIds = next
+                                },
+                                label = { Text("Dedication") },
+                            )
+                            FilterChip(
+                                selected = basicSelected,
+                                onClick = {
+                                    val basicOptionId = packageDef.basicSpellcastingOptionId
+                                    if (basicOptionId != null) {
+                                        val next = selectedBuildOptionIds.toMutableSet()
+                                        if (basicSelected) {
+                                            next -= basicOptionId
+                                            packageDef.expertSpellcastingOptionId?.let { next -= it }
+                                            packageDef.masterSpellcastingOptionId?.let { next -= it }
+                                        } else {
+                                            next += packageDef.dedicationOptionId
+                                            next += basicOptionId
+                                        }
+                                        selectedBuildOptionIds = next
+                                    }
+                                },
+                                enabled = packageDef.basicSpellcastingOptionId != null,
+                                label = { Text("Basic") },
+                            )
+                            FilterChip(
+                                selected = expertSelected,
+                                onClick = {
+                                    val expertOptionId = packageDef.expertSpellcastingOptionId
+                                    if (expertOptionId != null) {
+                                        val basicOptionId = packageDef.basicSpellcastingOptionId
+                                        val next = selectedBuildOptionIds.toMutableSet()
+                                        if (expertSelected) {
+                                            next -= expertOptionId
+                                            packageDef.masterSpellcastingOptionId?.let { next -= it }
+                                        } else {
+                                            next += packageDef.dedicationOptionId
+                                            if (basicOptionId != null) {
+                                                next += basicOptionId
+                                            }
+                                            next += expertOptionId
+                                        }
+                                        selectedBuildOptionIds = next
+                                    }
+                                },
+                                enabled = packageDef.expertSpellcastingOptionId != null,
+                                label = { Text("Expert") },
+                            )
+                            FilterChip(
+                                selected = masterSelected,
+                                onClick = {
+                                    val masterOptionId = packageDef.masterSpellcastingOptionId
+                                    if (masterOptionId != null) {
+                                        val basicOptionId = packageDef.basicSpellcastingOptionId
+                                        val expertOptionId = packageDef.expertSpellcastingOptionId
+                                        val next = selectedBuildOptionIds.toMutableSet()
+                                        if (masterSelected) {
+                                            next -= masterOptionId
+                                        } else {
+                                            next += packageDef.dedicationOptionId
+                                            if (basicOptionId != null) {
+                                                next += basicOptionId
+                                            }
+                                            if (expertOptionId != null) {
+                                                next += expertOptionId
+                                            }
+                                            next += masterOptionId
+                                        }
+                                        selectedBuildOptionIds = next
+                                    }
+                                },
+                                enabled = packageDef.masterSpellcastingOptionId != null,
+                                label = { Text("Master") },
+                            )
                         }
                     }
                 }
@@ -333,7 +431,7 @@ fun CharacterEditorDialog(
                             spellAttackModifier = spellAttack ?: 0,
                             legacyTerminologyEnabled = legacyEnabled,
                         ),
-                        archetypeTrackCount,
+                        selectedBuildOptionIds,
                     )
                 },
                 enabled = canSave,
