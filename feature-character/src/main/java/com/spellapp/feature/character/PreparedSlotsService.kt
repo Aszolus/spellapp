@@ -1,16 +1,20 @@
 package com.spellapp.feature.character
 
 import com.spellapp.core.data.CastingTrackRepository
+import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.FocusStateRepository
 import com.spellapp.core.data.PreparedSlotRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CastingTrack
+import com.spellapp.core.model.CharacterClass
+import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.FocusState
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEvent
 import com.spellapp.core.model.SessionEventType
+import com.spellapp.core.model.SpellSlotSummary
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -22,6 +26,7 @@ class PreparedSlotsService(
     private val sessionEventRepository: SessionEventRepository,
     private val focusStateRepository: FocusStateRepository,
     private val spellRepository: SpellRepository,
+    private val characterCrudRepository: CharacterCrudRepository,
 ) {
     suspend fun syncPreparedSlots(characterId: Long) {
         preparedSlotSyncRepository.syncPreparedSlotsForCharacter(characterId)
@@ -61,25 +66,38 @@ class PreparedSlotsService(
         }
     }
 
-    suspend fun resolveSpellNames(
+    suspend fun resolveSpellSummaries(
         preparedSlots: List<PreparedSlot>,
         sessionEvents: List<SessionEvent>,
-    ): Map<String, String> {
+    ): Map<String, SpellSlotSummary> {
         val ids = (preparedSlots.mapNotNull { it.preparedSpellId } + sessionEvents.mapNotNull { it.spellId })
             .distinct()
-        return ids.associateWith { spellId ->
-            spellRepository.getSpellDetail(spellId)?.name ?: spellId
-        }
+        return ids.mapNotNull { spellId ->
+            spellRepository.getSpellDetail(spellId)?.let { detail ->
+                spellId to SpellSlotSummary(
+                    spellId = detail.id,
+                    name = detail.name,
+                    castTime = detail.castTime,
+                    range = detail.range,
+                    traits = detail.traits,
+                )
+            }
+        }.toMap()
     }
 
     fun formatRecentEventLines(
         sessionEvents: List<SessionEvent>,
-        spellNameById: Map<String, String>,
+        spellSummaryById: Map<String, SpellSlotSummary>,
         limit: Int = 8,
     ): List<String> {
+        val nameMap = spellSummaryById.mapValues { it.value.name }
         return sessionEvents
             .take(limit)
-            .map { event -> formatSessionEventLine(event, spellNameById) }
+            .map { event -> formatSessionEventLine(event, nameMap) }
+    }
+
+    suspend fun getCharacterProfile(characterId: Long): CharacterProfile? {
+        return characterCrudRepository.getCharacter(characterId)
     }
 
     suspend fun clearSpell(
@@ -103,6 +121,20 @@ class PreparedSlotsService(
         trackKey: String,
     ): Boolean {
         return preparedSlotRepository.castPreparedSlot(
+            characterId = characterId,
+            rank = rank,
+            slotIndex = slotIndex,
+            trackKey = trackKey,
+        )
+    }
+
+    suspend fun uncastSlot(
+        characterId: Long,
+        rank: Int,
+        slotIndex: Int,
+        trackKey: String,
+    ): Boolean {
+        return preparedSlotRepository.uncastSlot(
             characterId = characterId,
             rank = rank,
             slotIndex = slotIndex,
@@ -210,6 +242,71 @@ class PreparedSlotsService(
             ),
         )
         return true
+    }
+
+    suspend fun prepareRandom(
+        characterId: Long,
+        trackKey: String,
+    ) {
+        val character = characterCrudRepository.getCharacter(characterId) ?: return
+        val tradition = traditionStringForTrack(trackKey, character.characterClass) ?: return
+        val slots = preparedSlotRepository.observePreparedSlots(
+            characterId = characterId,
+            trackKey = trackKey,
+        ).first()
+        val emptySlots = slots.filter { it.preparedSpellId == null }
+        if (emptySlots.isEmpty()) return
+
+        // Fetch all spells for this tradition once, then filter per-rank in memory.
+        // A spell of rank N can fill any slot of rank >= N (heightening).
+        // Cantrip slots (rank 0) only accept cantrips.
+        val allTraditionSpells = spellRepository.observeSpells(
+            tradition = tradition,
+        ).first()
+
+        val slotsByRank = emptySlots.groupBy { it.rank }
+        for ((slotRank, rankSlots) in slotsByRank) {
+            val candidates = if (slotRank == 0) {
+                allTraditionSpells.filter { it.rank == 0 }
+            } else {
+                allTraditionSpells.filter { it.rank in 1..slotRank }
+            }
+            if (candidates.isEmpty()) continue
+            for (slot in rankSlots) {
+                val chosen = candidates.random()
+                preparedSlotRepository.assignSpellToPreparedSlot(
+                    characterId = characterId,
+                    rank = slotRank,
+                    slotIndex = slot.slotIndex,
+                    spellId = chosen.id,
+                    trackKey = trackKey,
+                )
+            }
+        }
+    }
+
+    private fun traditionStringForTrack(
+        trackKey: String,
+        characterClass: CharacterClass,
+    ): String? {
+        if (trackKey == PreparedSlot.PRIMARY_TRACK_KEY) {
+            return when (characterClass) {
+                CharacterClass.WIZARD -> "arcane"
+                CharacterClass.CLERIC -> "divine"
+                CharacterClass.DRUID -> "primal"
+                CharacterClass.OTHER -> null
+            }
+        }
+        if (trackKey.startsWith("archetype-")) {
+            val archetypeId = trackKey.removePrefix("archetype-").trim().lowercase()
+            return when (archetypeId) {
+                "wizard" -> "arcane"
+                "cleric" -> "divine"
+                "druid" -> "primal"
+                else -> null
+            }
+        }
+        return null
     }
 
     private fun formatSessionEventLine(

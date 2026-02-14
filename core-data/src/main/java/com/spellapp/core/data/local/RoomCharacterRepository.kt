@@ -324,6 +324,32 @@ class RoomCharacterRepository private constructor(
         }
     }
 
+    override suspend fun uncastSlot(
+        characterId: Long,
+        rank: Int,
+        slotIndex: Int,
+        trackKey: String,
+    ): Boolean {
+        val updateCount = preparedSlotDao.setExpendedState(
+            characterId = characterId,
+            trackKey = trackKey,
+            rank = rank,
+            slotIndex = slotIndex,
+            isExpended = false,
+        )
+        return updateCount > 0
+    }
+
+    override suspend fun restoreAllSlotsForTrack(
+        characterId: Long,
+        trackKey: String,
+    ): Int {
+        return preparedSlotDao.restoreAllSlotsForTrack(
+            characterId = characterId,
+            trackKey = trackKey,
+        )
+    }
+
     override suspend fun clearPreparedSlotsForTrack(
         characterId: Long,
         trackKey: String,

@@ -38,6 +38,16 @@ interface PreparedSlotRepository {
         slotIndex: Int,
         trackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
     ): Boolean
+    suspend fun uncastSlot(
+        characterId: Long,
+        rank: Int,
+        slotIndex: Int,
+        trackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
+    ): Boolean
+    suspend fun restoreAllSlotsForTrack(
+        characterId: Long,
+        trackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
+    ): Int
     suspend fun clearPreparedSlotsForTrack(
         characterId: Long,
         trackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,

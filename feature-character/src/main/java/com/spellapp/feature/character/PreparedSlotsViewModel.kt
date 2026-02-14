@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.spellapp.core.data.CastingTrackRepository
+import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.FocusStateRepository
 import com.spellapp.core.data.PreparedSlotRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
@@ -12,6 +13,7 @@ import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEventType
+import com.spellapp.core.model.SpellSlotSummary
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,12 +25,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class PreparedSlotsUiState(
-    val selectedRank: Int = 1,
+    val characterName: String = "Character",
+    val spellDc: Int = 0,
+    val spellAttackModifier: Int = 0,
     val selectedTrackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
     val castingTracks: List<CastingTrack> = emptyList(),
     val allSlots: List<PreparedSlot> = emptyList(),
-    val slotsForRank: List<PreparedSlot> = emptyList(),
-    val spellNameById: Map<String, String> = emptyMap(),
+    val spellSummaryById: Map<String, SpellSlotSummary> = emptyMap(),
     val focusCurrentPoints: Int = 0,
     val focusMaxPoints: Int = 1,
     val recentEventLines: List<String> = emptyList(),
@@ -36,25 +39,35 @@ data class PreparedSlotsUiState(
 )
 
 private data class SlotContext(
-    val selectedRank: Int,
     val selectedTrackKey: String,
     val castingTracks: List<CastingTrack>,
     val allSlots: List<PreparedSlot>,
-    val slotsForRank: List<PreparedSlot>,
 )
 
 private data class EventContext(
-    val spellNameById: Map<String, String>,
+    val spellSummaryById: Map<String, SpellSlotSummary>,
     val recentEventLines: List<String>,
     val canUndoLastCast: Boolean,
+)
+
+private data class CharacterContext(
+    val characterName: String,
+    val spellDc: Int,
+    val spellAttackModifier: Int,
 )
 
 class PreparedSlotsViewModel(
     private val characterId: Long,
     private val service: PreparedSlotsService,
 ) : ViewModel() {
-    private val selectedRank = MutableStateFlow(1)
     private val selectedTrackKey = MutableStateFlow(PreparedSlot.PRIMARY_TRACK_KEY)
+    private val characterProfile = MutableStateFlow(
+        CharacterContext(
+            characterName = "Character",
+            spellDc = 0,
+            spellAttackModifier = 0,
+        )
+    )
     private val castingTracks = service.observeCastingTracks(characterId)
         .stateIn(
             scope = viewModelScope,
@@ -105,10 +118,10 @@ class PreparedSlotsViewModel(
     private val focusState = service.observeFocusState(characterId)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val spellNameById = combine(preparedSlots, sessionEvents) { slots, events ->
+    private val spellSummaryById = combine(preparedSlots, sessionEvents) { slots, events ->
         slots to events
     }.mapLatest { (slots, events) ->
-        service.resolveSpellNames(
+        service.resolveSpellSummaries(
             preparedSlots = slots,
             sessionEvents = events,
         )
@@ -119,33 +132,29 @@ class PreparedSlotsViewModel(
     )
 
     private val slotContext = combine(
-        selectedRank,
         activeTrackKey,
         castingTracks,
         preparedSlots,
-    ) { rank, trackKey, tracks, slots ->
+    ) { trackKey, tracks, slots ->
         val sortedSlots = slots.sortedWith(
             compareBy<PreparedSlot> { it.rank }.thenBy { it.slotIndex },
         )
         SlotContext(
-            selectedRank = rank,
             selectedTrackKey = trackKey,
             castingTracks = tracks,
             allSlots = sortedSlots,
-            slotsForRank = sortedSlots
-                .filter { it.rank == rank },
         )
     }
 
     private val eventContext = combine(
         sessionEvents,
-        spellNameById,
-    ) { events, names ->
+        spellSummaryById,
+    ) { events, summaries ->
         EventContext(
-            spellNameById = names,
+            spellSummaryById = summaries,
             recentEventLines = service.formatRecentEventLines(
                 sessionEvents = events,
-                spellNameById = names,
+                spellSummaryById = summaries,
             ),
             canUndoLastCast = events.any { event -> event.type == SessionEventType.CAST_SPELL },
         )
@@ -155,14 +164,16 @@ class PreparedSlotsViewModel(
         slotContext,
         eventContext,
         focusState,
-    ) { slots, events, focus ->
+        characterProfile,
+    ) { slots, events, focus, character ->
         PreparedSlotsUiState(
-            selectedRank = slots.selectedRank,
+            characterName = character.characterName,
+            spellDc = character.spellDc,
+            spellAttackModifier = character.spellAttackModifier,
             selectedTrackKey = slots.selectedTrackKey,
             castingTracks = slots.castingTracks,
             allSlots = slots.allSlots,
-            slotsForRank = slots.slotsForRank,
-            spellNameById = events.spellNameById,
+            spellSummaryById = events.spellSummaryById,
             focusCurrentPoints = focus.currentPoints,
             focusMaxPoints = focus.maxPoints,
             recentEventLines = events.recentEventLines,
@@ -178,10 +189,15 @@ class PreparedSlotsViewModel(
         viewModelScope.launch {
             service.syncPreparedSlots(characterId)
         }
-    }
-
-    fun onRankChange(rank: Int) {
-        selectedRank.update { rank }
+        viewModelScope.launch {
+            service.getCharacterProfile(characterId)?.let { profile ->
+                characterProfile.value = CharacterContext(
+                    characterName = profile.name,
+                    spellDc = profile.spellDc,
+                    spellAttackModifier = profile.spellAttackModifier,
+                )
+            }
+        }
     }
 
     fun onTrackChange(trackKey: String) {
@@ -202,6 +218,17 @@ class PreparedSlotsViewModel(
     fun castSlot(rank: Int, slotIndex: Int) {
         viewModelScope.launch {
             service.castSlot(
+                characterId = characterId,
+                rank = rank,
+                slotIndex = slotIndex,
+                trackKey = activeTrackKey.value,
+            )
+        }
+    }
+
+    fun uncastSlot(rank: Int, slotIndex: Int) {
+        viewModelScope.launch {
+            service.uncastSlot(
                 characterId = characterId,
                 rank = rank,
                 slotIndex = slotIndex,
@@ -263,6 +290,15 @@ class PreparedSlotsViewModel(
             )
         }
     }
+
+    fun prepareRandom() {
+        viewModelScope.launch {
+            service.prepareRandom(
+                characterId = characterId,
+                trackKey = activeTrackKey.value,
+            )
+        }
+    }
 }
 
 class PreparedSlotsViewModelFactory(
@@ -273,6 +309,7 @@ class PreparedSlotsViewModelFactory(
     private val sessionEventRepository: SessionEventRepository,
     private val focusStateRepository: FocusStateRepository,
     private val spellRepository: SpellRepository,
+    private val characterCrudRepository: CharacterCrudRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -286,6 +323,7 @@ class PreparedSlotsViewModelFactory(
             sessionEventRepository = sessionEventRepository,
             focusStateRepository = focusStateRepository,
             spellRepository = spellRepository,
+            characterCrudRepository = characterCrudRepository,
         )
         return PreparedSlotsViewModel(
             characterId = characterId,

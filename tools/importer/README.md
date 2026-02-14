@@ -44,6 +44,8 @@ Notes:
 1. Input directory is scanned recursively for JSON files.
 2. Non-spell entries are skipped.
 3. Import fails on parse errors, duplicate IDs, and invalid/missing licenses.
+4. Cantrips are normalized to `rank = 0` even when upstream `system.level.value` is `1`.
+   Detection uses both the `cantrip` trait and source path segment (`.../cantrip/...`) as fallback.
 
 ## Project-Level Dataset Update
 To regenerate and install the spell dataset into app assets:

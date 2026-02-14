@@ -51,6 +51,19 @@ class RoomSpellRepository(
         if (entities.isEmpty()) {
             error("Spell dataset did not contain any valid spell entities.")
         }
-        spellDao.replaceAll(entities)
+
+        val existingCount = spellDao.getSpellCount()
+        if (existingCount == 0) {
+            spellDao.replaceAll(entities)
+            return
+        }
+
+        val importedCantripCount = entities.count { entity -> entity.rank == 0 }
+        val existingCantripCount = spellDao.getSpellCountByRank(0)
+
+        // One-time repair path for datasets imported before cantrips were normalized to rank 0.
+        if (importedCantripCount > 0 && existingCantripCount == 0) {
+            spellDao.replaceAll(entities)
+        }
     }
 }

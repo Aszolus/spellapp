@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(cmd /c dir:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)"
     ]
   }
 }

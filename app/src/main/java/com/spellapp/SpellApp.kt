@@ -61,6 +61,7 @@ fun SpellApp(
             preparedSlotSyncRepository = characterRepository,
             sessionEventRepository = characterRepository,
             focusStateRepository = characterRepository,
+            characterCrudRepository = characterRepository,
             characterListViewModel = characterListViewModel,
             spellListViewModel = spellListViewModel,
             navigationViewModel = navigationViewModel,

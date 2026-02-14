@@ -31,6 +31,7 @@ kotlin {
 dependencies {
     implementation(project(":core-model"))
     implementation(project(":core-data"))
+    implementation(project(":core-rules"))
     implementation(project(":core-ui"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
@@ -47,4 +48,6 @@ dependencies {
     }
 
     debugImplementation(libs.androidx.ui.tooling)
+
+    testImplementation(libs.junit)
 }

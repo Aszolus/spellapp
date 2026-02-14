@@ -167,6 +167,15 @@ foreach ($file in $spellFiles) {
     if ($null -ne $traitsValue) {
         $traits = @($traitsValue)
     }
+    # Foundry cantrip entries can report level=1 while being true cantrips by trait/path.
+    # Normalize these to rank 0 for app/runtime consistency.
+    $isCantripByTrait = $traits |
+        ForEach-Object { "$_".Trim().ToLowerInvariant() } |
+        Where-Object { $_ -eq "cantrip" } |
+        Select-Object -First 1
+    $isCantripByPath = $file.FullName.ToLowerInvariant().Contains("\cantrip\")
+    $isCantrip = ($null -ne $isCantripByTrait) -or $isCantripByPath
+    $normalizedRank = if ($isCantrip) { 0 } else { $level }
 
     $traditions = @()
     $traditionsValue = Get-NestedValue -Object $json -Path @("system", "traits", "traditions")
@@ -193,7 +202,7 @@ foreach ($file in $spellFiles) {
     $spells += [PSCustomObject]@{
         id = $spellId
         name = $spellName
-        rank = $level
+        rank = $normalizedRank
         rarity = $rarity
         traits = $traits
         traditions = $traditions
