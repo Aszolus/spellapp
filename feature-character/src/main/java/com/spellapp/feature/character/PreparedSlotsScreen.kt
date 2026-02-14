@@ -30,6 +30,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -69,6 +70,9 @@ fun PreparedSlotsRoute(
     onRest: () -> Unit,
     onNewDayPreparation: () -> Unit,
     onPrepareRandom: () -> Unit,
+    onRandomPrepareSourceFilterChange: (String) -> Unit,
+    onRandomPrepareRarityFilterChange: (String?) -> Unit,
+    onClearRandomPrepareFilters: () -> Unit,
     onUndoLastCast: () -> Unit,
     onOpenSpellBrowser: () -> Unit,
     onOpenPreparedSpell: (String) -> Unit,
@@ -77,6 +81,7 @@ fun PreparedSlotsRoute(
     var pendingAction by remember { mutableStateOf<DayCycleAction?>(null) }
     var showOverflowMenu by remember { mutableStateOf(false) }
     var showRecentActions by rememberSaveable { mutableStateOf(false) }
+    var showRandomPrepareDialog by remember { mutableStateOf(false) }
 
     val slotsByRank = remember(uiState.allSlots) {
         uiState.allSlots
@@ -123,7 +128,7 @@ fun PreparedSlotsRoute(
                                 text = { Text("Prepare Random") },
                                 onClick = {
                                     showOverflowMenu = false
-                                    onPrepareRandom()
+                                    showRandomPrepareDialog = true
                                 },
                             )
                             DropdownMenuItem(
@@ -266,6 +271,74 @@ fun PreparedSlotsRoute(
                 dismissButton = {
                     TextButton(onClick = { pendingAction = null }) {
                         Text("Cancel")
+                    }
+                },
+            )
+        }
+
+        if (showRandomPrepareDialog) {
+            AlertDialog(
+                onDismissRequest = { showRandomPrepareDialog = false },
+                title = { Text("Prepare Random") },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(
+                            text = "Fill empty slots using random spells with optional filters.",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            text = "Rarity",
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            item(key = "random-rarity-any") {
+                                FilterChip(
+                                    selected = uiState.randomPrepareRarityFilter == null,
+                                    onClick = { onRandomPrepareRarityFilterChange(null) },
+                                    label = { Text("Any") },
+                                )
+                            }
+                            items(randomPrepareRarityOptions, key = { it }) { rarity ->
+                                FilterChip(
+                                    selected = uiState.randomPrepareRarityFilter == rarity,
+                                    onClick = { onRandomPrepareRarityFilterChange(rarity) },
+                                    label = { Text(rarity.replaceFirstChar { it.uppercase() }) },
+                                )
+                            }
+                        }
+                        OutlinedTextField(
+                            value = uiState.randomPrepareSourceFilter,
+                            onValueChange = onRandomPrepareSourceFilterChange,
+                            singleLine = true,
+                            label = { Text("Source contains") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            onPrepareRandom()
+                            showRandomPrepareDialog = false
+                        },
+                    ) {
+                        Text("Prepare")
+                    }
+                },
+                dismissButton = {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        TextButton(onClick = onClearRandomPrepareFilters) {
+                            Text("Clear Filters")
+                        }
+                        TextButton(onClick = { showRandomPrepareDialog = false }) {
+                            Text("Cancel")
+                        }
                     }
                 },
             )
@@ -572,3 +645,5 @@ private fun CastingTrack.displayName(): String {
         CastingTrackSourceType.ARCHETYPE -> sourceId.ifBlank { trackKey }
     }
 }
+
+private val randomPrepareRarityOptions = listOf("common", "uncommon", "rare", "unique")

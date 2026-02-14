@@ -164,8 +164,12 @@ fun CharacterEditorDialog(
     var levelText by remember(initialCharacter) {
         mutableStateOf((initialCharacter?.level ?: 1).toString())
     }
-    var selectedClass by remember(initialCharacter) {
-        mutableStateOf(initialCharacter?.characterClass ?: CharacterClass.WIZARD)
+    var selectedClass by remember(initialCharacter, availableClasses) {
+        mutableStateOf(
+            initialCharacter?.characterClass
+                ?: availableClasses.firstOrNull()?.characterClass
+                ?: CharacterClass.WIZARD,
+        )
     }
     var keyAbility by remember(initialCharacter) {
         mutableStateOf(

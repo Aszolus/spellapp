@@ -182,6 +182,9 @@ private fun NavGraphBuilder.preparedSlotsDestination(
             onRest = preparedSlotsViewModel::rest,
             onNewDayPreparation = preparedSlotsViewModel::newDayPreparation,
             onPrepareRandom = preparedSlotsViewModel::prepareRandom,
+            onRandomPrepareSourceFilterChange = preparedSlotsViewModel::onRandomPrepareSourceFilterChange,
+            onRandomPrepareRarityFilterChange = preparedSlotsViewModel::onRandomPrepareRarityFilterChange,
+            onClearRandomPrepareFilters = preparedSlotsViewModel::clearRandomPrepareFilters,
             onUndoLastCast = preparedSlotsViewModel::undoLastCast,
             onOpenSpellBrowser = {
                 navigationViewModel.clearPreparedSlotTarget()

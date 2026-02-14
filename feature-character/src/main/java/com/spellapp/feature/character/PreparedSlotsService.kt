@@ -247,9 +247,16 @@ class PreparedSlotsService(
     suspend fun prepareRandom(
         characterId: Long,
         trackKey: String,
+        sourceFilter: String? = null,
+        rarityFilter: String? = null,
     ) {
         val character = characterCrudRepository.getCharacter(characterId) ?: return
         val tradition = traditionStringForTrack(trackKey, character.characterClass) ?: return
+        val normalizedSourceFilter = sourceFilter.orEmpty().trim()
+        val normalizedRarityFilter = rarityFilter
+            ?.trim()
+            ?.lowercase()
+            ?.takeIf { it.isNotBlank() }
         val slots = preparedSlotRepository.observePreparedSlots(
             characterId = characterId,
             trackKey = trackKey,
@@ -262,14 +269,22 @@ class PreparedSlotsService(
         // Cantrip slots (rank 0) only accept cantrips.
         val allTraditionSpells = spellRepository.observeSpells(
             tradition = tradition,
+            rarity = normalizedRarityFilter,
         ).first()
+        val filteredSpells = if (normalizedSourceFilter.isBlank()) {
+            allTraditionSpells
+        } else {
+            allTraditionSpells.filter { spell ->
+                spell.sourceBook.contains(normalizedSourceFilter, ignoreCase = true)
+            }
+        }
 
         val slotsByRank = emptySlots.groupBy { it.rank }
         for ((slotRank, rankSlots) in slotsByRank) {
             val candidates = if (slotRank == 0) {
-                allTraditionSpells.filter { it.rank == 0 }
+                filteredSpells.filter { it.rank == 0 }
             } else {
-                allTraditionSpells.filter { it.rank in 1..slotRank }
+                filteredSpells.filter { it.rank in 1..slotRank }
             }
             if (candidates.isEmpty()) continue
             for (slot in rankSlots) {

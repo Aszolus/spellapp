@@ -36,6 +36,8 @@ data class PreparedSlotsUiState(
     val focusMaxPoints: Int = 1,
     val recentEventLines: List<String> = emptyList(),
     val canUndoLastCast: Boolean = false,
+    val randomPrepareSourceFilter: String = "",
+    val randomPrepareRarityFilter: String? = null,
 )
 
 private data class SlotContext(
@@ -61,6 +63,12 @@ class PreparedSlotsViewModel(
     private val service: PreparedSlotsService,
 ) : ViewModel() {
     private val selectedTrackKey = MutableStateFlow(PreparedSlot.PRIMARY_TRACK_KEY)
+    private val randomPrepareSourceFilter = MutableStateFlow("")
+    private val randomPrepareRarityFilter = MutableStateFlow<String?>(null)
+    private val randomPrepareFilters = combine(
+        randomPrepareSourceFilter,
+        randomPrepareRarityFilter,
+    ) { source, rarity -> source to rarity }
     private val characterProfile = MutableStateFlow(
         CharacterContext(
             characterName = "Character",
@@ -165,7 +173,10 @@ class PreparedSlotsViewModel(
         eventContext,
         focusState,
         characterProfile,
-    ) { slots, events, focus, character ->
+        randomPrepareFilters,
+    ) { slots, events, focus, character, randomFilters ->
+        val sourceFilter = randomFilters.first
+        val rarityFilter = randomFilters.second
         PreparedSlotsUiState(
             characterName = character.characterName,
             spellDc = character.spellDc,
@@ -178,6 +189,8 @@ class PreparedSlotsViewModel(
             focusMaxPoints = focus.maxPoints,
             recentEventLines = events.recentEventLines,
             canUndoLastCast = events.canUndoLastCast,
+            randomPrepareSourceFilter = sourceFilter,
+            randomPrepareRarityFilter = rarityFilter,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -296,8 +309,23 @@ class PreparedSlotsViewModel(
             service.prepareRandom(
                 characterId = characterId,
                 trackKey = activeTrackKey.value,
+                sourceFilter = randomPrepareSourceFilter.value,
+                rarityFilter = randomPrepareRarityFilter.value,
             )
         }
+    }
+
+    fun onRandomPrepareSourceFilterChange(value: String) {
+        randomPrepareSourceFilter.update { value }
+    }
+
+    fun onRandomPrepareRarityFilterChange(value: String?) {
+        randomPrepareRarityFilter.update { value?.trim()?.lowercase()?.takeIf { it.isNotBlank() } }
+    }
+
+    fun clearRandomPrepareFilters() {
+        randomPrepareSourceFilter.update { "" }
+        randomPrepareRarityFilter.update { null }
     }
 }
 

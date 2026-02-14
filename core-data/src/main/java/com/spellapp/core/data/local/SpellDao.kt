@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 interface SpellDao {
     @Query(
         """
-        SELECT id, name, rank, traditionSummary AS tradition, (rank = 0) AS isCantrip
+        SELECT id, name, rank, traditionSummary AS tradition, rarity, sourceBook, (rank = 0) AS isCantrip
         FROM spells
         WHERE (:query = '' OR name LIKE '%' || :query || '%')
           AND (:rank IS NULL OR rank = :rank)

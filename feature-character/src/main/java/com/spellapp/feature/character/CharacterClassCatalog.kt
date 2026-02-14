@@ -16,6 +16,12 @@ interface CharacterClassDefinitionSource {
     fun definitionFor(characterClass: CharacterClass): CharacterClassDefinition
 }
 
+private val phaseOnePreparedClasses = listOf(
+    CharacterClass.WIZARD,
+    CharacterClass.CLERIC,
+    CharacterClass.DRUID,
+)
+
 object StaticCharacterClassDefinitionSource : CharacterClassDefinitionSource {
     private val byClass: Map<CharacterClass, CharacterClassDefinition> = listOf(
         CharacterClassDefinition(
@@ -52,10 +58,8 @@ object StaticCharacterClassDefinitionSource : CharacterClassDefinitionSource {
         return byClass.values.toList()
     }
 
-    override fun phaseOneDefinitions(): List<CharacterClassDefinition> = listOf(
-        definitionFor(CharacterClass.WIZARD),
-        definitionFor(CharacterClass.CLERIC),
-    )
+    override fun phaseOneDefinitions(): List<CharacterClassDefinition> =
+        phaseOnePreparedClasses.map(::definitionFor)
 
     override fun definitionFor(characterClass: CharacterClass): CharacterClassDefinition {
         return byClass[characterClass] ?: byClass.getValue(CharacterClass.OTHER)

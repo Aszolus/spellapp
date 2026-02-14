@@ -20,7 +20,11 @@ class AssetCharacterClassDefinitionSource(
     }
 
     override fun phaseOneDefinitions(): List<CharacterClassDefinition> {
-        val phaseOneOrder = listOf(CharacterClass.WIZARD, CharacterClass.CLERIC)
+        val phaseOneOrder = listOf(
+            CharacterClass.WIZARD,
+            CharacterClass.CLERIC,
+            CharacterClass.DRUID,
+        )
         val fromDataset = phaseOneOrder.mapNotNull { definitionsByClass[it] }
         return if (fromDataset.isNotEmpty()) {
             fromDataset

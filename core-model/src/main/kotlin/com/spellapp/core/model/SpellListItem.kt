@@ -5,5 +5,7 @@ data class SpellListItem(
     val name: String,
     val rank: Int,
     val tradition: String,
+    val rarity: String = "",
+    val sourceBook: String = "",
     val isCantrip: Boolean = false,
 )
