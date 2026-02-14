@@ -3,16 +3,20 @@ package com.spellapp.feature.character
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.FocusStateRepository
 import com.spellapp.core.data.PreparedSlotRepository
+import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
+import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEventType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -20,6 +24,8 @@ import kotlinx.coroutines.launch
 
 data class PreparedSlotsUiState(
     val selectedRank: Int = 1,
+    val selectedTrackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
+    val castingTracks: List<CastingTrack> = emptyList(),
     val allSlots: List<PreparedSlot> = emptyList(),
     val slotsForRank: List<PreparedSlot> = emptyList(),
     val spellNameById: Map<String, String> = emptyMap(),
@@ -29,13 +35,73 @@ data class PreparedSlotsUiState(
     val canUndoLastCast: Boolean = false,
 )
 
+private data class SlotContext(
+    val selectedRank: Int,
+    val selectedTrackKey: String,
+    val castingTracks: List<CastingTrack>,
+    val allSlots: List<PreparedSlot>,
+    val slotsForRank: List<PreparedSlot>,
+)
+
+private data class EventContext(
+    val spellNameById: Map<String, String>,
+    val recentEventLines: List<String>,
+    val canUndoLastCast: Boolean,
+)
+
 class PreparedSlotsViewModel(
     private val characterId: Long,
     private val service: PreparedSlotsService,
 ) : ViewModel() {
     private val selectedRank = MutableStateFlow(1)
-    private val preparedSlots = service.observePreparedSlots(characterId)
-    private val sessionEvents = service.observeSessionEvents(characterId)
+    private val selectedTrackKey = MutableStateFlow(PreparedSlot.PRIMARY_TRACK_KEY)
+    private val castingTracks = service.observeCastingTracks(characterId)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList(),
+        )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val activeTrackKey = combine(
+        selectedTrackKey,
+        castingTracks,
+    ) { selected, tracks ->
+        if (tracks.any { it.trackKey == selected }) {
+            selected
+        } else {
+            tracks.firstOrNull()?.trackKey ?: PreparedSlot.PRIMARY_TRACK_KEY
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = PreparedSlot.PRIMARY_TRACK_KEY,
+    )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val preparedSlots = activeTrackKey.flatMapLatest { trackKey ->
+        service.observePreparedSlots(
+            characterId = characterId,
+            trackKey = trackKey,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList(),
+    )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val sessionEvents = activeTrackKey.flatMapLatest { trackKey ->
+        service.observeSessionEvents(
+            characterId = characterId,
+            trackKey = trackKey,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList(),
+    )
+
     private val focusState = service.observeFocusState(characterId)
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -52,29 +118,55 @@ class PreparedSlotsViewModel(
         initialValue = emptyMap(),
     )
 
-    val uiState = combine(
+    private val slotContext = combine(
         selectedRank,
+        activeTrackKey,
+        castingTracks,
         preparedSlots,
-        sessionEvents,
-        spellNameById,
-        focusState,
-    ) { rank, slots, events, names, focus ->
+    ) { rank, trackKey, tracks, slots ->
         val sortedSlots = slots.sortedWith(
             compareBy<PreparedSlot> { it.rank }.thenBy { it.slotIndex },
         )
-        PreparedSlotsUiState(
+        SlotContext(
             selectedRank = rank,
+            selectedTrackKey = trackKey,
+            castingTracks = tracks,
             allSlots = sortedSlots,
             slotsForRank = sortedSlots
                 .filter { it.rank == rank },
+        )
+    }
+
+    private val eventContext = combine(
+        sessionEvents,
+        spellNameById,
+    ) { events, names ->
+        EventContext(
             spellNameById = names,
-            focusCurrentPoints = focus.currentPoints,
-            focusMaxPoints = focus.maxPoints,
             recentEventLines = service.formatRecentEventLines(
                 sessionEvents = events,
                 spellNameById = names,
             ),
             canUndoLastCast = events.any { event -> event.type == SessionEventType.CAST_SPELL },
+        )
+    }
+
+    val uiState = combine(
+        slotContext,
+        eventContext,
+        focusState,
+    ) { slots, events, focus ->
+        PreparedSlotsUiState(
+            selectedRank = slots.selectedRank,
+            selectedTrackKey = slots.selectedTrackKey,
+            castingTracks = slots.castingTracks,
+            allSlots = slots.allSlots,
+            slotsForRank = slots.slotsForRank,
+            spellNameById = events.spellNameById,
+            focusCurrentPoints = focus.currentPoints,
+            focusMaxPoints = focus.maxPoints,
+            recentEventLines = events.recentEventLines,
+            canUndoLastCast = events.canUndoLastCast,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -82,27 +174,18 @@ class PreparedSlotsViewModel(
         initialValue = PreparedSlotsUiState(),
     )
 
+    init {
+        viewModelScope.launch {
+            service.syncPreparedSlots(characterId)
+        }
+    }
+
     fun onRankChange(rank: Int) {
         selectedRank.update { rank }
     }
 
-    fun addSlot(rank: Int) {
-        viewModelScope.launch {
-            service.addSlot(
-                characterId = characterId,
-                rank = rank,
-            )
-        }
-    }
-
-    fun removeSlot(rank: Int, slotIndex: Int) {
-        viewModelScope.launch {
-            service.removeSlot(
-                characterId = characterId,
-                rank = rank,
-                slotIndex = slotIndex,
-            )
-        }
+    fun onTrackChange(trackKey: String) {
+        selectedTrackKey.update { trackKey }
     }
 
     fun clearSpell(rank: Int, slotIndex: Int) {
@@ -111,6 +194,7 @@ class PreparedSlotsViewModel(
                 characterId = characterId,
                 rank = rank,
                 slotIndex = slotIndex,
+                trackKey = activeTrackKey.value,
             )
         }
     }
@@ -121,13 +205,17 @@ class PreparedSlotsViewModel(
                 characterId = characterId,
                 rank = rank,
                 slotIndex = slotIndex,
+                trackKey = activeTrackKey.value,
             )
         }
     }
 
     fun undoLastCast() {
         viewModelScope.launch {
-            service.undoLastCast(characterId)
+            service.undoLastCast(
+                characterId = characterId,
+                trackKey = activeTrackKey.value,
+            )
         }
     }
 
@@ -151,19 +239,28 @@ class PreparedSlotsViewModel(
 
     fun refocus() {
         viewModelScope.launch {
-            service.refocus(characterId)
+            service.refocus(
+                characterId = characterId,
+                trackKey = activeTrackKey.value,
+            )
         }
     }
 
     fun rest() {
         viewModelScope.launch {
-            service.rest(characterId)
+            service.rest(
+                characterId = characterId,
+                trackKey = activeTrackKey.value,
+            )
         }
     }
 
     fun newDayPreparation() {
         viewModelScope.launch {
-            service.newDayPreparation(characterId)
+            service.newDayPreparation(
+                characterId = characterId,
+                trackKey = activeTrackKey.value,
+            )
         }
     }
 }
@@ -171,6 +268,8 @@ class PreparedSlotsViewModel(
 class PreparedSlotsViewModelFactory(
     private val characterId: Long,
     private val preparedSlotRepository: PreparedSlotRepository,
+    private val castingTrackRepository: CastingTrackRepository,
+    private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
     private val sessionEventRepository: SessionEventRepository,
     private val focusStateRepository: FocusStateRepository,
     private val spellRepository: SpellRepository,
@@ -182,6 +281,8 @@ class PreparedSlotsViewModelFactory(
         }
         val service = PreparedSlotsService(
             preparedSlotRepository = preparedSlotRepository,
+            castingTrackRepository = castingTrackRepository,
+            preparedSlotSyncRepository = preparedSlotSyncRepository,
             sessionEventRepository = sessionEventRepository,
             focusStateRepository = focusStateRepository,
             spellRepository = spellRepository,

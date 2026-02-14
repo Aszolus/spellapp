@@ -3,6 +3,12 @@ package com.spellapp.core.data.local
 import androidx.room.withTransaction
 import com.spellapp.core.data.CharacterRepository
 import com.spellapp.core.model.AbilityScore
+import com.spellapp.core.model.CastingProgressionType
+import com.spellapp.core.model.CastingTrack
+import com.spellapp.core.model.CastingTrackSourceType
+import com.spellapp.core.model.CharacterBuildIdentity
+import com.spellapp.core.model.CharacterBuildOption
+import com.spellapp.core.model.CharacterBuildOptionType
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.FocusState
@@ -12,13 +18,38 @@ import com.spellapp.core.model.SessionEventType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class RoomCharacterRepository(
+class RoomCharacterRepository private constructor(
     private val database: SpellDatabase,
     private val characterDao: CharacterDao,
+    private val characterBuildIdentityDao: CharacterBuildIdentityDao,
+    private val characterBuildOptionDao: CharacterBuildOptionDao,
     private val preparedSlotDao: PreparedSlotDao,
+    private val castingTrackDao: CastingTrackDao,
     private val focusStateDao: FocusStateDao,
     private val sessionEventDao: SessionEventDao,
+    private val slotProgressionEngine: SlotProgressionEngine,
 ) : CharacterRepository {
+    constructor(
+        database: SpellDatabase,
+        characterDao: CharacterDao,
+        characterBuildIdentityDao: CharacterBuildIdentityDao,
+        characterBuildOptionDao: CharacterBuildOptionDao,
+        preparedSlotDao: PreparedSlotDao,
+        castingTrackDao: CastingTrackDao,
+        focusStateDao: FocusStateDao,
+        sessionEventDao: SessionEventDao,
+    ) : this(
+        database = database,
+        characterDao = characterDao,
+        characterBuildIdentityDao = characterBuildIdentityDao,
+        characterBuildOptionDao = characterBuildOptionDao,
+        preparedSlotDao = preparedSlotDao,
+        castingTrackDao = castingTrackDao,
+        focusStateDao = focusStateDao,
+        sessionEventDao = sessionEventDao,
+        slotProgressionEngine = DefaultSlotProgressionEngine(),
+    )
+
     override fun observeCharacters(): Flow<List<CharacterProfile>> {
         return characterDao.observeCharacters().map { entities ->
             entities.map { it.toDomain() }
@@ -30,11 +61,110 @@ class RoomCharacterRepository(
     }
 
     override suspend fun upsertCharacter(character: CharacterProfile): Long {
-        return characterDao.upsert(character.toEntity())
+        return database.withTransaction {
+            val upsertId = characterDao.upsert(character.toEntity())
+            val characterId = if (character.id != 0L) character.id else upsertId
+            val persistedCharacter = character.copy(id = characterId)
+            ensurePrimaryTrack(persistedCharacter)
+            syncPreparedSlotsForCharacterInternal(persistedCharacter)
+            characterId
+        }
     }
 
     override suspend fun deleteCharacter(characterId: Long) {
         characterDao.deleteById(characterId)
+    }
+
+    override fun observeBuildIdentity(characterId: Long): Flow<CharacterBuildIdentity?> {
+        return characterBuildIdentityDao.observeByCharacter(characterId).map { entity ->
+            entity?.toDomain()
+        }
+    }
+
+    override suspend fun getBuildIdentity(characterId: Long): CharacterBuildIdentity? {
+        return characterBuildIdentityDao.getByCharacter(characterId)?.toDomain()
+    }
+
+    override suspend fun upsertBuildIdentity(identity: CharacterBuildIdentity) {
+        characterBuildIdentityDao.upsert(identity.toEntity())
+    }
+
+    override fun observeBuildOptions(characterId: Long): Flow<List<CharacterBuildOption>> {
+        return characterBuildOptionDao.observeByCharacter(characterId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun getBuildOptions(characterId: Long): List<CharacterBuildOption> {
+        return characterBuildOptionDao.getByCharacter(characterId).map { it.toDomain() }
+    }
+
+    override suspend fun upsertBuildOption(option: CharacterBuildOption): Long {
+        return characterBuildOptionDao.upsert(option.toEntity())
+    }
+
+    override suspend fun deleteBuildOption(
+        characterId: Long,
+        optionType: CharacterBuildOptionType,
+        optionId: String,
+    ): Boolean {
+        return characterBuildOptionDao.deleteByCharacterAndOption(
+            characterId = characterId,
+            optionType = optionType.name,
+            optionId = optionId,
+        ) > 0
+    }
+
+    override suspend fun replaceBuildOptions(
+        characterId: Long,
+        options: List<CharacterBuildOption>,
+    ) {
+        database.withTransaction {
+            characterBuildOptionDao.deleteByCharacter(characterId)
+            if (options.isNotEmpty()) {
+                characterBuildOptionDao.upsertAll(
+                    options.map { option ->
+                        option.copy(
+                            id = 0L,
+                            characterId = characterId,
+                        ).toEntity()
+                    },
+                )
+            }
+        }
+    }
+
+    override fun observeCastingTracks(characterId: Long): Flow<List<CastingTrack>> {
+        return castingTrackDao.observeByCharacter(characterId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun getCastingTracks(characterId: Long): List<CastingTrack> {
+        return castingTrackDao.getByCharacter(characterId).map { it.toDomain() }
+    }
+
+    override suspend fun upsertCastingTrack(track: CastingTrack): Long {
+        return castingTrackDao.upsert(track.toEntity())
+    }
+
+    override suspend fun deleteCastingTrack(
+        characterId: Long,
+        trackKey: String,
+    ): Boolean {
+        return castingTrackDao.deleteByCharacterAndTrack(
+            characterId = characterId,
+            trackKey = trackKey,
+        ) > 0
+    }
+
+    override suspend fun syncPreparedSlotsForCharacter(characterId: Long) {
+        database.withTransaction {
+            val character = characterDao.getCharacterById(characterId)?.toDomain()
+                ?: return@withTransaction
+            ensurePrimaryTrack(character)
+            syncPreparedSlotsForCharacterInternal(character)
+        }
     }
 
     override fun observePreparedSlots(
@@ -275,6 +405,128 @@ class RoomCharacterRepository(
         return sessionEventDao.insert(event.toEntity())
     }
 
+    private suspend fun ensurePrimaryTrack(character: CharacterProfile) {
+        val existingPrimary = castingTrackDao.getByCharacterAndTrack(
+            characterId = character.id,
+            trackKey = CastingTrack.PRIMARY_TRACK_KEY,
+        )
+        val primaryTrack = CastingTrackEntity(
+            id = existingPrimary?.id ?: 0L,
+            characterId = character.id,
+            trackKey = CastingTrack.PRIMARY_TRACK_KEY,
+            sourceType = CastingTrackSourceType.PRIMARY_CLASS.name,
+            sourceId = character.characterClass.name,
+            progressionType = primaryProgressionForClass(character.characterClass).name,
+        )
+        castingTrackDao.upsert(primaryTrack)
+    }
+
+    private suspend fun syncPreparedSlotsForCharacterInternal(character: CharacterProfile) {
+        val tracks = castingTrackDao.getByCharacter(character.id).map { it.toDomain() }
+        if (tracks.isEmpty()) {
+            return
+        }
+
+        val currentByTrackAndRank = preparedSlotDao.getByCharacter(character.id)
+            .groupBy { slot -> slot.trackKey to slot.rank }
+
+        val desiredTrackKeys = tracks.map { it.trackKey }.toSet()
+        val existingTrackKeys = currentByTrackAndRank.keys.map { it.first }.toSet()
+        val orphanTrackKeys = existingTrackKeys - desiredTrackKeys
+        orphanTrackKeys.forEach { orphanTrackKey ->
+            val entriesForTrack = currentByTrackAndRank
+                .filterKeys { (trackKey, _) -> trackKey == orphanTrackKey }
+                .values
+                .flatten()
+            entriesForTrack.forEach { slot ->
+                preparedSlotDao.deleteByCharacterRankAndIndex(
+                    characterId = character.id,
+                    trackKey = slot.trackKey,
+                    rank = slot.rank,
+                    slotIndex = slot.slotIndex,
+                )
+            }
+        }
+
+        tracks.forEach { track ->
+            val desiredByRank = slotProgressionEngine.slotCountsByRank(
+                level = character.level,
+                progressionType = track.progressionType,
+            )
+            val ranksInPlay = (desiredByRank.keys + currentByTrackAndRank.keys
+                .filter { (trackKey, _) -> trackKey == track.trackKey }
+                .map { (_, rank) -> rank }).toSet()
+
+            ranksInPlay.forEach { rank ->
+                val desiredCount = desiredByRank[rank] ?: 0
+                val current = currentByTrackAndRank[track.trackKey to rank]
+                    .orEmpty()
+                    .sortedBy { it.slotIndex }
+                syncRankSlots(
+                    characterId = character.id,
+                    trackKey = track.trackKey,
+                    rank = rank,
+                    current = current,
+                    desiredCount = desiredCount,
+                )
+            }
+        }
+    }
+
+    private suspend fun syncRankSlots(
+        characterId: Long,
+        trackKey: String,
+        rank: Int,
+        current: List<PreparedSlotEntity>,
+        desiredCount: Int,
+    ) {
+        if (desiredCount <= 0) {
+            current.forEach { slot ->
+                preparedSlotDao.deleteByCharacterRankAndIndex(
+                    characterId = characterId,
+                    trackKey = trackKey,
+                    rank = rank,
+                    slotIndex = slot.slotIndex,
+                )
+            }
+            return
+        }
+
+        val desiredIndexes = (0 until desiredCount).toSet()
+        val currentByIndex = current.associateBy { it.slotIndex }
+
+        current.filter { slot -> slot.slotIndex !in desiredIndexes }.forEach { slot ->
+            preparedSlotDao.deleteByCharacterRankAndIndex(
+                characterId = characterId,
+                trackKey = trackKey,
+                rank = rank,
+                slotIndex = slot.slotIndex,
+            )
+        }
+
+        desiredIndexes.filter { slotIndex -> slotIndex !in currentByIndex }.forEach { slotIndex ->
+            preparedSlotDao.upsert(
+                PreparedSlotEntity(
+                    characterId = characterId,
+                    trackKey = trackKey,
+                    rank = rank,
+                    slotIndex = slotIndex,
+                    preparedSpellId = null,
+                    isExpended = false,
+                ),
+            )
+        }
+    }
+
+    private fun primaryProgressionForClass(characterClass: CharacterClass): CastingProgressionType {
+        return when (characterClass) {
+            CharacterClass.WIZARD,
+            CharacterClass.CLERIC,
+            CharacterClass.DRUID,
+            CharacterClass.OTHER -> CastingProgressionType.FULL_PREPARED
+        }
+    }
+
     private fun CharacterEntity.toDomain(): CharacterProfile {
         return CharacterProfile(
             id = id,
@@ -310,6 +562,68 @@ class RoomCharacterRepository(
             slotIndex = slotIndex,
             preparedSpellId = preparedSpellId,
             isExpended = isExpended,
+        )
+    }
+
+    private fun CharacterBuildIdentityEntity.toDomain(): CharacterBuildIdentity {
+        return CharacterBuildIdentity(
+            characterId = characterId,
+            ancestryId = ancestryId,
+            heritageId = heritageId,
+            backgroundId = backgroundId,
+        )
+    }
+
+    private fun CharacterBuildIdentity.toEntity(): CharacterBuildIdentityEntity {
+        return CharacterBuildIdentityEntity(
+            characterId = characterId,
+            ancestryId = ancestryId,
+            heritageId = heritageId,
+            backgroundId = backgroundId,
+        )
+    }
+
+    private fun CharacterBuildOptionEntity.toDomain(): CharacterBuildOption {
+        return CharacterBuildOption(
+            id = id,
+            characterId = characterId,
+            optionType = enumValueOrDefault(optionType, CharacterBuildOptionType.OTHER),
+            optionId = optionId,
+            levelAcquired = levelAcquired,
+            metadataJson = metadataJson,
+        )
+    }
+
+    private fun CharacterBuildOption.toEntity(): CharacterBuildOptionEntity {
+        return CharacterBuildOptionEntity(
+            id = id,
+            characterId = characterId,
+            optionType = optionType.name,
+            optionId = optionId,
+            levelAcquired = levelAcquired,
+            metadataJson = metadataJson,
+        )
+    }
+
+    private fun CastingTrackEntity.toDomain(): CastingTrack {
+        return CastingTrack(
+            id = id,
+            characterId = characterId,
+            trackKey = trackKey,
+            sourceType = enumValueOrDefault(sourceType, CastingTrackSourceType.PRIMARY_CLASS),
+            sourceId = sourceId,
+            progressionType = enumValueOrDefault(progressionType, CastingProgressionType.FULL_PREPARED),
+        )
+    }
+
+    private fun CastingTrack.toEntity(): CastingTrackEntity {
+        return CastingTrackEntity(
+            id = id,
+            characterId = characterId,
+            trackKey = trackKey,
+            sourceType = sourceType.name,
+            sourceId = sourceId,
+            progressionType = progressionType.name,
         )
     }
 

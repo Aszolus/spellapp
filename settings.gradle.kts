@@ -19,7 +19,7 @@ rootProject.name = "spellapp"
 include(":app")
 include(":core-data")
 include(":core-model")
-include(":core-ui")
 include(":core-rules")
+include(":core-ui")
 include(":feature-spells")
 include(":feature-character")

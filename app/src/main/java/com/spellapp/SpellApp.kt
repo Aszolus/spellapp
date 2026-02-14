@@ -27,6 +27,8 @@ fun SpellApp(
         factory = remember {
             CharacterListViewModelFactory(
                 characterRepository = characterRepository,
+                castingTrackRepository = characterRepository,
+                preparedSlotSyncRepository = characterRepository,
                 classDefinitionSource = classDefinitionSource,
             )
         },
@@ -51,6 +53,8 @@ fun SpellApp(
             navController = navController,
             spellRepository = spellRepository,
             preparedSlotRepository = characterRepository,
+            castingTrackRepository = characterRepository,
+            preparedSlotSyncRepository = characterRepository,
             sessionEventRepository = characterRepository,
             focusStateRepository = characterRepository,
             characterListViewModel = characterListViewModel,

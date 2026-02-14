@@ -1,9 +1,12 @@
 package com.spellapp.feature.character
 
+import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.FocusStateRepository
 import com.spellapp.core.data.PreparedSlotRepository
+import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
+import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.FocusState
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEvent
@@ -14,19 +17,34 @@ import kotlinx.coroutines.flow.map
 
 class PreparedSlotsService(
     private val preparedSlotRepository: PreparedSlotRepository,
+    private val castingTrackRepository: CastingTrackRepository,
+    private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
     private val sessionEventRepository: SessionEventRepository,
     private val focusStateRepository: FocusStateRepository,
     private val spellRepository: SpellRepository,
-    private val trackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
 ) {
-    fun observePreparedSlots(characterId: Long): Flow<List<PreparedSlot>> {
+    suspend fun syncPreparedSlots(characterId: Long) {
+        preparedSlotSyncRepository.syncPreparedSlotsForCharacter(characterId)
+    }
+
+    fun observeCastingTracks(characterId: Long): Flow<List<CastingTrack>> {
+        return castingTrackRepository.observeCastingTracks(characterId)
+    }
+
+    fun observePreparedSlots(
+        characterId: Long,
+        trackKey: String,
+    ): Flow<List<PreparedSlot>> {
         return preparedSlotRepository.observePreparedSlots(
             characterId = characterId,
             trackKey = trackKey,
         )
     }
 
-    fun observeSessionEvents(characterId: Long): Flow<List<SessionEvent>> {
+    fun observeSessionEvents(
+        characterId: Long,
+        trackKey: String,
+    ): Flow<List<SessionEvent>> {
         return sessionEventRepository.observeSessionEvents(
             characterId = characterId,
             trackKey = trackKey,
@@ -64,34 +82,11 @@ class PreparedSlotsService(
             .map { event -> formatSessionEventLine(event, spellNameById) }
     }
 
-    suspend fun addSlot(
-        characterId: Long,
-        rank: Int,
-    ) {
-        preparedSlotRepository.addPreparedSlot(
-            characterId = characterId,
-            rank = rank,
-            trackKey = trackKey,
-        )
-    }
-
-    suspend fun removeSlot(
-        characterId: Long,
-        rank: Int,
-        slotIndex: Int,
-    ) {
-        preparedSlotRepository.removePreparedSlot(
-            characterId = characterId,
-            rank = rank,
-            slotIndex = slotIndex,
-            trackKey = trackKey,
-        )
-    }
-
     suspend fun clearSpell(
         characterId: Long,
         rank: Int,
         slotIndex: Int,
+        trackKey: String,
     ) {
         preparedSlotRepository.clearPreparedSlotSpell(
             characterId = characterId,
@@ -105,6 +100,7 @@ class PreparedSlotsService(
         characterId: Long,
         rank: Int,
         slotIndex: Int,
+        trackKey: String,
     ): Boolean {
         return preparedSlotRepository.castPreparedSlot(
             characterId = characterId,
@@ -114,7 +110,10 @@ class PreparedSlotsService(
         )
     }
 
-    suspend fun undoLastCast(characterId: Long): Boolean {
+    suspend fun undoLastCast(
+        characterId: Long,
+        trackKey: String,
+    ): Boolean {
         return preparedSlotRepository.undoLastCast(
             characterId = characterId,
             trackKey = trackKey,
@@ -154,7 +153,10 @@ class PreparedSlotsService(
         return updated
     }
 
-    suspend fun refocus(characterId: Long): Boolean {
+    suspend fun refocus(
+        characterId: Long,
+        trackKey: String,
+    ): Boolean {
         val current = currentFocusState(characterId)
         val updated = current.copy(
             currentPoints = (current.currentPoints + 1).coerceAtMost(current.maxPoints),
@@ -170,7 +172,10 @@ class PreparedSlotsService(
         return true
     }
 
-    suspend fun rest(characterId: Long): Boolean {
+    suspend fun rest(
+        characterId: Long,
+        trackKey: String,
+    ): Boolean {
         val current = currentFocusState(characterId)
         focusStateRepository.upsertFocusState(
             current.copy(currentPoints = current.maxPoints),
@@ -185,7 +190,10 @@ class PreparedSlotsService(
         return true
     }
 
-    suspend fun newDayPreparation(characterId: Long): Boolean {
+    suspend fun newDayPreparation(
+        characterId: Long,
+        trackKey: String,
+    ): Boolean {
         val current = currentFocusState(characterId)
         preparedSlotRepository.clearPreparedSlotsForTrack(
             characterId = characterId,

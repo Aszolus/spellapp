@@ -6,8 +6,8 @@ import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.data.local.RoomCharacterRepository
 import com.spellapp.core.data.local.RoomSpellRepository
 import com.spellapp.core.data.local.SpellDatabase
+import com.spellapp.feature.character.AssetCharacterClassDefinitionSource
 import com.spellapp.feature.character.CharacterClassDefinitionSource
-import com.spellapp.feature.character.StaticCharacterClassDefinitionSource
 
 class AppContainer(
     context: Context,
@@ -25,14 +25,17 @@ class AppContainer(
         RoomCharacterRepository(
             database = spellDatabase,
             characterDao = spellDatabase.characterDao(),
+            characterBuildIdentityDao = spellDatabase.characterBuildIdentityDao(),
+            characterBuildOptionDao = spellDatabase.characterBuildOptionDao(),
             preparedSlotDao = spellDatabase.preparedSlotDao(),
+            castingTrackDao = spellDatabase.castingTrackDao(),
             focusStateDao = spellDatabase.focusStateDao(),
             sessionEventDao = spellDatabase.sessionEventDao(),
         )
     }
 
     val characterClassDefinitionSource: CharacterClassDefinitionSource by lazy {
-        StaticCharacterClassDefinitionSource
+        AssetCharacterClassDefinitionSource(appContext)
     }
 
     suspend fun seedSpellsIfNeeded() {

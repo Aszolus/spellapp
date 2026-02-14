@@ -12,8 +12,10 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.FocusStateRepository
 import com.spellapp.core.data.PreparedSlotRepository
+import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CharacterProfile
@@ -35,6 +37,8 @@ fun SpellAppNavGraph(
     navController: NavHostController,
     spellRepository: SpellRepository,
     preparedSlotRepository: PreparedSlotRepository,
+    castingTrackRepository: CastingTrackRepository,
+    preparedSlotSyncRepository: PreparedSlotSyncRepository,
     sessionEventRepository: SessionEventRepository,
     focusStateRepository: FocusStateRepository,
     characterListViewModel: CharacterListViewModel,
@@ -56,6 +60,8 @@ fun SpellAppNavGraph(
             navController = navController,
             characterListViewModel = characterListViewModel,
             preparedSlotRepository = preparedSlotRepository,
+            castingTrackRepository = castingTrackRepository,
+            preparedSlotSyncRepository = preparedSlotSyncRepository,
             sessionEventRepository = sessionEventRepository,
             focusStateRepository = focusStateRepository,
             spellRepository = spellRepository,
@@ -101,10 +107,13 @@ private fun NavGraphBuilder.characterListDestination(
         if (characterListUiState.isEditorVisible) {
             CharacterEditorDialog(
                 initialCharacter = characterListUiState.editingCharacter,
+                initialArchetypeTrackCount = characterListUiState.editingArchetypeTrackCount,
                 availableClasses = characterListUiState.availableClasses,
                 classDefinitionsByClass = characterListUiState.classDefinitionsByClass,
                 onDismiss = characterListViewModel::dismissEditor,
-                onSave = characterListViewModel::saveCharacter,
+                onSave = { character, archetypeTrackCount ->
+                    characterListViewModel.saveCharacter(character, archetypeTrackCount)
+                },
             )
         }
     }
@@ -114,6 +123,8 @@ private fun NavGraphBuilder.preparedSlotsDestination(
     navController: NavHostController,
     characterListViewModel: CharacterListViewModel,
     preparedSlotRepository: PreparedSlotRepository,
+    castingTrackRepository: CastingTrackRepository,
+    preparedSlotSyncRepository: PreparedSlotSyncRepository,
     sessionEventRepository: SessionEventRepository,
     focusStateRepository: FocusStateRepository,
     spellRepository: SpellRepository,
@@ -136,6 +147,8 @@ private fun NavGraphBuilder.preparedSlotsDestination(
                 PreparedSlotsViewModelFactory(
                     characterId = characterId,
                     preparedSlotRepository = preparedSlotRepository,
+                    castingTrackRepository = castingTrackRepository,
+                    preparedSlotSyncRepository = preparedSlotSyncRepository,
                     sessionEventRepository = sessionEventRepository,
                     focusStateRepository = focusStateRepository,
                     spellRepository = spellRepository,
@@ -147,12 +160,13 @@ private fun NavGraphBuilder.preparedSlotsDestination(
         PreparedSlotsRoute(
             characterName = character?.name ?: "Character",
             selectedRank = preparedSlotsUiState.selectedRank,
+            selectedTrackKey = preparedSlotsUiState.selectedTrackKey,
+            castingTracks = preparedSlotsUiState.castingTracks,
             allSlots = preparedSlotsUiState.allSlots,
             slotsForRank = preparedSlotsUiState.slotsForRank,
             spellNameById = preparedSlotsUiState.spellNameById,
+            onTrackChange = preparedSlotsViewModel::onTrackChange,
             onRankChange = preparedSlotsViewModel::onRankChange,
-            onAddSlot = preparedSlotsViewModel::addSlot,
-            onRemoveSlot = preparedSlotsViewModel::removeSlot,
             onChooseSpell = { rank, slotIndex, trackKey ->
                 navigationViewModel.startPreparedSlotAssignment(
                     characterId = characterId,

@@ -1,0 +1,26 @@
+﻿{
+    "datasetVersion":  "20260214-081705",
+    "sourceCommit":  "local-unknown",
+    "entries":  [
+                    {
+                        "license":  "ORC",
+                        "count":  24,
+                        "sources":  [
+                                        "Pathfinder Battlecry!",
+                                        "Pathfinder Dark Archive (Remastered)",
+                                        "Pathfinder Guns \u0026 Gears",
+                                        "Pathfinder Player Core",
+                                        "Pathfinder Player Core 2",
+                                        "Pathfinder War of Immortals"
+                                    ]
+                    },
+                    {
+                        "license":  "OGL",
+                        "count":  3,
+                        "sources":  [
+                                        "Pathfinder Rage of Elements",
+                                        "Pathfinder Secrets of Magic"
+                                    ]
+                    }
+                ]
+}

@@ -34,13 +34,22 @@ Android-first Pathfinder 2e spell list manager with a strict offline runtime mod
 
 ## Full Dataset Update
 1. Clone/update `foundryvtt/pf2e` locally.
-2. Run:
+2. Update spells:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\update_spell_dataset.ps1 `
-  -FoundrySpellsDir "<path-to-foundry\packs\data\spells>" `
+  -FoundrySpellsDir "<path-to-foundry\packs\pf2e\spells>" `
   -SourceCommit "<foundry-commit-hash>"
 ```
-3. Rebuild app. The script overwrites:
+3. Update classes:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\update_class_dataset.ps1 `
+  -FoundryClassesDir "<path-to-foundry\packs\pf2e\classes>" `
+  -SourceCommit "<foundry-commit-hash>"
+```
+4. Rebuild app. The scripts overwrite:
    - `app/src/main/assets/spells.normalized.json`
    - `app/src/main/assets/spells.attribution.json`
    - `app/src/main/assets/spells.changelog.json`
+   - `app/src/main/assets/classes.normalized.json`
+   - `app/src/main/assets/classes.attribution.json`
+   - `app/src/main/assets/classes.changelog.json`

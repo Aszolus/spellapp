@@ -11,17 +11,23 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         SpellEntity::class,
         CharacterEntity::class,
+        CharacterBuildIdentityEntity::class,
+        CharacterBuildOptionEntity::class,
         PreparedSlotEntity::class,
+        CastingTrackEntity::class,
         FocusStateEntity::class,
         SessionEventEntity::class,
     ],
-    version = 3,
+    version = 5,
     exportSchema = false,
 )
 abstract class SpellDatabase : RoomDatabase() {
     abstract fun spellDao(): SpellDao
     abstract fun characterDao(): CharacterDao
+    abstract fun characterBuildIdentityDao(): CharacterBuildIdentityDao
+    abstract fun characterBuildOptionDao(): CharacterBuildOptionDao
     abstract fun preparedSlotDao(): PreparedSlotDao
+    abstract fun castingTrackDao(): CastingTrackDao
     abstract fun focusStateDao(): FocusStateDao
     abstract fun sessionEventDao(): SessionEventDao
 
@@ -134,6 +140,81 @@ abstract class SpellDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `casting_tracks` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `characterId` INTEGER NOT NULL,
+                        `trackKey` TEXT NOT NULL,
+                        `sourceType` TEXT NOT NULL,
+                        `sourceId` TEXT NOT NULL,
+                        `progressionType` TEXT NOT NULL,
+                        FOREIGN KEY(`characterId`) REFERENCES `characters`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_casting_tracks_characterId` ON `casting_tracks` (`characterId`)",
+                )
+                db.execSQL(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS `index_casting_tracks_characterId_trackKey`
+                    ON `casting_tracks` (`characterId`, `trackKey`)
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `character_build_identity` (
+                        `characterId` INTEGER NOT NULL,
+                        `ancestryId` TEXT,
+                        `heritageId` TEXT,
+                        `backgroundId` TEXT,
+                        PRIMARY KEY(`characterId`),
+                        FOREIGN KEY(`characterId`) REFERENCES `characters`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `character_build_options` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `characterId` INTEGER NOT NULL,
+                        `optionType` TEXT NOT NULL,
+                        `optionId` TEXT NOT NULL,
+                        `levelAcquired` INTEGER,
+                        `metadataJson` TEXT NOT NULL,
+                        FOREIGN KEY(`characterId`) REFERENCES `characters`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE INDEX IF NOT EXISTS `index_character_build_options_characterId`
+                    ON `character_build_options` (`characterId`)
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE INDEX IF NOT EXISTS `index_character_build_options_characterId_optionType`
+                    ON `character_build_options` (`characterId`, `optionType`)
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS `index_character_build_options_characterId_optionType_optionId`
+                    ON `character_build_options` (`characterId`, `optionType`, `optionId`)
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun create(context: Context): SpellDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -142,6 +223,8 @@ abstract class SpellDatabase : RoomDatabase() {
                     DATABASE_NAME,
                 ).addMigrations(MIGRATION_1_2)
                     .addMigrations(MIGRATION_2_3)
+                    .addMigrations(MIGRATION_3_4)
+                    .addMigrations(MIGRATION_4_5)
                     .build()
                     .also { INSTANCE = it }
             }

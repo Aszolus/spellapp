@@ -9,12 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -30,6 +30,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.spellapp.core.model.CastingTrack
+import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.PreparedSlot
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,12 +39,13 @@ import com.spellapp.core.model.PreparedSlot
 fun PreparedSlotsRoute(
     characterName: String,
     selectedRank: Int,
+    selectedTrackKey: String,
+    castingTracks: List<CastingTrack>,
     allSlots: List<PreparedSlot>,
     slotsForRank: List<PreparedSlot>,
     spellNameById: Map<String, String>,
+    onTrackChange: (String) -> Unit,
     onRankChange: (Int) -> Unit,
-    onAddSlot: (Int) -> Unit,
-    onRemoveSlot: (Int, Int) -> Unit,
     onChooseSpell: (Int, Int, String) -> Unit,
     onClearSpell: (Int, Int) -> Unit,
     onCastSlot: (Int, Int) -> Unit,
@@ -74,6 +77,7 @@ fun PreparedSlotsRoute(
     }
     val preparedCount = baseSlots.count { slot -> slot.preparedSpellId != null }
     val rankLabel = if (selectedRank == 0) "Cantrips" else "Rank $selectedRank"
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -98,6 +102,22 @@ fun PreparedSlotsRoute(
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            if (castingTracks.isNotEmpty()) {
+                Text(
+                    text = "Track",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(castingTracks, key = { it.trackKey }) { track ->
+                        FilterChip(
+                            selected = selectedTrackKey == track.trackKey,
+                            onClick = { onTrackChange(track.trackKey) },
+                            label = { Text(track.displayName()) },
+                        )
+                    }
+                }
+            }
+
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item {
                     FilterChip(
@@ -143,22 +163,14 @@ fun PreparedSlotsRoute(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = if (showAllRanks) {
-                        "Prepared $preparedCount / ${baseSlots.size}"
-                    } else {
-                        "$rankLabel prepared $preparedCount / ${baseSlots.size}"
-                    },
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Button(onClick = { onAddSlot(selectedRank) }) {
-                    Text(if (selectedRank == 0) "Add Cantrip" else "Add Rank")
-                }
-            }
+            Text(
+                text = if (showAllRanks) {
+                    "Prepared $preparedCount / ${baseSlots.size}"
+                } else {
+                    "$rankLabel prepared $preparedCount / ${baseSlots.size}"
+                },
+                style = MaterialTheme.typography.bodyLarge,
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -227,19 +239,14 @@ fun PreparedSlotsRoute(
                 Text(
                     text = if (showOnlyPrepared) {
                         "No prepared spells in this view."
-                    } else if (showAllRanks) {
-                        "No slots yet. Add a slot to begin."
-                    } else if (selectedRank == 0) {
-                        "No cantrips in this rank."
                     } else {
-                        "No slots in this rank."
+                        "No slots available at this level for this track."
                     },
                     style = MaterialTheme.typography.bodyMedium,
                 )
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     items(visibleSlots, key = { "${it.trackKey}-${it.rank}-${it.slotIndex}" }) { slot ->
@@ -263,9 +270,7 @@ fun PreparedSlotsRoute(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(1.dp),
-                                ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                     Text(
                                         text = slotTitle,
                                         style = MaterialTheme.typography.labelLarge,
@@ -297,9 +302,6 @@ fun PreparedSlotsRoute(
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                TextButton(onClick = { onRemoveSlot(slot.rank, slot.slotIndex) }) {
-                                    Text("Remove")
-                                }
                                 if (slot.preparedSpellId == null) {
                                     TextButton(
                                         onClick = {
@@ -345,12 +347,8 @@ fun PreparedSlotsRoute(
                         text = "Recent Actions (${recentEvents.size})",
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        TextButton(
-                            onClick = { showRecentActions = !showRecentActions },
-                        ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { showRecentActions = !showRecentActions }) {
                             Text(if (showRecentActions) "Hide" else "Show")
                         }
                         TextButton(
@@ -400,7 +398,6 @@ fun PreparedSlotsRoute(
                 },
             )
         }
-
     }
 }
 
@@ -424,4 +421,11 @@ private enum class DayCycleAction(
         message = "Clear prepared spells for this track and restore focus to max?",
         confirmLabel = "Start New Day",
     ),
+}
+
+private fun CastingTrack.displayName(): String {
+    return when (sourceType) {
+        CastingTrackSourceType.PRIMARY_CLASS -> "Primary"
+        CastingTrackSourceType.ARCHETYPE -> sourceId.ifBlank { trackKey }
+    }
 }

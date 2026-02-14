@@ -1,4 +1,5 @@
 package com.spellapp.core.data
 
 interface CharacterRepository : CharacterCrudRepository, PreparedSlotRepository,
-    SessionEventRepository, FocusStateRepository
+    SessionEventRepository, FocusStateRepository, CastingTrackRepository, PreparedSlotSyncRepository,
+    CharacterBuildRepository

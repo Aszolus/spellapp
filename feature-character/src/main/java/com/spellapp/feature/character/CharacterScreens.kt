@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -151,10 +152,11 @@ private fun CharacterRow(
 @Composable
 fun CharacterEditorDialog(
     initialCharacter: CharacterProfile?,
+    initialArchetypeTrackCount: Int,
     availableClasses: List<CharacterClassDefinition>,
     classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
     onDismiss: () -> Unit,
-    onSave: (CharacterProfile) -> Unit,
+    onSave: (CharacterProfile, Int) -> Unit,
 ) {
     var name by remember(initialCharacter) { mutableStateOf(initialCharacter?.name.orEmpty()) }
     var levelText by remember(initialCharacter) {
@@ -179,6 +181,9 @@ fun CharacterEditorDialog(
     }
     var legacyEnabled by remember(initialCharacter) {
         mutableStateOf(initialCharacter?.legacyTerminologyEnabled ?: false)
+    }
+    var archetypeTrackCount by remember(initialCharacter, initialArchetypeTrackCount) {
+        mutableStateOf(initialArchetypeTrackCount.coerceAtLeast(0))
     }
 
     val level = levelText.toIntOrNull()?.coerceIn(1, 20)
@@ -271,6 +276,33 @@ fun CharacterEditorDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
+                        text = "Archetype tracks",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(
+                            onClick = { archetypeTrackCount = (archetypeTrackCount - 1).coerceAtLeast(0) },
+                            enabled = archetypeTrackCount > 0,
+                        ) {
+                            Text("-")
+                        }
+                        Text(
+                            text = archetypeTrackCount.toString(),
+                            modifier = Modifier.width(24.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        TextButton(
+                            onClick = { archetypeTrackCount += 1 },
+                        ) {
+                            Text("+")
+                        }
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
                         text = "Legacy terms",
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -301,6 +333,7 @@ fun CharacterEditorDialog(
                             spellAttackModifier = spellAttack ?: 0,
                             legacyTerminologyEnabled = legacyEnabled,
                         ),
+                        archetypeTrackCount,
                     )
                 },
                 enabled = canSave,

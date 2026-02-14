@@ -1,0 +1,966 @@
+﻿{
+    "datasetVersion":  "20260214-081705",
+    "sourceCommit":  "local-unknown",
+    "generatedAtUtc":  "2026-02-14T13:17:05.6846492Z",
+    "classCount":  27,
+    "classes":  [
+                    {
+                        "id":  "alchemist",
+                        "name":  "Alchemist",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core 2",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "int"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Abundant Vials",
+                                                 "Compendium.pf2e.classfeatures.Item.Advanced Vials",
+                                                 "Compendium.pf2e.classfeatures.Item.Alchemical Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Alchemical Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Alchemical Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Alchemical Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Alchemy",
+                                                 "Compendium.pf2e.classfeatures.Item.Chemical Hardiness",
+                                                 "Compendium.pf2e.classfeatures.Item.Double Brew",
+                                                 "Compendium.pf2e.classfeatures.Item.Explosion Dodger",
+                                                 "Compendium.pf2e.classfeatures.Item.Field Discovery",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Field Discovery",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Powerful Alchemy",
+                                                 "Compendium.pf2e.classfeatures.Item.Research Field",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Will Expertise"
+                                             ]
+                    },
+                    {
+                        "id":  "animist",
+                        "name":  "Animist",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder War of Immortals",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "wis"
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Animist \u0026 Apparition Spellcasting",
+                                                 "Compendium.pf2e.classfeatures.Item.Animistic Practice",
+                                                 "Compendium.pf2e.classfeatures.Item.Apparition Attunement",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Protections",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Fortitude Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Fourth Apparition",
+                                                 "Compendium.pf2e.classfeatures.Item.Legendary Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Master of Mind and Spirit",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Simple Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Supreme Incarnation",
+                                                 "Compendium.pf2e.classfeatures.Item.Third Apparition",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "barbarian",
+                        "name":  "Barbarian",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core 2",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "str"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Brutality",
+                                                 "Compendium.pf2e.classfeatures.Item.Devastator",
+                                                 "Compendium.pf2e.classfeatures.Item.Furious Footfalls",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Juggernaut",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization (Barbarian)",
+                                                 "Compendium.pf2e.classfeatures.Item.Indomitable Will",
+                                                 "Compendium.pf2e.classfeatures.Item.Instinct",
+                                                 "Compendium.pf2e.classfeatures.Item.Juggernaut",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Mighty Rage",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Quick-Tempered",
+                                                 "Compendium.pf2e.classfeatures.Item.Rage",
+                                                 "Compendium.pf2e.classfeatures.Item.Raging Resistance",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Revitalizing Rage",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "bard",
+                        "name":  "Bard",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "cha"
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Bard Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Composition Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Fortitude Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Performer\u0027s Heart",
+                                                 "Compendium.pf2e.classfeatures.Item.Legendary Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Light Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Magnum Opus",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Muses",
+                                                 "Compendium.pf2e.classfeatures.Item.Occult Spellcasting",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Performer\u0027s Heart",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Signature Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Spell Repertoire",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "champion",
+                        "name":  "Champion",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core 2",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "dex",
+                                                  "str"
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Blessing of the Devoted",
+                                                 "Compendium.pf2e.classfeatures.Item.Cause",
+                                                 "Compendium.pf2e.classfeatures.Item.Champion Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Champion Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Deity (Champion)",
+                                                 "Compendium.pf2e.classfeatures.Item.Devotion Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Divine Will",
+                                                 "Compendium.pf2e.classfeatures.Item.Exalted Reaction",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Hero\u0027s Defiance",
+                                                 "Compendium.pf2e.classfeatures.Item.Legendary Armor",
+                                                 "Compendium.pf2e.classfeatures.Item.Martial Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Relentless Reaction",
+                                                 "Compendium.pf2e.classfeatures.Item.Sacred Body",
+                                                 "Compendium.pf2e.classfeatures.Item.Shield Block",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "cleric",
+                        "name":  "Cleric",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "wis"
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Cleric Spellcasting",
+                                                 "Compendium.pf2e.classfeatures.Item.Deity (Cleric)",
+                                                 "Compendium.pf2e.classfeatures.Item.Divine Defense",
+                                                 "Compendium.pf2e.classfeatures.Item.Divine Font",
+                                                 "Compendium.pf2e.classfeatures.Item.Doctrine",
+                                                 "Compendium.pf2e.classfeatures.Item.Fifth Doctrine",
+                                                 "Compendium.pf2e.classfeatures.Item.Final Doctrine",
+                                                 "Compendium.pf2e.classfeatures.Item.First Doctrine",
+                                                 "Compendium.pf2e.classfeatures.Item.Fourth Doctrine",
+                                                 "Compendium.pf2e.classfeatures.Item.Miraculous Spell",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Resolute Faith",
+                                                 "Compendium.pf2e.classfeatures.Item.Second Doctrine",
+                                                 "Compendium.pf2e.classfeatures.Item.Third Doctrine",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "commander",
+                        "name":  "Commander",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Battlecry!",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "int"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Battlefield Intuition",
+                                                 "Compendium.pf2e.classfeatures.Item.Commander\u0027s Banner",
+                                                 "Compendium.pf2e.classfeatures.Item.Commanding Will",
+                                                 "Compendium.pf2e.classfeatures.Item.Drilled Reactions",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Tactician",
+                                                 "Compendium.pf2e.classfeatures.Item.Fortitude Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Legendary Tactician",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Tactician",
+                                                 "Compendium.pf2e.classfeatures.Item.Military Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Shield Block",
+                                                 "Compendium.pf2e.classfeatures.Item.Tactics",
+                                                 "Compendium.pf2e.classfeatures.Item.Warfare Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "druid",
+                        "name":  "Druid",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "wis"
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Anathema (Druid)",
+                                                 "Compendium.pf2e.classfeatures.Item.Druid Spellcasting",
+                                                 "Compendium.pf2e.classfeatures.Item.Druidic Order",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Fortitude Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Legendary Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Primal Hierophant",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Shield Block",
+                                                 "Compendium.pf2e.classfeatures.Item.Voice of Nature",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Wild Willpower",
+                                                 "Compendium.pf2e.classfeatures.Item.Wildsong"
+                                             ]
+                    },
+                    {
+                        "id":  "exemplar",
+                        "name":  "Exemplar",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder War of Immortals",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "dex",
+                                                  "str"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Burnished Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Burnished Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Deific Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Divine Premonition",
+                                                 "Compendium.pf2e.classfeatures.Item.Divine Spark and Ikons",
+                                                 "Compendium.pf2e.classfeatures.Item.Divine Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Dominion Epithet",
+                                                 "Compendium.pf2e.classfeatures.Item.Godly Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Spirit Striking",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Unassailable Soul",
+                                                 "Compendium.pf2e.classfeatures.Item.Humble Strikes",
+                                                 "Compendium.pf2e.classfeatures.Item.Mortality Reforged",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Root Epithet",
+                                                 "Compendium.pf2e.classfeatures.Item.Shield Block",
+                                                 "Compendium.pf2e.classfeatures.Item.Sovereignty Epithet",
+                                                 "Compendium.pf2e.classfeatures.Item.Spirit Striking",
+                                                 "Compendium.pf2e.classfeatures.Item.Unassailable Soul",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise"
+                                             ]
+                    },
+                    {
+                        "id":  "fighter",
+                        "name":  "Fighter",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "dex",
+                                                  "str"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Battle Hardened",
+                                                 "Compendium.pf2e.classfeatures.Item.Battlefield Surveyor",
+                                                 "Compendium.pf2e.classfeatures.Item.Bravery",
+                                                 "Compendium.pf2e.classfeatures.Item.Combat Flexibility",
+                                                 "Compendium.pf2e.classfeatures.Item.Fighter Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Fighter Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Improved Flexibility",
+                                                 "Compendium.pf2e.classfeatures.Item.Reactive Strike",
+                                                 "Compendium.pf2e.classfeatures.Item.Shield Block",
+                                                 "Compendium.pf2e.classfeatures.Item.Tempered Reflexes",
+                                                 "Compendium.pf2e.classfeatures.Item.Versatile Legend",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Legend",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "guardian",
+                        "name":  "Guardian",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Battlecry!",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "str"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Battle Hardened",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Guardian Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Guardian Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Guardian\u0027s Armor",
+                                                 "Compendium.pf2e.classfeatures.Item.Guardian\u0027s Techniques",
+                                                 "Compendium.pf2e.classfeatures.Item.Reaction Time",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Shield Block",
+                                                 "Compendium.pf2e.classfeatures.Item.Taunt",
+                                                 "Compendium.pf2e.classfeatures.Item.Tough To Kill",
+                                                 "Compendium.pf2e.classfeatures.Item.Unbreakable Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Unbreakable Legend",
+                                                 "Compendium.pf2e.classfeatures.Item.Unbreakable Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Unyielding Resolve",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "gunslinger",
+                        "name":  "Gunslinger",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Guns \u0026 Gears",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "dex"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Advanced Deed",
+                                                 "Compendium.pf2e.classfeatures.Item.Blast Dodger",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Deed",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Gunslinger Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Gunslinger Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Gunslinger\u0027s Way",
+                                                 "Compendium.pf2e.classfeatures.Item.Gunslinging Legend",
+                                                 "Compendium.pf2e.classfeatures.Item.Lead Constitution",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Legend",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Shootist\u0027s Edge",
+                                                 "Compendium.pf2e.classfeatures.Item.Slinger\u0027s Precision",
+                                                 "Compendium.pf2e.classfeatures.Item.Stubborn",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "inventor",
+                        "name":  "Inventor",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Guns \u0026 Gears",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "int"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Anvil\u0027s Hardness",
+                                                 "Compendium.pf2e.classfeatures.Item.Breakthrough Innovation",
+                                                 "Compendium.pf2e.classfeatures.Item.Churning Mind",
+                                                 "Compendium.pf2e.classfeatures.Item.Complete Reconfiguration",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Overdrive",
+                                                 "Compendium.pf2e.classfeatures.Item.Explode",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Infinite Invention",
+                                                 "Compendium.pf2e.classfeatures.Item.Innovation",
+                                                 "Compendium.pf2e.classfeatures.Item.Inventive Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Inventive Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Inventor Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Inventor Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Legendary Overdrive",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Overdrive",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Expertise (Inventor)",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Offensive Boost",
+                                                 "Compendium.pf2e.classfeatures.Item.Overdrive",
+                                                 "Compendium.pf2e.classfeatures.Item.Peerless Inventor",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Reconfigure",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Revolutionary Innovation",
+                                                 "Compendium.pf2e.classfeatures.Item.Shield Block",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "investigator",
+                        "name":  "Investigator",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core 2",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "int"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Deductive Improvisation",
+                                                 "Compendium.pf2e.classfeatures.Item.Devise a Stratagem",
+                                                 "Compendium.pf2e.classfeatures.Item.Dogged Will",
+                                                 "Compendium.pf2e.classfeatures.Item.Fortitude Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Dogged Will",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Investigator Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Keen Recollection",
+                                                 "Compendium.pf2e.classfeatures.Item.Light Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Light Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Martial Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Detective",
+                                                 "Compendium.pf2e.classfeatures.Item.Methodology",
+                                                 "Compendium.pf2e.classfeatures.Item.On the Case",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Legend",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Savvy Reflexes",
+                                                 "Compendium.pf2e.classfeatures.Item.Skillful Lessons",
+                                                 "Compendium.pf2e.classfeatures.Item.Strategic Strike",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "kineticist",
+                        "name":  "Kineticist",
+                        "publication":  {
+                                            "license":  "OGL",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Rage of Elements",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "con"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Double Reflow",
+                                                 "Compendium.pf2e.classfeatures.Item.Extract Element",
+                                                 "Compendium.pf2e.classfeatures.Item.Final Gate",
+                                                 "Compendium.pf2e.classfeatures.Item.Fourth Gate\u0027s Threshold",
+                                                 "Compendium.pf2e.classfeatures.Item.Gate\u0027s Threshold",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Kinetic Durability",
+                                                 "Compendium.pf2e.classfeatures.Item.Impulses",
+                                                 "Compendium.pf2e.classfeatures.Item.Kinetic Aura",
+                                                 "Compendium.pf2e.classfeatures.Item.Kinetic Durability",
+                                                 "Compendium.pf2e.classfeatures.Item.Kinetic Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Kinetic Gate",
+                                                 "Compendium.pf2e.classfeatures.Item.Kinetic Legend",
+                                                 "Compendium.pf2e.classfeatures.Item.Kinetic Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Kinetic Quickness",
+                                                 "Compendium.pf2e.classfeatures.Item.Light Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Light Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflow Elements",
+                                                 "Compendium.pf2e.classfeatures.Item.Second Gate\u0027s Threshold",
+                                                 "Compendium.pf2e.classfeatures.Item.Third Gate\u0027s Threshold",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Will Expertise"
+                                             ]
+                    },
+                    {
+                        "id":  "magus",
+                        "name":  "Magus",
+                        "publication":  {
+                                            "license":  "OGL",
+                                            "remaster":  false,
+                                            "title":  "Pathfinder Secrets of Magic",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "dex",
+                                                  "str"
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Alertness",
+                                                 "Compendium.pf2e.classfeatures.Item.Arcane Cascade",
+                                                 "Compendium.pf2e.classfeatures.Item.Arcane Spellcasting (Magus)",
+                                                 "Compendium.pf2e.classfeatures.Item.Conflux Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Double Spellstrike",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Hybrid Study",
+                                                 "Compendium.pf2e.classfeatures.Item.Juggernaut",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Resolve",
+                                                 "Compendium.pf2e.classfeatures.Item.Spellstrike",
+                                                 "Compendium.pf2e.classfeatures.Item.Studious Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "monk",
+                        "name":  "Monk",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core 2",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "dex",
+                                                  "str"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Adamantine Strikes",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Strikes",
+                                                 "Compendium.pf2e.classfeatures.Item.Flurry of Blows",
+                                                 "Compendium.pf2e.classfeatures.Item.Graceful Legend",
+                                                 "Compendium.pf2e.classfeatures.Item.Graceful Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Incredible Movement",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Strikes",
+                                                 "Compendium.pf2e.classfeatures.Item.Metal Strikes",
+                                                 "Compendium.pf2e.classfeatures.Item.Monk Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Mystic Strikes",
+                                                 "Compendium.pf2e.classfeatures.Item.Path to Perfection",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Perfected Form",
+                                                 "Compendium.pf2e.classfeatures.Item.Powerful Fist",
+                                                 "Compendium.pf2e.classfeatures.Item.Second Path to Perfection",
+                                                 "Compendium.pf2e.classfeatures.Item.Third Path to Perfection",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "oracle",
+                        "name":  "Oracle",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core 2",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "cha"
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Divine Access",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Extreme Curse",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Mysterious Resolve",
+                                                 "Compendium.pf2e.classfeatures.Item.Legendary Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Light Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Magical Fortitude",
+                                                 "Compendium.pf2e.classfeatures.Item.Major Curse",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Mysterious Resolve",
+                                                 "Compendium.pf2e.classfeatures.Item.Mystery",
+                                                 "Compendium.pf2e.classfeatures.Item.Oracle Spellcasting",
+                                                 "Compendium.pf2e.classfeatures.Item.Oracular Clarity",
+                                                 "Compendium.pf2e.classfeatures.Item.Oracular Curse",
+                                                 "Compendium.pf2e.classfeatures.Item.Oracular Senses",
+                                                 "Compendium.pf2e.classfeatures.Item.Premonition Reflexes",
+                                                 "Compendium.pf2e.classfeatures.Item.Revelation Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Signature Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Spell Repertoire",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "psychic",
+                        "name":  "Psychic",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Dark Archive (Remastered)",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Clarity of Focus",
+                                                 "Compendium.pf2e.classfeatures.Item.Conscious Mind",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Extrasensory Perception",
+                                                 "Compendium.pf2e.classfeatures.Item.Fortitude Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Fortress of Will",
+                                                 "Compendium.pf2e.classfeatures.Item.Infinite Mind",
+                                                 "Compendium.pf2e.classfeatures.Item.Legendary Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Personal Barrier",
+                                                 "Compendium.pf2e.classfeatures.Item.Precognitive Reflexes",
+                                                 "Compendium.pf2e.classfeatures.Item.Psi Cantrips and Amps",
+                                                 "Compendium.pf2e.classfeatures.Item.Psychic Spellcasting",
+                                                 "Compendium.pf2e.classfeatures.Item.Psychic Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Signature Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Spell Repertoire",
+                                                 "Compendium.pf2e.classfeatures.Item.Subconscious Mind",
+                                                 "Compendium.pf2e.classfeatures.Item.Unleash Psyche",
+                                                 "Compendium.pf2e.classfeatures.Item.Walls of Will",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise"
+                                             ]
+                    },
+                    {
+                        "id":  "ranger",
+                        "name":  "Ranger",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "dex",
+                                                  "str"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Natural Reflexes",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Hunt Prey",
+                                                 "Compendium.pf2e.classfeatures.Item.Hunter\u0027s Edge",
+                                                 "Compendium.pf2e.classfeatures.Item.Martial Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Masterful Hunter",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Natural Reflexes",
+                                                 "Compendium.pf2e.classfeatures.Item.Nature\u0027s Edge",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Legend",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Ranger Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Ranger Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Swift Prey",
+                                                 "Compendium.pf2e.classfeatures.Item.Trackless Journey",
+                                                 "Compendium.pf2e.classfeatures.Item.Unimpeded Journey",
+                                                 "Compendium.pf2e.classfeatures.Item.Warden\u0027s Endurance",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Will Expertise"
+                                             ]
+                    },
+                    {
+                        "id":  "rogue",
+                        "name":  "Rogue",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "dex"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Agile Mind",
+                                                 "Compendium.pf2e.classfeatures.Item.Debilitating Strike",
+                                                 "Compendium.pf2e.classfeatures.Item.Deny Advantage",
+                                                 "Compendium.pf2e.classfeatures.Item.Double Debilitation",
+                                                 "Compendium.pf2e.classfeatures.Item.Evasive Reflexes",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Rogue Reflexes",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Light Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Light Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Strike",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Tricks",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Legend",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Rogue Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Rogue Resilience",
+                                                 "Compendium.pf2e.classfeatures.Item.Rogue\u0027s Racket",
+                                                 "Compendium.pf2e.classfeatures.Item.Sneak Attack",
+                                                 "Compendium.pf2e.classfeatures.Item.Surprise Attack",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Tricks"
+                                             ]
+                    },
+                    {
+                        "id":  "sorcerer",
+                        "name":  "Sorcerer",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core 2",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "cha"
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Bloodline",
+                                                 "Compendium.pf2e.classfeatures.Item.Bloodline Paragon",
+                                                 "Compendium.pf2e.classfeatures.Item.Bloodline Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Defensive Robes",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Legendary Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Magical Fortitude",
+                                                 "Compendium.pf2e.classfeatures.Item.Majestic Will",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Signature Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Sorcerer Spellcasting",
+                                                 "Compendium.pf2e.classfeatures.Item.Sorcerous Potency",
+                                                 "Compendium.pf2e.classfeatures.Item.Spell Repertoire",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "summoner",
+                        "name":  "Summoner",
+                        "publication":  {
+                                            "license":  "OGL",
+                                            "remaster":  false,
+                                            "title":  "Pathfinder Secrets of Magic",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "cha"
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Defensive Robes",
+                                                 "Compendium.pf2e.classfeatures.Item.Eidolon",
+                                                 "Compendium.pf2e.classfeatures.Item.Eidolon Defensive Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Eidolon Defensive Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Eidolon Symbiosis",
+                                                 "Compendium.pf2e.classfeatures.Item.Eidolon Transcendence",
+                                                 "Compendium.pf2e.classfeatures.Item.Eidolon Unarmed Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Eidolon Unarmed Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Eidolon Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Evolution Feat",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Eidolon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Instant Manifestation",
+                                                 "Compendium.pf2e.classfeatures.Item.Link Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Shared Reflexes",
+                                                 "Compendium.pf2e.classfeatures.Item.Shared Resolve",
+                                                 "Compendium.pf2e.classfeatures.Item.Shared Vigilance",
+                                                 "Compendium.pf2e.classfeatures.Item.Simple Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Spell Repertoire",
+                                                 "Compendium.pf2e.classfeatures.Item.Summoner Spellcasting",
+                                                 "Compendium.pf2e.classfeatures.Item.Twin Juggernauts",
+                                                 "Compendium.pf2e.classfeatures.Item.Unlimited Signature Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "swashbuckler",
+                        "name":  "Swashbuckler",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core 2",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "dex"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Assured Evasion",
+                                                 "Compendium.pf2e.classfeatures.Item.Confident Evasion",
+                                                 "Compendium.pf2e.classfeatures.Item.Confident Finisher",
+                                                 "Compendium.pf2e.classfeatures.Item.Continuous Flair",
+                                                 "Compendium.pf2e.classfeatures.Item.Eternal Confidence",
+                                                 "Compendium.pf2e.classfeatures.Item.Exemplary Finisher",
+                                                 "Compendium.pf2e.classfeatures.Item.Fortitude Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Keen Flair",
+                                                 "Compendium.pf2e.classfeatures.Item.Light Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Light Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Martial Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Opportune Riposte",
+                                                 "Compendium.pf2e.classfeatures.Item.Panache",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Precise Strike",
+                                                 "Compendium.pf2e.classfeatures.Item.Reinforced Ego",
+                                                 "Compendium.pf2e.classfeatures.Item.Stylish Combatant",
+                                                 "Compendium.pf2e.classfeatures.Item.Stylish Tricks",
+                                                 "Compendium.pf2e.classfeatures.Item.Swashbuckler Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Swashbuckler\u0027s Style",
+                                                 "Compendium.pf2e.classfeatures.Item.Vivacious Speed",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "thaumaturge",
+                        "name":  "Thaumaturge",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Dark Archive (Remastered)",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "cha"
+                                              ],
+                        "spellcastingFlag":  0,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Disciplined Mind",
+                                                 "Compendium.pf2e.classfeatures.Item.Earned Resilience",
+                                                 "Compendium.pf2e.classfeatures.Item.Esoteric Lore",
+                                                 "Compendium.pf2e.classfeatures.Item.Exploit Vulnerability",
+                                                 "Compendium.pf2e.classfeatures.Item.First Implement and Esoterica",
+                                                 "Compendium.pf2e.classfeatures.Item.Greater Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Implement Adept",
+                                                 "Compendium.pf2e.classfeatures.Item.Implement Paragon",
+                                                 "Compendium.pf2e.classfeatures.Item.Implement\u0027s Empowerment",
+                                                 "Compendium.pf2e.classfeatures.Item.Intensify Vulnerability",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Medium Armor Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Perfected Mind",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Second Adept",
+                                                 "Compendium.pf2e.classfeatures.Item.Second Implement",
+                                                 "Compendium.pf2e.classfeatures.Item.Thaumaturgic Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Thaumaturgic Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Third Implement",
+                                                 "Compendium.pf2e.classfeatures.Item.Unlimited Esoterica",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Mastery",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization"
+                                             ]
+                    },
+                    {
+                        "id":  "witch",
+                        "name":  "Witch",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "int"
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Defensive Robes",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Familiar (Witch)",
+                                                 "Compendium.pf2e.classfeatures.Item.Hex Spells",
+                                                 "Compendium.pf2e.classfeatures.Item.Legendary Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Magical Fortitude",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Patron",
+                                                 "Compendium.pf2e.classfeatures.Item.Patron\u0027s Gift",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Will of the Pupil",
+                                                 "Compendium.pf2e.classfeatures.Item.Witch Spellcasting"
+                                             ]
+                    },
+                    {
+                        "id":  "wizard",
+                        "name":  "Wizard",
+                        "publication":  {
+                                            "license":  "ORC",
+                                            "remaster":  true,
+                                            "title":  "Pathfinder Player Core",
+                                            "page":  null
+                                        },
+                        "keyAbilityOptions":  [
+                                                  "int"
+                                              ],
+                        "spellcastingFlag":  1,
+                        "classFeatureRefs":  [
+                                                 "Compendium.pf2e.classfeatures.Item.Arcane Bond",
+                                                 "Compendium.pf2e.classfeatures.Item.Arcane School",
+                                                 "Compendium.pf2e.classfeatures.Item.Arcane Thesis",
+                                                 "Compendium.pf2e.classfeatures.Item.Archwizard\u0027s Spellcraft",
+                                                 "Compendium.pf2e.classfeatures.Item.Defensive Robes",
+                                                 "Compendium.pf2e.classfeatures.Item.Expert Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Legendary Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Magical Fortitude",
+                                                 "Compendium.pf2e.classfeatures.Item.Master Spellcaster",
+                                                 "Compendium.pf2e.classfeatures.Item.Perception Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Prodigious Will",
+                                                 "Compendium.pf2e.classfeatures.Item.Reflex Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Expertise",
+                                                 "Compendium.pf2e.classfeatures.Item.Weapon Specialization",
+                                                 "Compendium.pf2e.classfeatures.Item.Wizard Spellcasting"
+                                             ]
+                    }
+                ]
+}
