@@ -1,6 +1,7 @@
 package com.spellapp.feature.character
 
 import com.spellapp.core.data.CastingTrackRepository
+import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.FocusStateRepository
 import com.spellapp.core.data.PreparedSlotRepository
@@ -27,7 +28,9 @@ class PreparedSlotsService(
     private val focusStateRepository: FocusStateRepository,
     private val spellRepository: SpellRepository,
     private val characterCrudRepository: CharacterCrudRepository,
+    private val characterBuildRepository: CharacterBuildRepository,
 ) {
+    private var cachedLayOnHandsSpellId: String? = null
     suspend fun syncPreparedSlots(characterId: Long) {
         preparedSlotSyncRepository.syncPreparedSlotsForCharacter(characterId)
     }
@@ -63,6 +66,14 @@ class PreparedSlotsService(
                 currentPoints = 0,
                 maxPoints = 1,
             )
+        }
+    }
+
+    fun observeHasBlessedOneDedication(characterId: Long): Flow<Boolean> {
+        return characterBuildRepository.observeBuildOptions(characterId).map { options ->
+            options.any { option ->
+                option.optionId.equals(BLESSED_ONE_DEDICATION_OPTION_ID, ignoreCase = true)
+            }
         }
     }
 
@@ -204,6 +215,37 @@ class PreparedSlotsService(
         return true
     }
 
+    suspend fun castLayOnHands(
+        characterId: Long,
+        trackKey: String,
+    ): Boolean {
+        val hasBlessedOneDedication = characterBuildRepository.getBuildOptions(characterId)
+            .any { option ->
+                option.optionId.equals(BLESSED_ONE_DEDICATION_OPTION_ID, ignoreCase = true)
+            }
+        if (!hasBlessedOneDedication) {
+            return false
+        }
+
+        val current = currentFocusState(characterId)
+        if (current.currentPoints <= 0) {
+            return false
+        }
+
+        focusStateRepository.upsertFocusState(
+            current.copy(currentPoints = current.currentPoints - 1),
+        )
+        sessionEventRepository.appendSessionEvent(
+            SessionEvent(
+                characterId = characterId,
+                type = SessionEventType.CAST_FOCUS_SPELL,
+                spellId = resolveLayOnHandsSpellId(),
+                metadataJson = metadataForTrack(trackKey),
+            ),
+        )
+        return true
+    }
+
     suspend fun rest(
         characterId: Long,
         trackKey: String,
@@ -278,13 +320,17 @@ class PreparedSlotsService(
                 spell.sourceBook.contains(normalizedSourceFilter, ignoreCase = true)
             }
         }
+        val canHeightenBySpellId = mutableMapOf<String, Boolean>()
 
         val slotsByRank = emptySlots.groupBy { it.rank }
         for ((slotRank, rankSlots) in slotsByRank) {
-            val candidates = if (slotRank == 0) {
-                filteredSpells.filter { it.rank == 0 }
-            } else {
-                filteredSpells.filter { it.rank in 1..slotRank }
+            val candidates = filteredSpells.filter { spell ->
+                canSpellFillSlot(
+                    spellId = spell.id,
+                    spellRank = spell.rank,
+                    slotRank = slotRank,
+                    canHeightenBySpellId = canHeightenBySpellId,
+                )
             }
             if (candidates.isEmpty()) continue
             for (slot in rankSlots) {
@@ -298,6 +344,34 @@ class PreparedSlotsService(
                 )
             }
         }
+    }
+
+    private suspend fun canSpellFillSlot(
+        spellId: String,
+        spellRank: Int,
+        slotRank: Int,
+        canHeightenBySpellId: MutableMap<String, Boolean>,
+    ): Boolean {
+        if (slotRank == 0) {
+            return spellRank == 0
+        }
+        if (spellRank <= 0 || spellRank > slotRank) {
+            return false
+        }
+        if (spellRank == slotRank) {
+            return true
+        }
+        val cachedCanHeighten = canHeightenBySpellId[spellId]
+        if (cachedCanHeighten != null) {
+            return cachedCanHeighten
+        }
+        val canHeighten = spellRepository.getSpellDetail(spellId)
+            ?.description
+            ?.let { description ->
+                HEIGHTENED_BLOCK_PATTERN.containsMatchIn(description)
+            } == true
+        canHeightenBySpellId[spellId] = canHeighten
+        return canHeighten
     }
 
     private fun traditionStringForTrack(
@@ -328,12 +402,18 @@ class PreparedSlotsService(
         event: SessionEvent,
         spellNameById: Map<String, String>,
     ): String {
-        val spellName = event.spellId?.let { spellNameById[it] ?: it } ?: "Unknown Spell"
+        val spellName = event.spellId?.let { spellNameById[it] ?: it }
+            ?: if (event.type == SessionEventType.CAST_FOCUS_SPELL) {
+                "Lay on Hands"
+            } else {
+                "Unknown Spell"
+            }
         return when (event.type) {
             SessionEventType.CAST_SPELL -> {
                 val rankLabel = if (event.spellRank == 0) "Cantrip" else "Rank ${event.spellRank ?: "?"}"
                 "Cast $rankLabel: $spellName"
             }
+            SessionEventType.CAST_FOCUS_SPELL -> "Cast Focus: $spellName"
             SessionEventType.UNDO_LAST_ACTION -> "Undo last action"
             SessionEventType.REFOCUS -> "Refocus"
             SessionEventType.REST -> "Rest"
@@ -353,7 +433,26 @@ class PreparedSlotsService(
         return "{\"trackKey\":\"$trackKey\"}"
     }
 
+    private suspend fun resolveLayOnHandsSpellId(): String? {
+        cachedLayOnHandsSpellId?.let { return it }
+        val candidates = spellRepository.observeSpells(
+            query = "Lay on Hands",
+        ).first()
+        val resolved = candidates.firstOrNull { spell ->
+            spell.name.equals("Lay on Hands", ignoreCase = true)
+        }?.id
+        if (resolved != null) {
+            cachedLayOnHandsSpellId = resolved
+        }
+        return resolved
+    }
+
     companion object {
         private const val MAX_FOCUS_POINTS = 3
+        private const val BLESSED_ONE_DEDICATION_OPTION_ID = "archetype/blessed-one/blessed-one-dedication"
+        private val HEIGHTENED_BLOCK_PATTERN = Regex(
+            pattern = "(?m)^\\s*Heightened\\b",
+            option = RegexOption.IGNORE_CASE,
+        )
     }
 }

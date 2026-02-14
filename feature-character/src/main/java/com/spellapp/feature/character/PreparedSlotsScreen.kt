@@ -67,6 +67,7 @@ fun PreparedSlotsRoute(
     onIncreaseFocusMax: () -> Unit,
     onDecreaseFocusMax: () -> Unit,
     onRefocus: () -> Unit,
+    onCastLayOnHands: () -> Unit,
     onRest: () -> Unit,
     onNewDayPreparation: () -> Unit,
     onPrepareRandom: () -> Unit,
@@ -172,8 +173,10 @@ fun PreparedSlotsRoute(
                 spellAttackModifier = uiState.spellAttackModifier,
                 focusCurrent = uiState.focusCurrentPoints,
                 focusMax = uiState.focusMaxPoints,
+                hasBlessedOneDedication = uiState.hasBlessedOneDedication,
                 onRefocus = { pendingAction = DayCycleAction.REFOCUS },
                 onUseFocusPoint = onUseFocusPoint,
+                onCastLayOnHands = onCastLayOnHands,
             )
 
             if (uiState.castingTracks.size > 1) {
@@ -352,8 +355,10 @@ private fun CombatStatsBar(
     spellAttackModifier: Int,
     focusCurrent: Int,
     focusMax: Int,
+    hasBlessedOneDedication: Boolean,
     onRefocus: () -> Unit,
     onUseFocusPoint: () -> Unit,
+    onCastLayOnHands: () -> Unit,
 ) {
     Surface(
         tonalElevation = 2.dp,
@@ -417,6 +422,14 @@ private fun CombatStatsBar(
                     if (focusCurrent > 0) {
                         TextButton(onClick = onUseFocusPoint) {
                             Text("Use")
+                        }
+                    }
+                    if (hasBlessedOneDedication) {
+                        TextButton(
+                            onClick = onCastLayOnHands,
+                            enabled = focusCurrent > 0,
+                        ) {
+                            Text("Lay on Hands")
                         }
                     }
                     TextButton(onClick = onRefocus) {

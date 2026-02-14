@@ -2,6 +2,7 @@ package com.spellapp.feature.character
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -197,6 +198,7 @@ fun CharacterEditorDialog(
     val spellAttack = spellAttackText.toIntOrNull()?.coerceIn(-99, 99)
     val canSave = name.isNotBlank() && level != null && spellDc != null && spellAttack != null
     val packageScroll = rememberScrollState()
+    val contentScroll = rememberScrollState()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -210,7 +212,10 @@ fun CharacterEditorDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(contentScroll),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -328,11 +333,10 @@ fun CharacterEditorDialog(
                                 },
                                 label = { Text("Dedication") },
                             )
-                            FilterChip(
-                                selected = basicSelected,
-                                onClick = {
-                                    val basicOptionId = packageDef.basicSpellcastingOptionId
-                                    if (basicOptionId != null) {
+                            packageDef.basicSpellcastingOptionId?.let { basicOptionId ->
+                                FilterChip(
+                                    selected = basicSelected,
+                                    onClick = {
                                         val next = selectedBuildOptionIds.toMutableSet()
                                         if (basicSelected) {
                                             next -= basicOptionId
@@ -343,16 +347,14 @@ fun CharacterEditorDialog(
                                             next += basicOptionId
                                         }
                                         selectedBuildOptionIds = next
-                                    }
-                                },
-                                enabled = packageDef.basicSpellcastingOptionId != null,
-                                label = { Text("Basic") },
-                            )
-                            FilterChip(
-                                selected = expertSelected,
-                                onClick = {
-                                    val expertOptionId = packageDef.expertSpellcastingOptionId
-                                    if (expertOptionId != null) {
+                                    },
+                                    label = { Text("Basic") },
+                                )
+                            }
+                            packageDef.expertSpellcastingOptionId?.let { expertOptionId ->
+                                FilterChip(
+                                    selected = expertSelected,
+                                    onClick = {
                                         val basicOptionId = packageDef.basicSpellcastingOptionId
                                         val next = selectedBuildOptionIds.toMutableSet()
                                         if (expertSelected) {
@@ -366,16 +368,14 @@ fun CharacterEditorDialog(
                                             next += expertOptionId
                                         }
                                         selectedBuildOptionIds = next
-                                    }
-                                },
-                                enabled = packageDef.expertSpellcastingOptionId != null,
-                                label = { Text("Expert") },
-                            )
-                            FilterChip(
-                                selected = masterSelected,
-                                onClick = {
-                                    val masterOptionId = packageDef.masterSpellcastingOptionId
-                                    if (masterOptionId != null) {
+                                    },
+                                    label = { Text("Expert") },
+                                )
+                            }
+                            packageDef.masterSpellcastingOptionId?.let { masterOptionId ->
+                                FilterChip(
+                                    selected = masterSelected,
+                                    onClick = {
                                         val basicOptionId = packageDef.basicSpellcastingOptionId
                                         val expertOptionId = packageDef.expertSpellcastingOptionId
                                         val next = selectedBuildOptionIds.toMutableSet()
@@ -392,11 +392,10 @@ fun CharacterEditorDialog(
                                             next += masterOptionId
                                         }
                                         selectedBuildOptionIds = next
-                                    }
-                                },
-                                enabled = packageDef.masterSpellcastingOptionId != null,
-                                label = { Text("Master") },
-                            )
+                                    },
+                                    label = { Text("Master") },
+                                )
+                            }
                         }
                     }
                 }

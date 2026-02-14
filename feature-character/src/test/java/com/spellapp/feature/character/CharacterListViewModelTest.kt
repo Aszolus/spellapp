@@ -297,6 +297,36 @@ class CharacterListViewModelTest {
         assertEquals(setOf("archetype/wizard/wizard-dedication"), selectedIds)
     }
 
+    @Test
+    fun saveCharacter_withBlessedOneDedication_persistsOption_withoutCreatingPreparedArchetypeTrack() = runTest {
+        val characterCrudRepository = FakeCharacterCrudRepository()
+        val characterBuildRepository = FakeCharacterBuildRepository()
+        val castingTrackRepository = FakeCastingTrackRepository()
+        val preparedSlotSyncRepository = FakePreparedSlotSyncRepository()
+        val viewModel = createViewModel(
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
+            castingTrackRepository = castingTrackRepository,
+            preparedSlotSyncRepository = preparedSlotSyncRepository,
+        )
+        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 45L))
+
+        viewModel.saveCharacter(
+            character = sampleCharacter(id = existingCharacterId),
+            selectedBuildOptionIds = setOf("archetype/blessed-one/blessed-one-dedication"),
+        )
+        advanceUntilIdle()
+
+        val savedOptions = characterBuildRepository.getBuildOptions(existingCharacterId)
+        assertEquals(setOf("archetype/blessed-one/blessed-one-dedication"), savedOptions.map { it.optionId }.toSet())
+        assertEquals(CharacterBuildOptionType.ARCHETYPE, savedOptions.single().optionType)
+
+        val archetypeTracks = castingTrackRepository.getCastingTracks(existingCharacterId)
+            .filter { it.sourceType == CastingTrackSourceType.ARCHETYPE }
+        assertTrue(archetypeTracks.isEmpty())
+        assertEquals(listOf(existingCharacterId), preparedSlotSyncRepository.syncedCharacterIds)
+    }
+
     private fun createViewModel(
         characterCrudRepository: CharacterCrudRepository,
         characterBuildRepository: CharacterBuildRepository,

@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.spellapp.core.data.CastingTrackRepository
+import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.FocusStateRepository
 import com.spellapp.core.data.PreparedSlotRepository
@@ -44,6 +45,7 @@ fun SpellAppNavGraph(
     sessionEventRepository: SessionEventRepository,
     focusStateRepository: FocusStateRepository,
     characterCrudRepository: CharacterCrudRepository,
+    characterBuildRepository: CharacterBuildRepository,
     characterListViewModel: CharacterListViewModel,
     spellListViewModel: SpellListViewModel,
     navigationViewModel: SpellAppNavigationViewModel,
@@ -68,6 +70,7 @@ fun SpellAppNavGraph(
             focusStateRepository = focusStateRepository,
             spellRepository = spellRepository,
             characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
             navigationViewModel = navigationViewModel,
         )
         spellListDestination(
@@ -132,6 +135,7 @@ private fun NavGraphBuilder.preparedSlotsDestination(
     focusStateRepository: FocusStateRepository,
     spellRepository: SpellRepository,
     characterCrudRepository: CharacterCrudRepository,
+    characterBuildRepository: CharacterBuildRepository,
     navigationViewModel: SpellAppNavigationViewModel,
 ) {
     composable(
@@ -155,6 +159,7 @@ private fun NavGraphBuilder.preparedSlotsDestination(
                     focusStateRepository = focusStateRepository,
                     spellRepository = spellRepository,
                     characterCrudRepository = characterCrudRepository,
+                    characterBuildRepository = characterBuildRepository,
                 )
             },
         )
@@ -179,6 +184,7 @@ private fun NavGraphBuilder.preparedSlotsDestination(
             onIncreaseFocusMax = preparedSlotsViewModel::increaseFocusMax,
             onDecreaseFocusMax = preparedSlotsViewModel::decreaseFocusMax,
             onRefocus = preparedSlotsViewModel::refocus,
+            onCastLayOnHands = preparedSlotsViewModel::castLayOnHands,
             onRest = preparedSlotsViewModel::rest,
             onNewDayPreparation = preparedSlotsViewModel::newDayPreparation,
             onPrepareRandom = preparedSlotsViewModel::prepareRandom,

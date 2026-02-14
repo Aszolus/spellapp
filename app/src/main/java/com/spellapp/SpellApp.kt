@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.spellapp.core.data.CharacterRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.ui.SpellAppTheme
+import com.spellapp.core.ui.SpellAppThemeMode
 import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
 import com.spellapp.feature.character.CharacterClassDefinitionSource
 import com.spellapp.feature.character.CharacterListViewModel
@@ -22,6 +23,7 @@ fun SpellApp(
     archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
     seedUiState: SeedUiState,
     onRetrySeed: () -> Unit,
+    themeMode: SpellAppThemeMode = SpellAppThemeMode.DARK,
 ) {
     val navController = rememberNavController()
     val characterListViewModel: CharacterListViewModel = viewModel(
@@ -52,7 +54,7 @@ fun SpellApp(
         },
     )
 
-    SpellAppTheme {
+    SpellAppTheme(themeMode = themeMode) {
         SpellAppNavGraph(
             navController = navController,
             spellRepository = spellRepository,
@@ -62,6 +64,7 @@ fun SpellApp(
             sessionEventRepository = characterRepository,
             focusStateRepository = characterRepository,
             characterCrudRepository = characterRepository,
+            characterBuildRepository = characterRepository,
             characterListViewModel = characterListViewModel,
             spellListViewModel = spellListViewModel,
             navigationViewModel = navigationViewModel,

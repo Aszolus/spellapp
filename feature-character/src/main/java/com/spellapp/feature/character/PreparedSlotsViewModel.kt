@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.spellapp.core.data.CastingTrackRepository
+import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.FocusStateRepository
 import com.spellapp.core.data.PreparedSlotRepository
@@ -36,6 +37,7 @@ data class PreparedSlotsUiState(
     val focusMaxPoints: Int = 1,
     val recentEventLines: List<String> = emptyList(),
     val canUndoLastCast: Boolean = false,
+    val hasBlessedOneDedication: Boolean = false,
     val randomPrepareSourceFilter: String = "",
     val randomPrepareRarityFilter: String? = null,
 )
@@ -56,6 +58,17 @@ private data class CharacterContext(
     val characterName: String,
     val spellDc: Int,
     val spellAttackModifier: Int,
+)
+
+private data class UiMetaContext(
+    val focusCurrentPoints: Int,
+    val focusMaxPoints: Int,
+    val hasBlessedOneDedication: Boolean,
+    val characterName: String,
+    val spellDc: Int,
+    val spellAttackModifier: Int,
+    val randomPrepareSourceFilter: String,
+    val randomPrepareRarityFilter: String?,
 )
 
 class PreparedSlotsViewModel(
@@ -124,6 +137,24 @@ class PreparedSlotsViewModel(
     )
 
     private val focusState = service.observeFocusState(characterId)
+    private val hasBlessedOneDedication = service.observeHasBlessedOneDedication(characterId)
+    private val uiMetaContext = combine(
+        focusState,
+        hasBlessedOneDedication,
+        characterProfile,
+        randomPrepareFilters,
+    ) { focus, blessedOne, character, randomFilters ->
+        UiMetaContext(
+            focusCurrentPoints = focus.currentPoints,
+            focusMaxPoints = focus.maxPoints,
+            hasBlessedOneDedication = blessedOne,
+            characterName = character.characterName,
+            spellDc = character.spellDc,
+            spellAttackModifier = character.spellAttackModifier,
+            randomPrepareSourceFilter = randomFilters.first,
+            randomPrepareRarityFilter = randomFilters.second,
+        )
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val spellSummaryById = combine(preparedSlots, sessionEvents) { slots, events ->
@@ -171,26 +202,23 @@ class PreparedSlotsViewModel(
     val uiState = combine(
         slotContext,
         eventContext,
-        focusState,
-        characterProfile,
-        randomPrepareFilters,
-    ) { slots, events, focus, character, randomFilters ->
-        val sourceFilter = randomFilters.first
-        val rarityFilter = randomFilters.second
+        uiMetaContext,
+    ) { slots, events, meta ->
         PreparedSlotsUiState(
-            characterName = character.characterName,
-            spellDc = character.spellDc,
-            spellAttackModifier = character.spellAttackModifier,
+            characterName = meta.characterName,
+            spellDc = meta.spellDc,
+            spellAttackModifier = meta.spellAttackModifier,
             selectedTrackKey = slots.selectedTrackKey,
             castingTracks = slots.castingTracks,
             allSlots = slots.allSlots,
             spellSummaryById = events.spellSummaryById,
-            focusCurrentPoints = focus.currentPoints,
-            focusMaxPoints = focus.maxPoints,
+            focusCurrentPoints = meta.focusCurrentPoints,
+            focusMaxPoints = meta.focusMaxPoints,
             recentEventLines = events.recentEventLines,
             canUndoLastCast = events.canUndoLastCast,
-            randomPrepareSourceFilter = sourceFilter,
-            randomPrepareRarityFilter = rarityFilter,
+            hasBlessedOneDedication = meta.hasBlessedOneDedication,
+            randomPrepareSourceFilter = meta.randomPrepareSourceFilter,
+            randomPrepareRarityFilter = meta.randomPrepareRarityFilter,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -286,6 +314,15 @@ class PreparedSlotsViewModel(
         }
     }
 
+    fun castLayOnHands() {
+        viewModelScope.launch {
+            service.castLayOnHands(
+                characterId = characterId,
+                trackKey = activeTrackKey.value,
+            )
+        }
+    }
+
     fun rest() {
         viewModelScope.launch {
             service.rest(
@@ -338,6 +375,7 @@ class PreparedSlotsViewModelFactory(
     private val focusStateRepository: FocusStateRepository,
     private val spellRepository: SpellRepository,
     private val characterCrudRepository: CharacterCrudRepository,
+    private val characterBuildRepository: CharacterBuildRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -352,6 +390,7 @@ class PreparedSlotsViewModelFactory(
             focusStateRepository = focusStateRepository,
             spellRepository = spellRepository,
             characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
         )
         return PreparedSlotsViewModel(
             characterId = characterId,

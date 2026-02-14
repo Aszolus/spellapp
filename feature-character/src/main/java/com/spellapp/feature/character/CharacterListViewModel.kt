@@ -127,7 +127,10 @@ class CharacterListViewModel(
         val existingArchetypeTracks = castingTrackRepository.getCastingTracks(characterId)
             .filter { it.sourceType == CastingTrackSourceType.ARCHETYPE }
         val selectedArchetypes = archetypeSpellcastingPackages
-            .filter { packageDef -> packageDef.dedicationOptionId in selectedBuildOptionIds }
+            .filter { packageDef ->
+                packageDef.dedicationOptionId in selectedBuildOptionIds &&
+                    packageDef.supportsPreparedSpellcastingTrack()
+            }
         val desiredTracksByKey = selectedArchetypes.associateBy { packageDef ->
             trackKeyForArchetype(packageDef.archetypeId)
         }
@@ -192,6 +195,12 @@ class CharacterListViewModel(
 
     private fun trackKeyForArchetype(archetypeId: String): String {
         return "archetype-$archetypeId"
+    }
+
+    private fun ArchetypeSpellcastingPackage.supportsPreparedSpellcastingTrack(): Boolean {
+        return basicSpellcastingOptionId != null ||
+            expertSpellcastingOptionId != null ||
+            masterSpellcastingOptionId != null
     }
 }
 

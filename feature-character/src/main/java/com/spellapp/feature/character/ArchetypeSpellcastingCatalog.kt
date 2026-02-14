@@ -45,6 +45,14 @@ object StaticArchetypeSpellcastingCatalogSource : ArchetypeSpellcastingCatalogSo
             expertSpellcastingOptionId = "archetype/druid/expert-druid-spellcasting",
             masterSpellcastingOptionId = "archetype/druid/master-druid-spellcasting",
         ),
+        ArchetypeSpellcastingPackage(
+            archetypeId = "blessed-one",
+            label = "Blessed One",
+            dedicationOptionId = "archetype/blessed-one/blessed-one-dedication",
+            basicSpellcastingOptionId = null,
+            expertSpellcastingOptionId = null,
+            masterSpellcastingOptionId = null,
+        ),
     )
     private val optionTypeById: Map<String, CharacterBuildOptionType> = packages
         .flatMap { pack ->
@@ -114,7 +122,7 @@ class AssetArchetypeSpellcastingCatalogSource(
             .use { it.readText() }
         val root = JSONObject(rawJson)
         val options = root.optJSONArray("options") ?: return emptyList()
-        val supportedIds = setOf("wizard", "cleric", "druid")
+        val supportedIds = setOf("wizard", "cleric", "druid", "blessed-one")
         val grouped = linkedMapOf<String, MutableList<RuleOption>>()
 
         for (index in 0 until options.length()) {
@@ -145,7 +153,7 @@ class AssetArchetypeSpellcastingCatalogSource(
                 )
         }
 
-        val order = listOf("wizard", "cleric", "druid")
+        val order = listOf("wizard", "cleric", "druid", "blessed-one")
         return order.mapNotNull { archetypeId ->
             val feats = grouped[archetypeId].orEmpty()
             val dedication = feats.firstOrNull { feat ->
