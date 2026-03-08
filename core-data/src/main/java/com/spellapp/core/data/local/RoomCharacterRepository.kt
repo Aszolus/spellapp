@@ -24,6 +24,7 @@ class RoomCharacterRepository private constructor(
     private val characterDao: CharacterDao,
     private val characterBuildIdentityDao: CharacterBuildIdentityDao,
     private val characterBuildOptionDao: CharacterBuildOptionDao,
+    private val acceptedSpellSourceDao: AcceptedSpellSourceDao,
     private val knownSpellDao: KnownSpellDao,
     private val preparedSlotDao: PreparedSlotDao,
     private val castingTrackDao: CastingTrackDao,
@@ -36,6 +37,7 @@ class RoomCharacterRepository private constructor(
         characterDao: CharacterDao,
         characterBuildIdentityDao: CharacterBuildIdentityDao,
         characterBuildOptionDao: CharacterBuildOptionDao,
+        acceptedSpellSourceDao: AcceptedSpellSourceDao,
         knownSpellDao: KnownSpellDao,
         preparedSlotDao: PreparedSlotDao,
         castingTrackDao: CastingTrackDao,
@@ -46,6 +48,7 @@ class RoomCharacterRepository private constructor(
         characterDao = characterDao,
         characterBuildIdentityDao = characterBuildIdentityDao,
         characterBuildOptionDao = characterBuildOptionDao,
+        acceptedSpellSourceDao = acceptedSpellSourceDao,
         knownSpellDao = knownSpellDao,
         preparedSlotDao = preparedSlotDao,
         castingTrackDao = castingTrackDao,
@@ -97,6 +100,24 @@ class RoomCharacterRepository private constructor(
         return characterBuildOptionDao.observeByCharacter(characterId).map { entities ->
             entities.map { it.toDomain() }
         }
+    }
+
+    override fun observeAcceptedSources(characterId: Long): Flow<Set<String>> {
+        return acceptedSpellSourceDao.observeSourceBooksByCharacter(characterId).map { it.toSet() }
+    }
+
+    override suspend fun getAcceptedSources(characterId: Long): Set<String> {
+        return acceptedSpellSourceDao.getSourceBooksByCharacter(characterId).toSet()
+    }
+
+    override suspend fun replaceAcceptedSources(
+        characterId: Long,
+        sources: Set<String>,
+    ) {
+        acceptedSpellSourceDao.replaceForCharacter(
+            characterId = characterId,
+            sourceBooks = sources,
+        )
     }
 
     override suspend fun getBuildOptions(characterId: Long): List<CharacterBuildOption> {

@@ -8,6 +8,10 @@ import kotlinx.coroutines.flow.Flow
 class RoomSpellRepository(
     private val spellDao: SpellDao,
 ) : SpellRepository {
+    override fun observeAvailableSources(): Flow<List<String>> {
+        return spellDao.observeAvailableSourceBooks()
+    }
+
     override fun observeSpells(
         query: String,
         rank: Int?,

@@ -5,6 +5,7 @@ import com.spellapp.core.model.SpellListItem
 import kotlinx.coroutines.flow.Flow
 
 interface SpellRepository {
+    fun observeAvailableSources(): Flow<List<String>>
     fun observeSpells(
         query: String = "",
         rank: Int? = null,

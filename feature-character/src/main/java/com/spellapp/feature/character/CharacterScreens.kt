@@ -158,11 +158,13 @@ private fun CharacterRow(
 fun CharacterEditorDialog(
     initialCharacter: CharacterProfile?,
     initialSelectedBuildOptionIds: Set<String>,
+    initialAcceptedSourceBooks: Set<String>,
+    availableSpellSources: List<String>,
     availableClasses: List<CharacterClassDefinition>,
     classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
     archetypeSpellcastingPackages: List<ArchetypeSpellcastingPackage>,
     onDismiss: () -> Unit,
-    onSave: (CharacterProfile, Set<String>) -> Unit,
+    onSave: (CharacterProfile, Set<String>, Set<String>) -> Unit,
 ) {
     var name by remember(initialCharacter) { mutableStateOf(initialCharacter?.name.orEmpty()) }
     var levelText by remember(initialCharacter) {
@@ -194,6 +196,11 @@ fun CharacterEditorDialog(
     }
     var selectedBuildOptionIds by remember(initialCharacter, initialSelectedBuildOptionIds) {
         mutableStateOf(initialSelectedBuildOptionIds.toSet())
+    }
+    var acceptedSourceBooks by remember(initialCharacter, initialAcceptedSourceBooks, availableSpellSources) {
+        mutableStateOf(
+            initialAcceptedSourceBooks.ifEmpty { availableSpellSources.toSet() },
+        )
     }
 
     val level = levelText.toIntOrNull()?.coerceIn(1, 20)
@@ -287,6 +294,37 @@ fun CharacterEditorDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Text(
+                    text = "Accepted Sources",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                if (availableSpellSources.isEmpty()) {
+                    Text(
+                        text = "No spell sources are available yet.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        availableSpellSources.forEach { sourceBook ->
+                            FilterChip(
+                                selected = sourceBook in acceptedSourceBooks,
+                                onClick = {
+                                    acceptedSourceBooks = acceptedSourceBooks.toMutableSet().apply {
+                                        if (!add(sourceBook)) {
+                                            remove(sourceBook)
+                                        }
+                                    }
+                                },
+                                label = { Text(sourceBook) },
+                            )
+                        }
+                    }
+                }
                 Text(
                     text = "Archetype spellcasting",
                     style = MaterialTheme.typography.labelLarge,
@@ -454,6 +492,7 @@ fun CharacterEditorDialog(
                             legacyTerminologyEnabled = legacyEnabled,
                         ),
                         selectedBuildOptionIds,
+                        acceptedSourceBooks,
                     )
                 },
                 enabled = canSave,

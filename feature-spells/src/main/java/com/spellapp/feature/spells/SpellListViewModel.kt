@@ -3,6 +3,7 @@ package com.spellapp.feature.spells
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.spellapp.core.data.AcceptedSpellSourceRepository
 import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.SpellListItem
@@ -33,6 +34,7 @@ data class SpellListUiState(
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class SpellListViewModel(
     private val spellRepository: SpellRepository,
+    private val acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
     private val knownSpellRepository: KnownSpellRepository,
 ) : ViewModel() {
     private val queryInput = MutableStateFlow("")
@@ -53,6 +55,28 @@ class SpellListViewModel(
             }
 
             is SpellBrowserMode.BrowseCatalog -> flowOf(emptySet())
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptySet(),
+    )
+
+    private val acceptedSourceBooks = browserMode.flatMapLatest { mode ->
+        when (mode) {
+            is SpellBrowserMode.BrowseCatalog -> {
+                mode.characterId?.let { characterId ->
+                    acceptedSpellSourceRepository.observeAcceptedSources(characterId)
+                } ?: flowOf(emptySet())
+            }
+
+            is SpellBrowserMode.ManageKnownSpells -> {
+                acceptedSpellSourceRepository.observeAcceptedSources(mode.characterId)
+            }
+
+            is SpellBrowserMode.AssignPreparedSlot -> {
+                acceptedSpellSourceRepository.observeAcceptedSources(mode.characterId)
+            }
         }
     }.stateIn(
         scope = viewModelScope,
@@ -111,28 +135,37 @@ class SpellListViewModel(
         filterInputs,
         browserMode,
         knownSpellIds,
-    ) { filters, mode, knownIds ->
-        Triple(filters, mode, knownIds)
-    }.flatMapLatest { (filters, mode, knownIds) ->
+        acceptedSourceBooks,
+    ) { filters, mode, knownIds, acceptedSources ->
+        SpellQueryContext(
+            filters = filters,
+            browserMode = mode,
+            knownSpellIds = knownIds,
+            acceptedSourceBooks = acceptedSources,
+        )
+    }.flatMapLatest { query ->
         spellRepository.observeSpells(
-            query = filters.query,
-            rank = filters.rank.takeUnless { mode is SpellBrowserMode.AssignPreparedSlot },
-            tradition = filters.tradition,
-            rarity = filters.rarity,
-            trait = filters.trait,
+            query = query.filters.query,
+            rank = query.filters.rank.takeUnless { query.browserMode is SpellBrowserMode.AssignPreparedSlot },
+            tradition = query.filters.tradition,
+            rarity = query.filters.rarity,
+            trait = query.filters.trait,
         ).map { sourceSpells ->
             var filtered = sourceSpells
-            if (filters.rank != null) {
-                filtered = filtered.filter { spell -> spell.rank == filters.rank }
+            if (query.acceptedSourceBooks.isNotEmpty()) {
+                filtered = filtered.filter { spell -> spell.sourceBook in query.acceptedSourceBooks }
             }
-            when (mode) {
+            if (query.filters.rank != null) {
+                filtered = filtered.filter { spell -> spell.rank == query.filters.rank }
+            }
+            when (query.browserMode) {
                 is SpellBrowserMode.AssignPreparedSlot -> {
-                    filtered = filtered.filter { spell -> spell.id in knownIds }
+                    filtered = filtered.filter { spell -> spell.id in query.knownSpellIds }
                     filtered = filtered.filter { spell ->
-                        if (mode.slotRank == 0) {
+                        if (query.browserMode.slotRank == 0) {
                             spell.rank == 0
                         } else {
-                            spell.rank in 1..mode.slotRank
+                            spell.rank in 1..query.browserMode.slotRank
                         }
                     }
                 }
@@ -226,6 +259,7 @@ class SpellListViewModel(
 
 class SpellListViewModelFactory(
     private val spellRepository: SpellRepository,
+    private val acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
     private val knownSpellRepository: KnownSpellRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
@@ -235,6 +269,7 @@ class SpellListViewModelFactory(
         }
         return SpellListViewModel(
             spellRepository = spellRepository,
+            acceptedSpellSourceRepository = acceptedSpellSourceRepository,
             knownSpellRepository = knownSpellRepository,
         ) as T
     }
@@ -246,4 +281,11 @@ private data class SpellFilterInputs(
     val rank: Int?,
     val tradition: String?,
     val rarity: String?,
+)
+
+private data class SpellQueryContext(
+    val filters: SpellFilterInputs,
+    val browserMode: SpellBrowserMode,
+    val knownSpellIds: Set<String>,
+    val acceptedSourceBooks: Set<String>,
 )

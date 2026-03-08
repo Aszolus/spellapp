@@ -29,6 +29,7 @@ class AppContainer(
             characterDao = spellDatabase.characterDao(),
             characterBuildIdentityDao = spellDatabase.characterBuildIdentityDao(),
             characterBuildOptionDao = spellDatabase.characterBuildOptionDao(),
+            acceptedSpellSourceDao = spellDatabase.acceptedSpellSourceDao(),
             knownSpellDao = spellDatabase.knownSpellDao(),
             preparedSlotDao = spellDatabase.preparedSlotDao(),
             castingTrackDao = spellDatabase.castingTrackDao(),

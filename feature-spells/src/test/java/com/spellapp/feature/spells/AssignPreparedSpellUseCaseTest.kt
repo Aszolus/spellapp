@@ -216,6 +216,8 @@ class AssignPreparedSpellUseCaseTest {
     private class FakeSpellRepository(
         private val detailsById: Map<String, SpellDetail>,
     ) : SpellRepository {
+        override fun observeAvailableSources(): Flow<List<String>> = flowOf(emptyList())
+
         override fun observeSpells(
             query: String,
             rank: Int?,

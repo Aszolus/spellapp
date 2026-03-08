@@ -12,6 +12,15 @@ import kotlinx.coroutines.flow.Flow
 interface SpellDao {
     @Query(
         """
+        SELECT DISTINCT sourceBook FROM spells
+        WHERE TRIM(sourceBook) != ''
+        ORDER BY sourceBook ASC
+        """,
+    )
+    fun observeAvailableSourceBooks(): Flow<List<String>>
+
+    @Query(
+        """
         SELECT id, name, rank, traditionSummary AS tradition, rarity, sourceBook, (rank = 0) AS isCantrip
         FROM spells
         WHERE (:query = '' OR name LIKE '%' || :query || '%')

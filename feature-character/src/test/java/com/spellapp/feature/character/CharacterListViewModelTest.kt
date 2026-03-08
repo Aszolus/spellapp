@@ -1,9 +1,12 @@
 package com.spellapp.feature.character
 
+import com.spellapp.core.data.AcceptedSpellSourceRepository
 import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CharacterCrudRepository
+import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
+import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.AbilityScore
 import com.spellapp.core.model.CastingProgressionType
 import com.spellapp.core.model.CastingTrack
@@ -13,6 +16,9 @@ import com.spellapp.core.model.CharacterBuildOption
 import com.spellapp.core.model.CharacterBuildOptionType
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
+import com.spellapp.core.model.KnownSpell
+import com.spellapp.core.model.SpellDetail
+import com.spellapp.core.model.SpellListItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -84,6 +90,7 @@ class CharacterListViewModelTest {
                 "archetype/cleric/cleric-dedication",
                 "not/managed-by/catalog",
             ),
+            acceptedSourceBooks = DEFAULT_ACCEPTED_SOURCES,
         )
         advanceUntilIdle()
 
@@ -171,6 +178,7 @@ class CharacterListViewModelTest {
         viewModel.saveCharacter(
             character = sampleCharacter(id = existingCharacterId),
             selectedBuildOptionIds = emptySet(),
+            acceptedSourceBooks = DEFAULT_ACCEPTED_SOURCES,
         )
         advanceUntilIdle()
 
@@ -210,6 +218,7 @@ class CharacterListViewModelTest {
         viewModel.saveCharacter(
             character = sampleCharacter(id = existingCharacterId),
             selectedBuildOptionIds = emptySet(),
+            acceptedSourceBooks = DEFAULT_ACCEPTED_SOURCES,
         )
         advanceUntilIdle()
 
@@ -239,9 +248,9 @@ class CharacterListViewModelTest {
             "archetype/wizard/basic-wizard-spellcasting",
         )
 
-        viewModel.saveCharacter(sampleCharacter(id = existingCharacterId), selection)
+        viewModel.saveCharacter(sampleCharacter(id = existingCharacterId), selection, DEFAULT_ACCEPTED_SOURCES)
         advanceUntilIdle()
-        viewModel.saveCharacter(sampleCharacter(id = existingCharacterId), selection)
+        viewModel.saveCharacter(sampleCharacter(id = existingCharacterId), selection, DEFAULT_ACCEPTED_SOURCES)
         advanceUntilIdle()
 
         val savedOptionIds = characterBuildRepository.getBuildOptions(existingCharacterId)
@@ -314,6 +323,7 @@ class CharacterListViewModelTest {
         viewModel.saveCharacter(
             character = sampleCharacter(id = existingCharacterId),
             selectedBuildOptionIds = setOf("archetype/blessed-one/blessed-one-dedication"),
+            acceptedSourceBooks = DEFAULT_ACCEPTED_SOURCES,
         )
         advanceUntilIdle()
 
@@ -327,33 +337,103 @@ class CharacterListViewModelTest {
         assertEquals(listOf(existingCharacterId), preparedSlotSyncRepository.syncedCharacterIds)
     }
 
+    @Test
+    fun saveCharacter_persistsAcceptedSources_and_seedsCommonKnownSpells_forCleric() = runTest {
+        val characterCrudRepository = FakeCharacterCrudRepository()
+        val characterBuildRepository = FakeCharacterBuildRepository()
+        val castingTrackRepository = FakeCastingTrackRepository()
+        val preparedSlotSyncRepository = FakePreparedSlotSyncRepository()
+        val acceptedSpellSourceRepository = FakeAcceptedSpellSourceRepository()
+        val knownSpellRepository = FakeKnownSpellRepository()
+        val spellRepository = FakeSpellRepository(
+            availableSources = listOf("Player Core", "Gods & Magic"),
+            spells = listOf(
+                spell(id = "heal", tradition = "divine", rarity = "common", sourceBook = "Player Core"),
+                spell(id = "blessing", tradition = "divine", rarity = "common", sourceBook = "Gods & Magic"),
+                spell(id = "rare-divine", tradition = "divine", rarity = "rare", sourceBook = "Player Core"),
+            ),
+        )
+        val viewModel = createViewModel(
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
+            castingTrackRepository = castingTrackRepository,
+            preparedSlotSyncRepository = preparedSlotSyncRepository,
+            acceptedSpellSourceRepository = acceptedSpellSourceRepository,
+            knownSpellRepository = knownSpellRepository,
+            spellRepository = spellRepository,
+        )
+
+        viewModel.saveCharacter(
+            character = sampleCharacter(id = 0L, characterClass = CharacterClass.CLERIC),
+            selectedBuildOptionIds = emptySet(),
+            acceptedSourceBooks = setOf("Player Core"),
+        )
+        advanceUntilIdle()
+
+        val savedCharacterId = characterCrudRepository.observeCharacters().first().single().id
+        assertEquals(setOf("Player Core"), acceptedSpellSourceRepository.getAcceptedSources(savedCharacterId))
+        assertEquals(setOf("heal"), knownSpellRepository.getKnownSpellIds(savedCharacterId))
+    }
+
     private fun createViewModel(
         characterCrudRepository: CharacterCrudRepository,
         characterBuildRepository: CharacterBuildRepository,
         castingTrackRepository: CastingTrackRepository,
         preparedSlotSyncRepository: PreparedSlotSyncRepository,
+        acceptedSpellSourceRepository: AcceptedSpellSourceRepository = FakeAcceptedSpellSourceRepository(),
+        knownSpellRepository: KnownSpellRepository = FakeKnownSpellRepository(),
+        spellRepository: SpellRepository = FakeSpellRepository(
+            availableSources = DEFAULT_ACCEPTED_SOURCES.toList(),
+            spells = emptyList(),
+        ),
     ): CharacterListViewModel {
         return CharacterListViewModel(
             characterCrudRepository = characterCrudRepository,
             characterBuildRepository = characterBuildRepository,
             castingTrackRepository = castingTrackRepository,
             preparedSlotSyncRepository = preparedSlotSyncRepository,
+            acceptedSpellSourceRepository = acceptedSpellSourceRepository,
+            spellRepository = spellRepository,
+            knownSpellRepository = knownSpellRepository,
             classDefinitionSource = StaticCharacterClassDefinitionSource,
             archetypeSpellcastingCatalogSource = StaticArchetypeSpellcastingCatalogSource,
         )
     }
 
-    private fun sampleCharacter(id: Long): CharacterProfile {
+    private fun sampleCharacter(
+        id: Long,
+        characterClass: CharacterClass = CharacterClass.WIZARD,
+    ): CharacterProfile {
         return CharacterProfile(
             id = id,
             name = "Test",
             level = 5,
-            characterClass = CharacterClass.WIZARD,
+            characterClass = characterClass,
             keyAbility = AbilityScore.INTELLIGENCE,
             spellDc = 22,
             spellAttackModifier = 12,
             legacyTerminologyEnabled = false,
         )
+    }
+
+    private fun spell(
+        id: String,
+        tradition: String,
+        rarity: String,
+        sourceBook: String,
+    ): SpellListItem {
+        return SpellListItem(
+            id = id,
+            name = id,
+            rank = 1,
+            tradition = tradition,
+            rarity = rarity,
+            sourceBook = sourceBook,
+        )
+    }
+
+    private companion object {
+        val DEFAULT_ACCEPTED_SOURCES: Set<String> = setOf("Player Core")
     }
 }
 
@@ -520,4 +600,100 @@ private class FakePreparedSlotSyncRepository : PreparedSlotSyncRepository {
     override suspend fun syncPreparedSlotsForCharacter(characterId: Long) {
         syncedCharacterIds += characterId
     }
+}
+
+private class FakeAcceptedSpellSourceRepository : AcceptedSpellSourceRepository {
+    private val sourcesByCharacter = mutableMapOf<Long, MutableStateFlow<Set<String>>>()
+
+    override fun observeAcceptedSources(characterId: Long): Flow<Set<String>> {
+        return sourcesByCharacter.getOrPut(characterId) { MutableStateFlow(emptySet()) }
+    }
+
+    override suspend fun getAcceptedSources(characterId: Long): Set<String> {
+        return sourcesByCharacter[characterId]?.value.orEmpty()
+    }
+
+    override suspend fun replaceAcceptedSources(characterId: Long, sources: Set<String>) {
+        sourcesByCharacter.getOrPut(characterId) { MutableStateFlow(emptySet()) }.value = sources
+    }
+}
+
+private class FakeKnownSpellRepository : KnownSpellRepository {
+    private val knownSpellsByCharacter = mutableMapOf<Long, MutableStateFlow<List<KnownSpell>>>()
+    private var nextId = 1L
+
+    override fun observeKnownSpells(
+        characterId: Long,
+        trackKey: String,
+    ): Flow<List<KnownSpell>> {
+        return knownSpellsByCharacter.getOrPut(characterId) { MutableStateFlow(emptyList()) }
+            .map { spells -> spells.filter { it.trackKey == trackKey } }
+    }
+
+    override fun observeKnownSpellIds(characterId: Long, trackKey: String): Flow<Set<String>> {
+        return observeKnownSpells(characterId, trackKey).map { spells ->
+            spells.map { it.spellId }.toSet()
+        }
+    }
+
+    override suspend fun addKnownSpell(characterId: Long, trackKey: String, spellId: String): Long {
+        val flow = knownSpellsByCharacter.getOrPut(characterId) { MutableStateFlow(emptyList()) }
+        if (flow.value.any { it.trackKey == trackKey && it.spellId == spellId }) {
+            return -1L
+        }
+        val id = nextId++
+        flow.value = flow.value + KnownSpell(
+            id = id,
+            characterId = characterId,
+            trackKey = trackKey,
+            spellId = spellId,
+        )
+        return id
+    }
+
+    override suspend fun removeKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean {
+        val flow = knownSpellsByCharacter[characterId] ?: return false
+        val updated = flow.value.filterNot { it.trackKey == trackKey && it.spellId == spellId }
+        val removed = updated.size != flow.value.size
+        flow.value = updated
+        return removed
+    }
+
+    override suspend fun isKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean {
+        return knownSpellsByCharacter[characterId]?.value?.any {
+            it.trackKey == trackKey && it.spellId == spellId
+        } == true
+    }
+
+    fun getKnownSpellIds(characterId: Long): Set<String> {
+        return knownSpellsByCharacter[characterId]?.value?.map { it.spellId }?.toSet().orEmpty()
+    }
+}
+
+private class FakeSpellRepository(
+    private val availableSources: List<String>,
+    private val spells: List<SpellListItem>,
+) : SpellRepository {
+    override fun observeAvailableSources(): Flow<List<String>> = MutableStateFlow(availableSources)
+
+    override fun observeSpells(
+        query: String,
+        rank: Int?,
+        tradition: String?,
+        rarity: String?,
+        trait: String?,
+    ): Flow<List<SpellListItem>> {
+        return MutableStateFlow(
+            spells.filter { spell ->
+                (query.isBlank() || spell.name.contains(query, ignoreCase = true)) &&
+                    (rank == null || spell.rank == rank) &&
+                    (tradition.isNullOrBlank() || spell.tradition.contains(tradition, ignoreCase = true)) &&
+                    (rarity.isNullOrBlank() || spell.rarity.equals(rarity, ignoreCase = true))
+            },
+        )
+    }
+
+    override suspend fun getSpellDetail(spellId: String): SpellDetail? = null
+
+    override suspend fun seedFromDatasetIfEmpty(datasetJson: String) = Unit
 }

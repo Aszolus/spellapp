@@ -384,6 +384,10 @@ class PreparedSlotsServiceTest {
         private val spells: List<SpellListItem>,
         private val detailsById: Map<String, SpellDetail>,
     ) : SpellRepository {
+        override fun observeAvailableSources(): Flow<List<String>> {
+            return flowOf(spells.map { it.sourceBook }.filter { it.isNotBlank() }.distinct().sorted())
+        }
+
         override fun observeSpells(
             query: String,
             rank: Int?,

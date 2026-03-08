@@ -3,10 +3,13 @@ package com.spellapp.feature.character
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.spellapp.core.data.AcceptedSpellSourceRepository
 import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.CharacterCrudRepository
+import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
+import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CastingProgressionType
 import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CastingTrackSourceType
@@ -24,10 +27,12 @@ data class CharacterListUiState(
     val characters: List<CharacterProfile> = emptyList(),
     val editingCharacter: CharacterProfile? = null,
     val editingSelectedBuildOptionIds: Set<String> = emptySet(),
+    val editingAcceptedSourceBooks: Set<String> = emptySet(),
     val isEditorVisible: Boolean = false,
     val classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition> = emptyMap(),
     val availableClasses: List<CharacterClassDefinition> = emptyList(),
     val archetypeSpellcastingPackages: List<ArchetypeSpellcastingPackage> = emptyList(),
+    val availableSpellSources: List<String> = emptyList(),
 )
 
 class CharacterListViewModel(
@@ -35,11 +40,15 @@ class CharacterListViewModel(
     private val characterBuildRepository: CharacterBuildRepository,
     private val castingTrackRepository: CastingTrackRepository,
     private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
+    private val acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
+    spellRepository: SpellRepository,
+    knownSpellRepository: KnownSpellRepository,
     private val classDefinitionSource: CharacterClassDefinitionSource,
     private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
 ) : ViewModel() {
     private val editingCharacter = MutableStateFlow<CharacterProfile?>(null)
     private val editingSelectedBuildOptionIds = MutableStateFlow<Set<String>>(emptySet())
+    private val editingAcceptedSourceBooks = MutableStateFlow<Set<String>>(emptySet())
     private val isEditorVisible = MutableStateFlow(false)
     private val classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition> =
         classDefinitionSource.allDefinitions().associateBy { it.characterClass }
@@ -49,21 +58,45 @@ class CharacterListViewModel(
         archetypeSpellcastingCatalogSource.phaseOnePackages()
     private val managedArchetypeOptionIds: Set<String> =
         archetypeSpellcastingCatalogSource.managedOptionIds()
+    private val knownSpellsSeeder = DefaultKnownSpellsSeeder(
+        spellRepository = spellRepository,
+        knownSpellRepository = knownSpellRepository,
+    )
+    private val availableSpellSources = spellRepository.observeAvailableSources()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList(),
+        )
+    private val editorState = combine(
+        editingCharacter,
+        editingSelectedBuildOptionIds,
+        editingAcceptedSourceBooks,
+        isEditorVisible,
+    ) { editing, selectedOptionIds, acceptedSources, visible ->
+        EditorState(
+            editingCharacter = editing,
+            selectedBuildOptionIds = selectedOptionIds,
+            acceptedSourceBooks = acceptedSources,
+            isVisible = visible,
+        )
+    }
 
     val uiState = combine(
         characterCrudRepository.observeCharacters(),
-        editingCharacter,
-        editingSelectedBuildOptionIds,
-        isEditorVisible,
-    ) { characters, editing, selectedOptionIds, visible ->
+        editorState,
+        availableSpellSources,
+    ) { characters, editor, sources ->
         CharacterListUiState(
             characters = characters,
-            editingCharacter = editing,
-            editingSelectedBuildOptionIds = selectedOptionIds,
-            isEditorVisible = visible,
+            editingCharacter = editor.editingCharacter,
+            editingSelectedBuildOptionIds = editor.selectedBuildOptionIds,
+            editingAcceptedSourceBooks = editor.acceptedSourceBooks,
+            isEditorVisible = editor.isVisible,
             classDefinitionsByClass = classDefinitionsByClass,
             availableClasses = availableClasses,
             archetypeSpellcastingPackages = archetypeSpellcastingPackages,
+            availableSpellSources = sources,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -74,20 +107,25 @@ class CharacterListViewModel(
     fun onAddCharacterRequest() {
         editingCharacter.update { null }
         editingSelectedBuildOptionIds.update { emptySet() }
+        editingAcceptedSourceBooks.update { availableSpellSources.value.toSet() }
         isEditorVisible.update { true }
     }
 
     fun onEditCharacterRequest(character: CharacterProfile) {
         editingCharacter.update { character }
         editingSelectedBuildOptionIds.update { emptySet() }
+        editingAcceptedSourceBooks.update { emptySet() }
         isEditorVisible.update { true }
         viewModelScope.launch {
             val selectedOptionIds = characterBuildRepository.getBuildOptions(character.id)
                 .map { it.optionId }
                 .filter { optionId -> optionId in managedArchetypeOptionIds }
                 .toSet()
+            val acceptedSources = acceptedSpellSourceRepository.getAcceptedSources(character.id)
+                .ifEmpty { availableSpellSources.value.toSet() }
             if (editingCharacter.value?.id == character.id) {
                 editingSelectedBuildOptionIds.update { selectedOptionIds }
+                editingAcceptedSourceBooks.update { acceptedSources }
             }
         }
     }
@@ -99,9 +137,14 @@ class CharacterListViewModel(
     fun saveCharacter(
         character: CharacterProfile,
         selectedBuildOptionIds: Set<String>,
+        acceptedSourceBooks: Set<String>,
     ) {
         viewModelScope.launch {
             val characterId = characterCrudRepository.upsertCharacter(character)
+            acceptedSpellSourceRepository.replaceAcceptedSources(
+                characterId = characterId,
+                sources = acceptedSourceBooks,
+            )
             val shouldReconcileArchetypes = persistManagedBuildOptions(
                 characterId = characterId,
                 selectedBuildOptionIds = selectedBuildOptionIds,
@@ -109,6 +152,10 @@ class CharacterListViewModel(
             if (shouldReconcileArchetypes) {
                 reconcileArchetypeTracks(characterId, selectedBuildOptionIds)
             }
+            knownSpellsSeeder.seedForCharacter(
+                character = character.copy(id = characterId),
+                acceptedSourceBooks = acceptedSourceBooks,
+            )
             preparedSlotSyncRepository.syncPreparedSlotsForCharacter(characterId)
             isEditorVisible.update { false }
         }
@@ -202,6 +249,13 @@ class CharacterListViewModel(
             expertSpellcastingOptionId != null ||
             masterSpellcastingOptionId != null
     }
+
+    private data class EditorState(
+        val editingCharacter: CharacterProfile?,
+        val selectedBuildOptionIds: Set<String>,
+        val acceptedSourceBooks: Set<String>,
+        val isVisible: Boolean,
+    )
 }
 
 class CharacterListViewModelFactory(
@@ -209,6 +263,9 @@ class CharacterListViewModelFactory(
     private val characterBuildRepository: CharacterBuildRepository,
     private val castingTrackRepository: CastingTrackRepository,
     private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
+    private val acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
+    private val knownSpellRepository: KnownSpellRepository,
+    private val spellRepository: SpellRepository,
     private val classDefinitionSource: CharacterClassDefinitionSource = StaticCharacterClassDefinitionSource,
     private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource =
         StaticArchetypeSpellcastingCatalogSource,
@@ -223,6 +280,9 @@ class CharacterListViewModelFactory(
             characterBuildRepository = characterBuildRepository,
             castingTrackRepository = castingTrackRepository,
             preparedSlotSyncRepository = preparedSlotSyncRepository,
+            acceptedSpellSourceRepository = acceptedSpellSourceRepository,
+            spellRepository = spellRepository,
+            knownSpellRepository = knownSpellRepository,
             classDefinitionSource = classDefinitionSource,
             archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
         ) as T

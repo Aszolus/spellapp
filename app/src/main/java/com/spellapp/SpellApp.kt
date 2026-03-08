@@ -35,6 +35,9 @@ fun SpellApp(
                 characterBuildRepository = characterRepository,
                 castingTrackRepository = characterRepository,
                 preparedSlotSyncRepository = characterRepository,
+                acceptedSpellSourceRepository = characterRepository,
+                knownSpellRepository = characterRepository,
+                spellRepository = spellRepository,
                 classDefinitionSource = classDefinitionSource,
                 archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
             )
@@ -45,6 +48,7 @@ fun SpellApp(
         factory = remember {
             SpellListViewModelFactory(
                 spellRepository = spellRepository,
+                acceptedSpellSourceRepository = characterRepository,
                 knownSpellRepository = characterRepository,
             )
         },

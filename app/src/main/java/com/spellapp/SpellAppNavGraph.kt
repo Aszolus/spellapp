@@ -117,12 +117,18 @@ private fun NavGraphBuilder.characterListDestination(
             CharacterEditorDialog(
                 initialCharacter = characterListUiState.editingCharacter,
                 initialSelectedBuildOptionIds = characterListUiState.editingSelectedBuildOptionIds,
+                initialAcceptedSourceBooks = characterListUiState.editingAcceptedSourceBooks,
+                availableSpellSources = characterListUiState.availableSpellSources,
                 availableClasses = characterListUiState.availableClasses,
                 classDefinitionsByClass = characterListUiState.classDefinitionsByClass,
                 archetypeSpellcastingPackages = characterListUiState.archetypeSpellcastingPackages,
                 onDismiss = characterListViewModel::dismissEditor,
-                onSave = { character, selectedBuildOptionIds ->
-                    characterListViewModel.saveCharacter(character, selectedBuildOptionIds)
+                onSave = { character, selectedBuildOptionIds, acceptedSourceBooks ->
+                    characterListViewModel.saveCharacter(
+                        character = character,
+                        selectedBuildOptionIds = selectedBuildOptionIds,
+                        acceptedSourceBooks = acceptedSourceBooks,
+                    )
                 },
             )
         }
