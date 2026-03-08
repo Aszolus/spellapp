@@ -196,6 +196,7 @@ fun CharacterEditorDialog(
         mutableStateOf(initialCharacter?.legacyTerminologyEnabled ?: false)
     }
     var showSourcePicker by remember { mutableStateOf(false) }
+    var sourceSearchQuery by remember { mutableStateOf("") }
     var selectedBuildOptionIds by remember(initialCharacter, initialSelectedBuildOptionIds) {
         mutableStateOf(initialSelectedBuildOptionIds.toSet())
     }
@@ -208,6 +209,9 @@ fun CharacterEditorDialog(
     val level = levelText.toIntOrNull()?.coerceIn(1, 20)
     val spellDc = spellDcText.toIntOrNull()?.coerceIn(0, 99)
     val spellAttack = spellAttackText.toIntOrNull()?.coerceIn(-99, 99)
+    val filteredSpellSources = availableSpellSources.filter { sourceBook ->
+        sourceSearchQuery.isBlank() || sourceBook.contains(sourceSearchQuery.trim(), ignoreCase = true)
+    }
     val canSave = name.isNotBlank() && level != null && spellDc != null && spellAttack != null
     val contentScroll = rememberScrollState()
 
@@ -505,7 +509,10 @@ fun CharacterEditorDialog(
 
     if (showSourcePicker) {
         AlertDialog(
-            onDismissRequest = { showSourcePicker = false },
+            onDismissRequest = {
+                sourceSearchQuery = ""
+                showSourcePicker = false
+            },
             title = { Text("Accepted Sources") },
             text = {
                 Column(
@@ -522,11 +529,32 @@ fun CharacterEditorDialog(
                             Text("None")
                         }
                     }
+                    OutlinedTextField(
+                        value = sourceSearchQuery,
+                        onValueChange = { sourceSearchQuery = it },
+                        label = { Text("Search sources") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = "Showing ${filteredSpellSources.size} of ${availableSpellSources.size}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     LazyColumn(
                         modifier = Modifier.heightIn(max = 320.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        items(availableSpellSources, key = { it }) { sourceBook ->
+                        if (filteredSpellSources.isEmpty()) {
+                            item("empty-search") {
+                                Text(
+                                    text = "No sources matched that search.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        items(filteredSpellSources, key = { it }) { sourceBook ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -554,7 +582,10 @@ fun CharacterEditorDialog(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSourcePicker = false }) {
+                TextButton(onClick = {
+                    sourceSearchQuery = ""
+                    showSourcePicker = false
+                }) {
                     Text("Done")
                 }
             },
