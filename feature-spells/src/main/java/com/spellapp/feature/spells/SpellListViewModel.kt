@@ -30,6 +30,7 @@ data class SpellListUiState(
     val browserMode: SpellBrowserMode = SpellBrowserMode.BrowseCatalog(),
     val knownSpellIds: Set<String> = emptySet(),
     val availableTraits: List<String> = emptyList(),
+    val pendingKnownSpellWarning: PendingKnownSpellWarning? = null,
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -38,12 +39,14 @@ class SpellListViewModel(
     private val acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
     private val knownSpellRepository: KnownSpellRepository,
 ) : ViewModel() {
+    private var activeBrowserSessionId: Long? = null
     private val queryInput = MutableStateFlow("")
     private val traitQueryInput = MutableStateFlow("")
     private val selectedRank = MutableStateFlow<Int?>(null)
     private val selectedTradition = MutableStateFlow<String?>(null)
     private val selectedRarities = MutableStateFlow<Set<String>>(emptySet())
     private val browserMode = MutableStateFlow<SpellBrowserMode>(SpellBrowserMode.BrowseCatalog())
+    private val pendingKnownSpellWarning = MutableStateFlow<PendingKnownSpellWarning?>(null)
 
     private val knownSpellIds = browserMode.flatMapLatest { mode ->
         when (mode) {
@@ -112,11 +115,13 @@ class SpellListViewModel(
         browserMode,
         knownSpellIds,
         availableTraits,
-    ) { filters, mode, knownIds, traits ->
+        pendingKnownSpellWarning,
+    ) { filters, mode, knownIds, traits, pendingWarning ->
         filters.copy(
             browserMode = mode,
             knownSpellIds = knownIds,
             availableTraits = traits,
+            pendingKnownSpellWarning = pendingWarning,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -195,7 +200,25 @@ class SpellListViewModel(
         initialValue = emptyList(),
     )
 
-    fun setBrowserMode(mode: SpellBrowserMode) {
+    fun openBrowserMode(
+        mode: SpellBrowserMode,
+        sessionId: Long,
+    ) {
+        if (activeBrowserSessionId != sessionId) {
+            activeBrowserSessionId = sessionId
+            queryInput.update { "" }
+            traitQueryInput.update { "" }
+            selectedRank.update { null }
+            selectedRarities.update { emptySet() }
+            pendingKnownSpellWarning.update { null }
+            selectedTradition.update {
+                when (mode) {
+                    is SpellBrowserMode.ManageKnownSpells -> mode.preferredTradition
+                    is SpellBrowserMode.AssignPreparedSlot -> null
+                    is SpellBrowserMode.BrowseCatalog -> null
+                }
+            }
+        }
         browserMode.update { mode }
     }
 
@@ -284,13 +307,44 @@ class SpellListViewModel(
                     spellId = spellId,
                 )
             } else {
-                knownSpellRepository.addKnownSpell(
-                    characterId = mode.characterId,
-                    trackKey = mode.trackKey,
-                    spellId = spellId,
-                )
+                val warning = spellRepository.getSpellDetail(spellId)?.let { detail ->
+                    knownSpellWarningFor(
+                        detail = detail,
+                        preferredTradition = mode.preferredTradition,
+                        trackSourceId = mode.trackSourceId,
+                    )
+                }
+                if (warning != null) {
+                    pendingKnownSpellWarning.update { warning }
+                } else {
+                    addKnownSpell(mode, spellId)
+                }
             }
         }
+    }
+
+    fun confirmKnownSpellWarning() {
+        val mode = browserMode.value as? SpellBrowserMode.ManageKnownSpells ?: return
+        val warning = pendingKnownSpellWarning.value ?: return
+        viewModelScope.launch {
+            addKnownSpell(mode, warning.spellId)
+            pendingKnownSpellWarning.update { null }
+        }
+    }
+
+    fun dismissKnownSpellWarning() {
+        pendingKnownSpellWarning.update { null }
+    }
+
+    private suspend fun addKnownSpell(
+        mode: SpellBrowserMode.ManageKnownSpells,
+        spellId: String,
+    ) {
+        knownSpellRepository.addKnownSpell(
+            characterId = mode.characterId,
+            trackKey = mode.trackKey,
+            spellId = spellId,
+        )
     }
 }
 

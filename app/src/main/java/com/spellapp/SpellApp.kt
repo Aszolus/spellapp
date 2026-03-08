@@ -58,7 +58,6 @@ fun SpellApp(
         factory = remember {
             SpellAppNavigationViewModelFactory(
                 assignPreparedSpellUseCase = AssignPreparedSpellUseCase(
-                    characterCrudRepository = characterRepository,
                     knownSpellRepository = characterRepository,
                     preparedSlotRepository = characterRepository,
                     spellRepository = spellRepository,

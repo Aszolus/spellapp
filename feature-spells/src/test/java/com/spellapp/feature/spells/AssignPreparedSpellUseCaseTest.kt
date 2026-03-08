@@ -1,12 +1,8 @@
 package com.spellapp.feature.spells
 
-import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.PreparedSlotRepository
 import com.spellapp.core.data.SpellRepository
-import com.spellapp.core.model.AbilityScore
-import com.spellapp.core.model.CharacterClass
-import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SpellDetail
@@ -26,7 +22,6 @@ class AssignPreparedSpellUseCaseTest {
     fun assign_rejects_spell_that_is_not_known() = runBlocking {
         val preparedSlotRepository = FakePreparedSlotRepository()
         val useCase = AssignPreparedSpellUseCase(
-            characterCrudRepository = FakeCharacterCrudRepository(),
             knownSpellRepository = FakeKnownSpellRepository(emptySet()),
             preparedSlotRepository = preparedSlotRepository,
             spellRepository = FakeSpellRepository(
@@ -49,14 +44,13 @@ class AssignPreparedSpellUseCaseTest {
     }
 
     @Test
-    fun assign_rejects_illegal_spell_for_track() = runBlocking {
+    fun assign_rejects_spell_that_does_not_fit_slot_rank() = runBlocking {
         val preparedSlotRepository = FakePreparedSlotRepository()
         val useCase = AssignPreparedSpellUseCase(
-            characterCrudRepository = FakeCharacterCrudRepository(),
             knownSpellRepository = FakeKnownSpellRepository(setOf("heal")),
             preparedSlotRepository = preparedSlotRepository,
             spellRepository = FakeSpellRepository(
-                detailsById = mapOf("heal" to spellDetail("heal", 1, "divine")),
+                detailsById = mapOf("heal" to spellDetail("heal", 2, "divine")),
             ),
         )
 
@@ -75,14 +69,13 @@ class AssignPreparedSpellUseCaseTest {
     }
 
     @Test
-    fun assign_accepts_known_and_legal_spell() = runBlocking {
+    fun assign_accepts_known_spell_even_when_it_is_off_tradition() = runBlocking {
         val preparedSlotRepository = FakePreparedSlotRepository()
         val useCase = AssignPreparedSpellUseCase(
-            characterCrudRepository = FakeCharacterCrudRepository(),
-            knownSpellRepository = FakeKnownSpellRepository(setOf("magic-missile")),
+            knownSpellRepository = FakeKnownSpellRepository(setOf("heal")),
             preparedSlotRepository = preparedSlotRepository,
             spellRepository = FakeSpellRepository(
-                detailsById = mapOf("magic-missile" to spellDetail("magic-missile", 1, "arcane")),
+                detailsById = mapOf("heal" to spellDetail("heal", 1, "divine")),
             ),
         )
 
@@ -93,7 +86,7 @@ class AssignPreparedSpellUseCaseTest {
                 slotRank = 1,
                 slotIndex = 0,
             ),
-            spellId = "magic-missile",
+            spellId = "heal",
         )
 
         assertTrue(success)
@@ -103,32 +96,12 @@ class AssignPreparedSpellUseCaseTest {
                     characterId = CHARACTER_ID,
                     rank = 1,
                     slotIndex = 0,
-                    spellId = "magic-missile",
+                    spellId = "heal",
                     trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
                 ),
             ),
             preparedSlotRepository.assignments,
         )
-    }
-
-    private class FakeCharacterCrudRepository : CharacterCrudRepository {
-        private val character = CharacterProfile(
-            id = CHARACTER_ID,
-            name = "Merisiel",
-            level = 5,
-            characterClass = CharacterClass.WIZARD,
-            keyAbility = AbilityScore.INTELLIGENCE,
-            spellDc = 21,
-            spellAttackModifier = 11,
-        )
-
-        override fun observeCharacters(): Flow<List<CharacterProfile>> = flowOf(listOf(character))
-
-        override suspend fun getCharacter(characterId: Long): CharacterProfile? = character
-
-        override suspend fun upsertCharacter(character: CharacterProfile): Long = character.id
-
-        override suspend fun deleteCharacter(characterId: Long) = Unit
     }
 
     private class FakeKnownSpellRepository(

@@ -189,11 +189,66 @@ class PreparedSlotsServiceTest {
         assertEquals("known-spell", fixture.preparedSlotRepository.preparedSpellIdFor(rank = 1, slotIndex = 0))
     }
 
+    @Test
+    fun prepareRandom_prefers_track_tradition_when_available() = runTest {
+        val fixture = fixture(
+            slots = listOf(emptySlot(rank = 1)),
+            spells = listOf(
+                spell(id = "arcane-spell", rank = 1, tradition = "arcane"),
+                spell(id = "primal-spell", rank = 1, tradition = "primal"),
+            ),
+            details = mapOf(
+                "arcane-spell" to detail(id = "arcane-spell", rank = 1, description = "", tradition = "arcane"),
+                "primal-spell" to detail(id = "primal-spell", rank = 1, description = "", tradition = "primal"),
+            ),
+            tracks = listOf(
+                CastingTrack(
+                    characterId = CHARACTER_ID,
+                    trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+                    sourceType = com.spellapp.core.model.CastingTrackSourceType.PRIMARY_CLASS,
+                    sourceId = "DRUID",
+                    progressionType = com.spellapp.core.model.CastingProgressionType.FULL_PREPARED,
+                ),
+            ),
+        )
+
+        fixture.service.prepareRandom(characterId = CHARACTER_ID, trackKey = PreparedSlot.PRIMARY_TRACK_KEY)
+
+        assertEquals("primal-spell", fixture.preparedSlotRepository.preparedSpellIdFor(rank = 1, slotIndex = 0))
+    }
+
+    @Test
+    fun prepareRandom_leaves_slot_empty_when_only_off_tradition_known_spells_exist() = runTest {
+        val fixture = fixture(
+            slots = listOf(emptySlot(rank = 1)),
+            spells = listOf(
+                spell(id = "arcane-spell", rank = 1, tradition = "arcane"),
+            ),
+            details = mapOf(
+                "arcane-spell" to detail(id = "arcane-spell", rank = 1, description = "", tradition = "arcane"),
+            ),
+            tracks = listOf(
+                CastingTrack(
+                    characterId = CHARACTER_ID,
+                    trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+                    sourceType = com.spellapp.core.model.CastingTrackSourceType.PRIMARY_CLASS,
+                    sourceId = "DRUID",
+                    progressionType = com.spellapp.core.model.CastingProgressionType.FULL_PREPARED,
+                ),
+            ),
+        )
+
+        fixture.service.prepareRandom(characterId = CHARACTER_ID, trackKey = PreparedSlot.PRIMARY_TRACK_KEY)
+
+        assertNull(fixture.preparedSlotRepository.preparedSpellIdFor(rank = 1, slotIndex = 0))
+    }
+
     private fun fixture(
         slots: List<PreparedSlot>,
         spells: List<SpellListItem>,
         details: Map<String, SpellDetail>,
         knownSpellIds: Set<String> = spells.map { it.id }.toSet(),
+        tracks: List<CastingTrack> = emptyList(),
     ): TestFixture {
         val preparedSlotRepository = FakePreparedSlotRepository(
             slotsByTrack = mapOf(
@@ -204,7 +259,7 @@ class PreparedSlotsServiceTest {
         )
         val knownSpellRepository = FakeKnownSpellRepository(knownSpellIds = knownSpellIds)
         val spellRepository = FakeSpellRepository(
-            spells = spells.map { it.copy(tradition = "arcane") },
+            spells = spells,
             detailsById = details,
         )
         val characterCrudRepository = FakeCharacterCrudRepository(
@@ -212,7 +267,7 @@ class PreparedSlotsServiceTest {
         )
         val service = PreparedSlotsService(
             preparedSlotRepository = preparedSlotRepository,
-            castingTrackRepository = FakeCastingTrackRepository(),
+            castingTrackRepository = FakeCastingTrackRepository(tracks),
             preparedSlotSyncRepository = FakePreparedSlotSyncRepository(),
             sessionEventRepository = FakeSessionEventRepository(),
             focusStateRepository = FakeFocusStateRepository(),
@@ -466,10 +521,12 @@ class PreparedSlotsServiceTest {
         ) = Unit
     }
 
-    private class FakeCastingTrackRepository : CastingTrackRepository {
-        override fun observeCastingTracks(characterId: Long): Flow<List<CastingTrack>> = flowOf(emptyList())
+    private class FakeCastingTrackRepository(
+        private val tracks: List<CastingTrack>,
+    ) : CastingTrackRepository {
+        override fun observeCastingTracks(characterId: Long): Flow<List<CastingTrack>> = flowOf(tracks)
 
-        override suspend fun getCastingTracks(characterId: Long): List<CastingTrack> = emptyList()
+        override suspend fun getCastingTracks(characterId: Long): List<CastingTrack> = tracks
 
         override suspend fun upsertCastingTrack(track: CastingTrack): Long = 0L
 
@@ -505,6 +562,7 @@ class PreparedSlotsServiceTest {
     private fun spell(
         id: String,
         rank: Int,
+        tradition: String = "arcane",
         rarity: String = "common",
         sourceBook: String = "",
         isCantrip: Boolean = rank == 0,
@@ -513,7 +571,7 @@ class PreparedSlotsServiceTest {
             id = id,
             name = id.replace('-', ' '),
             rank = rank,
-            tradition = "arcane",
+            tradition = tradition,
             rarity = rarity,
             sourceBook = sourceBook,
             isCantrip = isCantrip,
@@ -524,12 +582,13 @@ class PreparedSlotsServiceTest {
         id: String,
         rank: Int,
         description: String,
+        tradition: String = "arcane",
     ): SpellDetail {
         return SpellDetail(
             id = id,
             name = id.replace('-', ' '),
             rank = rank,
-            tradition = "arcane",
+            tradition = tradition,
             rarity = "common",
             traits = emptyList(),
             castTime = "2 actions",

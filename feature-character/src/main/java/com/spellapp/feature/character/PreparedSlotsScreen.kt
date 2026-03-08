@@ -59,7 +59,7 @@ import com.spellapp.core.model.SpellSlotSummary
 fun PreparedSlotsRoute(
     uiState: PreparedSlotsUiState,
     onTrackChange: (String) -> Unit,
-    onChooseSpell: (Int, Int, String) -> Unit,
+    onChooseSpell: (Int, Int, String, String?) -> Unit,
     onClearSpell: (Int, Int) -> Unit,
     onCastSlot: (Int, Int) -> Unit,
     onUncastSlot: (Int, Int) -> Unit,
@@ -72,7 +72,7 @@ fun PreparedSlotsRoute(
     onNewDayPreparation: () -> Unit,
     onPrepareRandom: () -> Unit,
     onUndoLastCast: () -> Unit,
-    onManageKnownSpells: (String) -> Unit,
+    onManageKnownSpells: (String, String?, String?) -> Unit,
     onOpenSpellBrowser: () -> Unit,
     onOpenPreparedSpell: (String) -> Unit,
     onBack: () -> Unit,
@@ -201,6 +201,8 @@ fun PreparedSlotsRoute(
                     KnownSpellsSection(
                         knownSpells = uiState.knownSpellSummaries,
                         selectedTrackKey = uiState.selectedTrackKey,
+                        selectedTrackPreferredTradition = uiState.selectedTrackPreferredTradition,
+                        selectedTrackSourceId = uiState.selectedTrackSourceId,
                         onManageKnownSpells = onManageKnownSpells,
                     )
                 }
@@ -219,7 +221,12 @@ fun PreparedSlotsRoute(
                             onCast = { onCastSlot(slot.rank, slot.slotIndex) },
                             onUncast = { onUncastSlot(slot.rank, slot.slotIndex) },
                             onChooseSpell = {
-                                onChooseSpell(slot.rank, slot.slotIndex, slot.trackKey)
+                                onChooseSpell(
+                                    slot.rank,
+                                    slot.slotIndex,
+                                    slot.trackKey,
+                                    uiState.selectedTrackPreferredTradition,
+                                )
                             },
                             onClearSpell = { onClearSpell(slot.rank, slot.slotIndex) },
                             onOpenSpellDetail = { spellId -> onOpenPreparedSpell(spellId) },
@@ -329,7 +336,9 @@ fun PreparedSlotsRoute(
 private fun KnownSpellsSection(
     knownSpells: List<SpellSlotSummary>,
     selectedTrackKey: String,
-    onManageKnownSpells: (String) -> Unit,
+    selectedTrackPreferredTradition: String?,
+    selectedTrackSourceId: String?,
+    onManageKnownSpells: (String, String?, String?) -> Unit,
 ) {
     Surface(
         tonalElevation = 1.dp,
@@ -365,7 +374,15 @@ private fun KnownSpellsSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = { onManageKnownSpells(selectedTrackKey) }) {
+                TextButton(
+                    onClick = {
+                        onManageKnownSpells(
+                            selectedTrackKey,
+                            selectedTrackPreferredTradition,
+                            selectedTrackSourceId,
+                        )
+                    },
+                ) {
                     Text("Manage")
                 }
             }

@@ -179,12 +179,13 @@ private fun NavGraphBuilder.preparedSlotsDestination(
         PreparedSlotsRoute(
             uiState = uiState,
             onTrackChange = preparedSlotsViewModel::onTrackChange,
-            onChooseSpell = { rank, slotIndex, trackKey ->
+            onChooseSpell = { rank, slotIndex, trackKey, preferredTradition ->
                 navigationViewModel.startPreparedSlotAssignment(
                     characterId = characterId,
                     rank = rank,
                     slotIndex = slotIndex,
                     trackKey = trackKey,
+                    preferredTradition = null,
                 )
                 navController.navigate(AppDestinations.SpellList.route)
             },
@@ -200,10 +201,12 @@ private fun NavGraphBuilder.preparedSlotsDestination(
             onNewDayPreparation = preparedSlotsViewModel::newDayPreparation,
             onPrepareRandom = preparedSlotsViewModel::prepareRandom,
             onUndoLastCast = preparedSlotsViewModel::undoLastCast,
-            onManageKnownSpells = { trackKey ->
+            onManageKnownSpells = { trackKey, preferredTradition, trackSourceId ->
                 navigationViewModel.manageKnownSpells(
                     characterId = characterId,
                     trackKey = trackKey,
+                    preferredTradition = preferredTradition,
+                    trackSourceId = trackSourceId,
                 )
                 navController.navigate(AppDestinations.SpellList.route)
             },
@@ -243,9 +246,11 @@ private fun NavGraphBuilder.spellListDestination(
 
         val browserMode = navigationUiState.spellBrowserMode
             ?: SpellBrowserMode.BrowseCatalog(characterId = navigationUiState.activeCharacterId)
-        LaunchedEffect(browserMode) {
-            spellListViewModel.clearAllFilters()
-            spellListViewModel.setBrowserMode(browserMode)
+        LaunchedEffect(browserMode, navigationUiState.spellBrowserSessionId) {
+            spellListViewModel.openBrowserMode(
+                mode = browserMode,
+                sessionId = navigationUiState.spellBrowserSessionId,
+            )
         }
 
         SpellListRoute(
@@ -273,6 +278,9 @@ private fun NavGraphBuilder.spellListDestination(
             onClearRankFilter = spellListViewModel::clearRankFilter,
             onClearTraditionFilter = spellListViewModel::clearTraditionFilter,
             onClearRarityFilter = spellListViewModel::clearRarityFilter,
+            pendingKnownSpellWarning = spellListUiState.pendingKnownSpellWarning,
+            onConfirmKnownSpellWarning = spellListViewModel::confirmKnownSpellWarning,
+            onDismissKnownSpellWarning = spellListViewModel::dismissKnownSpellWarning,
             isLoading = seedUiState == SeedUiState.Loading,
             loadError = (seedUiState as? SeedUiState.Error)?.message,
             onRetryLoad = onRetrySeed,

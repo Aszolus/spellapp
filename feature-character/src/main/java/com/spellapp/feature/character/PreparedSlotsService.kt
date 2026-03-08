@@ -18,6 +18,8 @@ import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEvent
 import com.spellapp.core.model.SessionEventType
 import com.spellapp.core.model.SpellSlotSummary
+import com.spellapp.core.model.preferredSpellTradition
+import com.spellapp.core.model.spellSupportsTradition
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -315,11 +317,23 @@ class PreparedSlotsService(
         val filteredSpells = knownSpellIds.mapNotNull { spellId ->
             spellRepository.getSpellDetail(spellId)
         }
+        val preferredTradition = castingTrackRepository.getCastingTracks(characterId)
+            .firstOrNull { track -> track.trackKey == trackKey }
+            ?.preferredSpellTradition()
+        val candidateSpells = preferredTradition?.let { tradition ->
+            filteredSpells.filter { spell ->
+                spellSupportsTradition(
+                    traditions = spell.tradition,
+                    preferredTradition = tradition,
+                )
+            }
+        } ?: filteredSpells
+        if (candidateSpells.isEmpty()) return
         val heightenProgressionBySpellId = mutableMapOf<String, HeightenedProgression>()
 
         val slotsByRank = emptySlots.groupBy { it.rank }
         for ((slotRank, rankSlots) in slotsByRank) {
-            val candidates = filteredSpells.filter { spell ->
+            val candidates = candidateSpells.filter { spell ->
                 canSpellFillSlot(
                     spellId = spell.id,
                     spellRank = spell.rank,

@@ -68,6 +68,9 @@ fun SpellListRoute(
     onClearRankFilter: () -> Unit,
     onClearTraditionFilter: () -> Unit,
     onClearRarityFilter: (String) -> Unit,
+    pendingKnownSpellWarning: PendingKnownSpellWarning?,
+    onConfirmKnownSpellWarning: () -> Unit,
+    onDismissKnownSpellWarning: () -> Unit,
     isLoading: Boolean,
     loadError: String?,
     onRetryLoad: () -> Unit,
@@ -330,7 +333,9 @@ fun SpellListRoute(
                         }
                         if (isManageKnownSpells) {
                             val isKnown = spell.id in knownSpellIds
-                            TextButton(onClick = { onKnownSpellToggle(spell.id) }) {
+                            TextButton(
+                                onClick = { onKnownSpellToggle(spell.id) },
+                            ) {
                                 Text(if (isKnown) "Remove" else "Add")
                             }
                         }
@@ -460,6 +465,26 @@ fun SpellListRoute(
             dismissButton = {
                 TextButton(onClick = onClearFilters) {
                     Text("Reset")
+                }
+            },
+        )
+    }
+
+    pendingKnownSpellWarning?.let { pendingWarning ->
+        AlertDialog(
+            onDismissRequest = onDismissKnownSpellWarning,
+            title = { Text(pendingWarning.title) },
+            text = {
+                Text(pendingWarning.message)
+            },
+            confirmButton = {
+                TextButton(onClick = onConfirmKnownSpellWarning) {
+                    Text(pendingWarning.confirmLabel)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissKnownSpellWarning) {
+                    Text("Cancel")
                 }
             },
         )

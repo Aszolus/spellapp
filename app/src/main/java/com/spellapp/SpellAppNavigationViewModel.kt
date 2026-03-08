@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 data class SpellAppNavigationUiState(
     val activeCharacterId: Long? = null,
     val spellBrowserMode: SpellBrowserMode? = null,
+    val spellBrowserSessionId: Long = 0L,
 )
 
 class SpellAppNavigationViewModel(
@@ -41,6 +42,7 @@ class SpellAppNavigationViewModel(
             current.copy(
                 activeCharacterId = characterId,
                 spellBrowserMode = SpellBrowserMode.BrowseCatalog(characterId = characterId),
+                spellBrowserSessionId = current.spellBrowserSessionId + 1L,
             )
         }
     }
@@ -48,6 +50,8 @@ class SpellAppNavigationViewModel(
     fun manageKnownSpells(
         characterId: Long,
         trackKey: String,
+        preferredTradition: String?,
+        trackSourceId: String?,
     ) {
         _uiState.update { current ->
             current.copy(
@@ -55,7 +59,10 @@ class SpellAppNavigationViewModel(
                 spellBrowserMode = SpellBrowserMode.ManageKnownSpells(
                     characterId = characterId,
                     trackKey = trackKey,
+                    preferredTradition = preferredTradition,
+                    trackSourceId = trackSourceId,
                 ),
+                spellBrowserSessionId = current.spellBrowserSessionId + 1L,
             )
         }
     }
@@ -65,6 +72,7 @@ class SpellAppNavigationViewModel(
         rank: Int,
         slotIndex: Int,
         trackKey: String,
+        preferredTradition: String?,
     ) {
         _uiState.update { current ->
             current.copy(
@@ -74,7 +82,9 @@ class SpellAppNavigationViewModel(
                     trackKey = trackKey,
                     slotRank = rank,
                     slotIndex = slotIndex,
+                    preferredTradition = preferredTradition,
                 ),
+                spellBrowserSessionId = current.spellBrowserSessionId + 1L,
             )
         }
     }

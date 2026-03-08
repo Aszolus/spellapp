@@ -1,17 +1,13 @@
 package com.spellapp.feature.spells
 
-import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.PreparedSlotRepository
 import com.spellapp.core.data.SpellRepository
-import com.spellapp.core.model.SpellListItem
 
 class AssignPreparedSpellUseCase(
-    private val characterCrudRepository: CharacterCrudRepository,
     private val knownSpellRepository: KnownSpellRepository,
     private val preparedSlotRepository: PreparedSlotRepository,
     private val spellRepository: SpellRepository,
-    private val assignmentPolicy: PreparedSpellAssignmentPolicy = DefaultPreparedSpellAssignmentPolicy(),
 ) {
     suspend fun assign(
         mode: SpellBrowserMode.AssignPreparedSlot,
@@ -21,26 +17,8 @@ class AssignPreparedSpellUseCase(
             return false
         }
 
-        val character = characterCrudRepository.getCharacter(mode.characterId) ?: return false
         val detail = spellRepository.getSpellDetail(spellId) ?: return false
-        val spell = SpellListItem(
-            id = detail.id,
-            name = detail.name,
-            rank = detail.rank,
-            tradition = detail.tradition,
-            rarity = detail.rarity,
-            sourceBook = detail.sourceBook,
-            isCantrip = detail.rank == 0,
-        )
-        val isLegal = assignmentPolicy.isSpellLegalTarget(
-            spell = spell,
-            context = PreparedSlotAssignmentContext(
-                characterClass = character.characterClass,
-                trackKey = mode.trackKey,
-                slotRank = mode.slotRank,
-            ),
-        )
-        if (!isLegal) {
+        if (!isPreparedRankCompatible(detail.rank, mode.slotRank)) {
             return false
         }
 
@@ -52,5 +30,18 @@ class AssignPreparedSpellUseCase(
             trackKey = mode.trackKey,
         )
         return true
+    }
+
+    private fun isPreparedRankCompatible(
+        spellRank: Int,
+        slotRank: Int,
+    ): Boolean {
+        if (slotRank <= 0) {
+            return spellRank == 0
+        }
+        if (spellRank <= 0) {
+            return false
+        }
+        return spellRank <= slotRank
     }
 }

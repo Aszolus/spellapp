@@ -17,6 +17,7 @@ import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEventType
 import com.spellapp.core.model.SpellSlotSummary
+import com.spellapp.core.model.preferredSpellTradition
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,6 +34,8 @@ data class PreparedSlotsUiState(
     val spellAttackModifier: Int = 0,
     val selectedTrackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
     val castingTracks: List<CastingTrack> = emptyList(),
+    val selectedTrackPreferredTradition: String? = null,
+    val selectedTrackSourceId: String? = null,
     val allSlots: List<PreparedSlot> = emptyList(),
     val knownSpellSummaries: List<SpellSlotSummary> = emptyList(),
     val spellSummaryById: Map<String, SpellSlotSummary> = emptyMap(),
@@ -216,6 +219,12 @@ class PreparedSlotsViewModel(
             spellAttackModifier = meta.spellAttackModifier,
             selectedTrackKey = slots.selectedTrackKey,
             castingTracks = slots.castingTracks,
+            selectedTrackPreferredTradition = slots.castingTracks
+                .firstOrNull { track -> track.trackKey == slots.selectedTrackKey }
+                ?.preferredSpellTradition(),
+            selectedTrackSourceId = slots.castingTracks
+                .firstOrNull { track -> track.trackKey == slots.selectedTrackKey }
+                ?.sourceId,
             allSlots = slots.allSlots,
             knownSpellSummaries = slots.knownSpells.mapNotNull { knownSpell ->
                 events.spellSummaryById[knownSpell.spellId]
