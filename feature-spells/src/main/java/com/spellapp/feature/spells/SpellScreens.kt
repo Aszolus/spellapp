@@ -5,16 +5,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -24,6 +27,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -42,7 +46,7 @@ private val filterTraditions = listOf("arcane", "divine", "occult", "primal")
 private val filterRarities = listOf("common", "uncommon", "rare", "unique")
 private val filterRanks = (0..10).toList()
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SpellListRoute(
     spells: List<SpellListItem>,
@@ -58,8 +62,12 @@ fun SpellListRoute(
     onRankChange: (Int) -> Unit,
     selectedTradition: String?,
     onTraditionChange: (String) -> Unit,
-    selectedRarity: String?,
+    selectedRarities: Set<String>,
     onRarityChange: (String) -> Unit,
+    onClearTraitFilter: () -> Unit,
+    onClearRankFilter: () -> Unit,
+    onClearTraditionFilter: () -> Unit,
+    onClearRarityFilter: (String) -> Unit,
     isLoading: Boolean,
     loadError: String?,
     onRetryLoad: () -> Unit,
@@ -68,17 +76,51 @@ fun SpellListRoute(
     onKnownSpellToggle: (String) -> Unit,
     onBack: (() -> Unit)? = null,
 ) {
-    var showAdvancedFilters by rememberSaveable { mutableStateOf(false) }
+    var showFiltersDialog by rememberSaveable { mutableStateOf(false) }
+    var isTraitSuggestionExpanded by rememberSaveable { mutableStateOf(false) }
     val isManageKnownSpells = browserMode is SpellBrowserMode.ManageKnownSpells
     val isAssignPreparedSlot = browserMode is SpellBrowserMode.AssignPreparedSlot
+    val supportsRankFilter = browserMode !is SpellBrowserMode.AssignPreparedSlot
     val normalizedTraitQuery = traitQuery.trim()
     val traitSuggestions = availableTraits.matchingTraitSuggestions(normalizedTraitQuery)
-    val hasActiveFilters = query.isNotBlank() ||
-        traitQuery.isNotBlank() ||
-        selectedRank != null ||
-        selectedTradition != null ||
-        selectedRarity != null
-    val filtersExpanded = showAdvancedFilters || hasActiveFilters
+    val showTraitSuggestions = isTraitSuggestionExpanded && traitSuggestions.isNotEmpty()
+    val activeFilters = buildList {
+        if (supportsRankFilter && selectedRank != null) {
+            add(
+                ActiveSpellFilter(
+                    label = if (selectedRank == 0) "Cantrip" else "Rank $selectedRank",
+                    onRemove = onClearRankFilter,
+                ),
+            )
+        }
+        selectedTradition?.let { tradition ->
+            add(
+                ActiveSpellFilter(
+                    label = tradition.replaceFirstChar { it.uppercase() },
+                    onRemove = onClearTraditionFilter,
+                ),
+            )
+        }
+        if (normalizedTraitQuery.isNotEmpty()) {
+            add(
+                ActiveSpellFilter(
+                    label = "Trait: $normalizedTraitQuery",
+                    onRemove = onClearTraitFilter,
+                ),
+            )
+        }
+        selectedRarities.sorted().forEach { rarity ->
+            add(
+                ActiveSpellFilter(
+                    label = rarity.replaceFirstChar { it.uppercase() },
+                    onRemove = { onClearRarityFilter(rarity) },
+                ),
+            )
+        }
+    }
+    val activeFilterCount = activeFilters.size
+    val hasActiveSearch = query.isNotBlank()
+    val hasActiveFilters = activeFilterCount > 0
 
     Scaffold(
         topBar = {
@@ -104,7 +146,7 @@ fun SpellListRoute(
                 end = 8.dp,
                 bottom = 8.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             item {
                 OutlinedTextField(
@@ -121,82 +163,27 @@ fun SpellListRoute(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TextButton(onClick = { showAdvancedFilters = !showAdvancedFilters }) {
-                        Text(if (filtersExpanded) "Hide Filters" else "Show Filters")
+                    TextButton(onClick = { showFiltersDialog = true }) {
+                        Text(if (activeFilterCount == 0) "Filters" else "Filters ($activeFilterCount)")
                     }
                     if (hasActiveFilters) {
                         TextButton(onClick = onClearFilters) {
-                            Text("Clear")
+                            Text("Clear Filters")
                         }
                     }
                 }
             }
-            if (filtersExpanded) {
+            if (hasActiveFilters) {
                 item {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            OutlinedTextField(
-                                value = traitQuery,
-                                onValueChange = onTraitQueryChange,
-                                label = { Text("Trait filter") },
-                                placeholder = { Text("Start typing a trait") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            if (traitSuggestions.isNotEmpty()) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                                ) {
-                                    traitSuggestions.forEach { suggestion ->
-                                        DropdownMenuItem(
-                                            text = { Text(suggestion) },
-                                            onClick = { onTraitQueryChange(suggestion) },
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                item {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(filterRanks, key = { "rank-$it" }) { rank ->
-                            val rankLabel = if (rank == 0) "Cantrip" else "Rank $rank"
+                        activeFilters.forEach { filter ->
                             FilterChip(
-                                selected = selectedRank == rank,
-                                onClick = { onRankChange(rank) },
-                                label = { Text(rankLabel) },
-                            )
-                        }
-                    }
-                }
-                item {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        items(filterTraditions, key = { "trad-$it" }) { tradition ->
-                            FilterChip(
-                                selected = selectedTradition == tradition,
-                                onClick = { onTraditionChange(tradition) },
-                                label = { Text(tradition.replaceFirstChar { it.uppercase() }) },
-                            )
-                        }
-                    }
-                }
-                item {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        items(filterRarities, key = { "rarity-$it" }) { rarity ->
-                            FilterChip(
-                                selected = selectedRarity == rarity,
-                                onClick = { onRarityChange(rarity) },
-                                label = { Text(rarity.replaceFirstChar { it.uppercase() }) },
+                                selected = true,
+                                onClick = filter.onRemove,
+                                label = { Text("${filter.label} x") },
                             )
                         }
                     }
@@ -210,7 +197,7 @@ fun SpellListRoute(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = if (hasActiveFilters) "Filtered: ${spells.size}" else "Spells: ${spells.size}",
+                        text = if (hasActiveSearch || hasActiveFilters) "Filtered: ${spells.size}" else "Spells: ${spells.size}",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -259,9 +246,9 @@ fun SpellListRoute(
                         }
                     }
                 } else if (spells.isEmpty()) {
-                    val primary = if (hasActiveFilters && isAssignPreparedSlot) {
+                    val primary = if ((hasActiveFilters || hasActiveSearch) && isAssignPreparedSlot) {
                         "No known spells matched this filter set."
-                    } else if (hasActiveFilters) {
+                    } else if (hasActiveFilters || hasActiveSearch) {
                         "No spells matched this filter set."
                     } else if (isAssignPreparedSlot) {
                         "No known spells available."
@@ -270,9 +257,9 @@ fun SpellListRoute(
                     } else {
                         "No spells available."
                     }
-                    val secondary = if (isAssignPreparedSlot && !hasActiveFilters) {
+                    val secondary = if (isAssignPreparedSlot && !hasActiveFilters && !hasActiveSearch) {
                         "Add known spells first, then prepare from this list."
-                    } else if (hasActiveFilters) {
+                    } else if (hasActiveFilters || hasActiveSearch) {
                         "Adjust filters or clear them."
                     } else {
                         "Try reloading the app data."
@@ -360,6 +347,123 @@ fun SpellListRoute(
             }
         }
     }
+
+    if (showFiltersDialog) {
+        AlertDialog(
+            onDismissRequest = { showFiltersDialog = false },
+            title = { Text("Filters") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (supportsRankFilter) {
+                        FilterSection(title = "Spell Level") {
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                filterRanks.forEach { rank ->
+                                    val rankLabel = if (rank == 0) "Cantrip" else "Rank $rank"
+                                    FilterChip(
+                                        selected = selectedRank == rank,
+                                        onClick = { onRankChange(rank) },
+                                        label = { Text(rankLabel) },
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    FilterSection(title = "Tradition") {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            filterTraditions.forEach { tradition ->
+                                FilterChip(
+                                    selected = selectedTradition == tradition,
+                                    onClick = { onTraditionChange(tradition) },
+                                    label = { Text(tradition.replaceFirstChar { it.uppercase() }) },
+                                )
+                            }
+                        }
+                    }
+
+                    FilterSection(title = "Rarity") {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            filterRarities.forEach { rarity ->
+                                FilterChip(
+                                    selected = rarity in selectedRarities,
+                                    onClick = { onRarityChange(rarity) },
+                                    label = { Text(rarity.replaceFirstChar { it.uppercase() }) },
+                                )
+                            }
+                        }
+                    }
+
+                    FilterSection(title = "Trait") {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = traitQuery,
+                                    onValueChange = { value ->
+                                        isTraitSuggestionExpanded = true
+                                        onTraitQueryChange(value)
+                                    },
+                                    label = { Text("Trait") },
+                                    placeholder = { Text("Start typing a trait") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                if (showTraitSuggestions) {
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 4.dp)
+                                            .heightIn(max = 240.dp),
+                                        shape = MaterialTheme.shapes.medium,
+                                        tonalElevation = 3.dp,
+                                        shadowElevation = 6.dp,
+                                    ) {
+                                        Column {
+                                            traitSuggestions.forEachIndexed { index, suggestion ->
+                                                DropdownMenuItem(
+                                                    text = { Text(suggestion) },
+                                                    onClick = {
+                                                        isTraitSuggestionExpanded = false
+                                                        onTraitQueryChange(suggestion)
+                                                    },
+                                                )
+                                                if (index != traitSuggestions.lastIndex) {
+                                                    HorizontalDivider()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showFiltersDialog = false }) {
+                    Text("Done")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onClearFilters) {
+                    Text("Reset")
+                }
+            },
+        )
+    }
 }
 
 private fun List<String>.matchingTraitSuggestions(query: String): List<String> {
@@ -376,6 +480,27 @@ private fun List<String>.matchingTraitSuggestions(query: String): List<String> {
         trait.contains(query, ignoreCase = true) && !trait.equals(query, ignoreCase = true)
     }.take(6)
 }
+
+@Composable
+private fun FilterSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+        )
+        content()
+    }
+}
+
+private data class ActiveSpellFilter(
+    val label: String,
+    val onRemove: () -> Unit,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

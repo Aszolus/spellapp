@@ -26,7 +26,7 @@ data class SpellListUiState(
     val traitQueryInput: String = "",
     val selectedRank: Int? = null,
     val selectedTradition: String? = null,
-    val selectedRarity: String? = null,
+    val selectedRarities: Set<String> = emptySet(),
     val browserMode: SpellBrowserMode = SpellBrowserMode.BrowseCatalog(),
     val knownSpellIds: Set<String> = emptySet(),
     val availableTraits: List<String> = emptyList(),
@@ -42,7 +42,7 @@ class SpellListViewModel(
     private val traitQueryInput = MutableStateFlow("")
     private val selectedRank = MutableStateFlow<Int?>(null)
     private val selectedTradition = MutableStateFlow<String?>(null)
-    private val selectedRarity = MutableStateFlow<String?>(null)
+    private val selectedRarities = MutableStateFlow<Set<String>>(emptySet())
     private val browserMode = MutableStateFlow<SpellBrowserMode>(SpellBrowserMode.BrowseCatalog())
 
     private val knownSpellIds = browserMode.flatMapLatest { mode ->
@@ -96,14 +96,14 @@ class SpellListViewModel(
         traitQueryInput,
         selectedRank,
         selectedTradition,
-        selectedRarity,
-    ) { query, trait, rank, tradition, rarity ->
+        selectedRarities,
+    ) { query, trait, rank, tradition, rarities ->
         SpellListUiState(
             queryInput = query,
             traitQueryInput = trait,
             selectedRank = rank,
             selectedTradition = tradition,
-            selectedRarity = rarity,
+            selectedRarities = rarities,
         )
     }
 
@@ -129,14 +129,14 @@ class SpellListViewModel(
         traitQueryInput.debounce(250),
         selectedRank,
         selectedTradition,
-        selectedRarity,
-    ) { query, trait, rank, tradition, rarity ->
+        selectedRarities,
+    ) { query, trait, rank, tradition, rarities ->
         SpellFilterInputs(
             query = query,
             trait = trait,
             rank = rank,
             tradition = tradition,
-            rarity = rarity,
+            rarities = rarities,
         )
     }
 
@@ -157,12 +157,17 @@ class SpellListViewModel(
             query = query.filters.query,
             rank = query.filters.rank.takeUnless { query.browserMode is SpellBrowserMode.AssignPreparedSlot },
             tradition = query.filters.tradition,
-            rarity = query.filters.rarity,
+            rarity = null,
             trait = query.filters.trait,
         ).map { sourceSpells ->
             var filtered = sourceSpells
             if (query.acceptedSourceBooks.isNotEmpty()) {
                 filtered = filtered.filter { spell -> spell.sourceBook in query.acceptedSourceBooks }
+            }
+            if (query.filters.rarities.isNotEmpty()) {
+                filtered = filtered.filter { spell ->
+                    spell.rarity.lowercase() in query.filters.rarities
+                }
             }
             if (query.filters.rank != null) {
                 filtered = filtered.filter { spell -> spell.rank == query.filters.rank }
@@ -223,22 +228,45 @@ class SpellListViewModel(
     }
 
     fun onRarityToggle(rarity: String) {
-        selectedRarity.update { current ->
-            if (current == rarity) null else rarity
+        selectedRarities.update { current ->
+            current.toMutableSet().apply {
+                if (!add(rarity)) {
+                    remove(rarity)
+                }
+            }
         }
+    }
+
+    fun clearTraitFilter() {
+        traitQueryInput.update { "" }
+    }
+
+    fun clearRankFilter() {
+        selectedRank.update { null }
+    }
+
+    fun clearTraditionFilter() {
+        selectedTradition.update { null }
+    }
+
+    fun clearRarityFilter(rarity: String) {
+        selectedRarities.update { current -> current - rarity }
     }
 
     fun clearTextFilters() {
         queryInput.update { "" }
+    }
+
+    fun clearStructuredFilters() {
         traitQueryInput.update { "" }
+        selectedRank.update { null }
+        selectedTradition.update { null }
+        selectedRarities.update { emptySet() }
     }
 
     fun clearAllFilters() {
         queryInput.update { "" }
-        traitQueryInput.update { "" }
-        selectedRank.update { null }
-        selectedTradition.update { null }
-        selectedRarity.update { null }
+        clearStructuredFilters()
     }
 
     fun toggleKnownSpell(spellId: String) {
@@ -289,7 +317,7 @@ private data class SpellFilterInputs(
     val trait: String,
     val rank: Int?,
     val tradition: String?,
-    val rarity: String?,
+    val rarities: Set<String>,
 )
 
 private data class SpellQueryContext(

@@ -249,11 +249,6 @@ private fun NavGraphBuilder.spellListDestination(
         LaunchedEffect(browserMode) {
             spellListViewModel.clearAllFilters()
             spellListViewModel.setBrowserMode(browserMode)
-            if (browserMode is SpellBrowserMode.AssignPreparedSlot && browserMode.slotRank == 0) {
-                spellListViewModel.setRank(0)
-            } else {
-                spellListViewModel.clearRankSelection()
-            }
         }
 
         SpellListRoute(
@@ -275,12 +270,16 @@ private fun NavGraphBuilder.spellListDestination(
             onRankChange = spellListViewModel::onRankToggle,
             selectedTradition = spellListUiState.selectedTradition,
             onTraditionChange = spellListViewModel::onTraditionToggle,
-            selectedRarity = spellListUiState.selectedRarity,
+            selectedRarities = spellListUiState.selectedRarities,
             onRarityChange = spellListViewModel::onRarityToggle,
+            onClearTraitFilter = spellListViewModel::clearTraitFilter,
+            onClearRankFilter = spellListViewModel::clearRankFilter,
+            onClearTraditionFilter = spellListViewModel::clearTraditionFilter,
+            onClearRarityFilter = spellListViewModel::clearRarityFilter,
             isLoading = seedUiState == SeedUiState.Loading,
             loadError = (seedUiState as? SeedUiState.Error)?.message,
             onRetryLoad = onRetrySeed,
-            onClearFilters = spellListViewModel::clearAllFilters,
+            onClearFilters = spellListViewModel::clearStructuredFilters,
             onSpellClick = { spellId ->
                 if (browserMode is SpellBrowserMode.AssignPreparedSlot) {
                     navigationViewModel.completeSlotAssignment(spellId)
