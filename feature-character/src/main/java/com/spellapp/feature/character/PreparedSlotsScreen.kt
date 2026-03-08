@@ -71,9 +71,6 @@ fun PreparedSlotsRoute(
     onRest: () -> Unit,
     onNewDayPreparation: () -> Unit,
     onPrepareRandom: () -> Unit,
-    onRandomPrepareSourceFilterChange: (String) -> Unit,
-    onRandomPrepareRarityFilterChange: (String?) -> Unit,
-    onClearRandomPrepareFilters: () -> Unit,
     onUndoLastCast: () -> Unit,
     onManageKnownSpells: (String) -> Unit,
     onOpenSpellBrowser: () -> Unit,
@@ -297,37 +294,13 @@ fun PreparedSlotsRoute(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Text(
-                            text = "Fill empty slots using random spells with optional filters.",
+                            text = "Fill empty slots using random known spells on this track.",
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
-                            text = "Rarity",
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            item(key = "random-rarity-any") {
-                                FilterChip(
-                                    selected = uiState.randomPrepareRarityFilter == null,
-                                    onClick = { onRandomPrepareRarityFilterChange(null) },
-                                    label = { Text("Any") },
-                                )
-                            }
-                            items(randomPrepareRarityOptions, key = { it }) { rarity ->
-                                FilterChip(
-                                    selected = uiState.randomPrepareRarityFilter == rarity,
-                                    onClick = { onRandomPrepareRarityFilterChange(rarity) },
-                                    label = { Text(rarity.replaceFirstChar { it.uppercase() }) },
-                                )
-                            }
-                        }
-                        OutlinedTextField(
-                            value = uiState.randomPrepareSourceFilter,
-                            onValueChange = onRandomPrepareSourceFilterChange,
-                            singleLine = true,
-                            label = { Text("Source contains") },
-                            modifier = Modifier.fillMaxWidth(),
+                            text = "Only empty slots are filled.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 },
@@ -342,15 +315,8 @@ fun PreparedSlotsRoute(
                     }
                 },
                 dismissButton = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        TextButton(onClick = onClearRandomPrepareFilters) {
-                            Text("Clear Filters")
-                        }
-                        TextButton(onClick = { showRandomPrepareDialog = false }) {
-                            Text("Cancel")
-                        }
+                    TextButton(onClick = { showRandomPrepareDialog = false }) {
+                        Text("Cancel")
                     }
                 },
             )
@@ -716,5 +682,3 @@ private fun CastingTrack.displayName(): String {
         CastingTrackSourceType.ARCHETYPE -> sourceId.ifBlank { trackKey }
     }
 }
-
-private val randomPrepareRarityOptions = listOf("common", "uncommon", "rare", "unique")

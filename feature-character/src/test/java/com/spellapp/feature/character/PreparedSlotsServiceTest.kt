@@ -170,63 +170,6 @@ class PreparedSlotsServiceTest {
     }
 
     @Test
-    fun prepareRandom_appliesRarityFilter() = runTest {
-        val fixture = fixture(
-            slots = listOf(emptySlot(rank = 1)),
-            spells = listOf(
-                spell(id = "common-1", rank = 1, rarity = "common"),
-                spell(id = "rare-1", rank = 1, rarity = "rare"),
-            ),
-            details = emptyMap(),
-        )
-
-        fixture.service.prepareRandom(
-            characterId = CHARACTER_ID,
-            trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
-            rarityFilter = "rare",
-        )
-
-        assertEquals("rare-1", fixture.preparedSlotRepository.preparedSpellIdFor(rank = 1, slotIndex = 0))
-    }
-
-    @Test
-    fun prepareRandom_appliesSourceFilter() = runTest {
-        val fixture = fixture(
-            slots = listOf(emptySlot(rank = 1)),
-            spells = listOf(
-                spell(id = "source-a", rank = 1, sourceBook = "Player Core 1"),
-                spell(id = "source-b", rank = 1, sourceBook = "Player Core 2"),
-            ),
-            details = emptyMap(),
-        )
-
-        fixture.service.prepareRandom(
-            characterId = CHARACTER_ID,
-            trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
-            sourceFilter = "core 2",
-        )
-
-        assertEquals("source-b", fixture.preparedSlotRepository.preparedSpellIdFor(rank = 1, slotIndex = 0))
-    }
-
-    @Test
-    fun prepareRandom_leavesSlotEmpty_whenFiltersRemoveAllCandidates() = runTest {
-        val fixture = fixture(
-            slots = listOf(emptySlot(rank = 1)),
-            spells = listOf(spell(id = "only-spell", rank = 1, rarity = "common")),
-            details = emptyMap(),
-        )
-
-        fixture.service.prepareRandom(
-            characterId = CHARACTER_ID,
-            trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
-            rarityFilter = "rare",
-        )
-
-        assertNull(fixture.preparedSlotRepository.preparedSpellIdFor(rank = 1, slotIndex = 0))
-    }
-
-    @Test
     fun prepareRandom_usesKnownSpellsOnly() = runTest {
         val fixture = fixture(
             slots = listOf(emptySlot(rank = 1)),
@@ -386,6 +329,10 @@ class PreparedSlotsServiceTest {
     ) : SpellRepository {
         override fun observeAvailableSources(): Flow<List<String>> {
             return flowOf(spells.map { it.sourceBook }.filter { it.isNotBlank() }.distinct().sorted())
+        }
+
+        override fun observeAvailableTraits(): Flow<List<String>> {
+            return flowOf(emptyList())
         }
 
         override fun observeSpells(

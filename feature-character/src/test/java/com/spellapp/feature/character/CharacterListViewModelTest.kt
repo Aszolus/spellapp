@@ -676,6 +676,8 @@ private class FakeSpellRepository(
 ) : SpellRepository {
     override fun observeAvailableSources(): Flow<List<String>> = MutableStateFlow(availableSources)
 
+    override fun observeAvailableTraits(): Flow<List<String>> = MutableStateFlow(emptyList())
+
     override fun observeSpells(
         query: String,
         rank: Int?,

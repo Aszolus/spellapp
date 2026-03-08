@@ -41,8 +41,6 @@ data class PreparedSlotsUiState(
     val recentEventLines: List<String> = emptyList(),
     val canUndoLastCast: Boolean = false,
     val hasBlessedOneDedication: Boolean = false,
-    val randomPrepareSourceFilter: String = "",
-    val randomPrepareRarityFilter: String? = null,
 )
 
 private data class SlotContext(
@@ -71,8 +69,6 @@ private data class UiMetaContext(
     val characterName: String,
     val spellDc: Int,
     val spellAttackModifier: Int,
-    val randomPrepareSourceFilter: String,
-    val randomPrepareRarityFilter: String?,
 )
 
 class PreparedSlotsViewModel(
@@ -80,12 +76,6 @@ class PreparedSlotsViewModel(
     private val service: PreparedSlotsService,
 ) : ViewModel() {
     private val selectedTrackKey = MutableStateFlow(PreparedSlot.PRIMARY_TRACK_KEY)
-    private val randomPrepareSourceFilter = MutableStateFlow("")
-    private val randomPrepareRarityFilter = MutableStateFlow<String?>(null)
-    private val randomPrepareFilters = combine(
-        randomPrepareSourceFilter,
-        randomPrepareRarityFilter,
-    ) { source, rarity -> source to rarity }
     private val characterProfile = MutableStateFlow(
         CharacterContext(
             characterName = "Character",
@@ -158,8 +148,7 @@ class PreparedSlotsViewModel(
         focusState,
         hasBlessedOneDedication,
         characterProfile,
-        randomPrepareFilters,
-    ) { focus, blessedOne, character, randomFilters ->
+    ) { focus, blessedOne, character ->
         UiMetaContext(
             focusCurrentPoints = focus.currentPoints,
             focusMaxPoints = focus.maxPoints,
@@ -167,8 +156,6 @@ class PreparedSlotsViewModel(
             characterName = character.characterName,
             spellDc = character.spellDc,
             spellAttackModifier = character.spellAttackModifier,
-            randomPrepareSourceFilter = randomFilters.first,
-            randomPrepareRarityFilter = randomFilters.second,
         )
     }
 
@@ -241,8 +228,6 @@ class PreparedSlotsViewModel(
             recentEventLines = events.recentEventLines,
             canUndoLastCast = events.canUndoLastCast,
             hasBlessedOneDedication = meta.hasBlessedOneDedication,
-            randomPrepareSourceFilter = meta.randomPrepareSourceFilter,
-            randomPrepareRarityFilter = meta.randomPrepareRarityFilter,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -370,23 +355,8 @@ class PreparedSlotsViewModel(
             service.prepareRandom(
                 characterId = characterId,
                 trackKey = activeTrackKey.value,
-                sourceFilter = randomPrepareSourceFilter.value,
-                rarityFilter = randomPrepareRarityFilter.value,
             )
         }
-    }
-
-    fun onRandomPrepareSourceFilterChange(value: String) {
-        randomPrepareSourceFilter.update { value }
-    }
-
-    fun onRandomPrepareRarityFilterChange(value: String?) {
-        randomPrepareRarityFilter.update { value?.trim()?.lowercase()?.takeIf { it.isNotBlank() } }
-    }
-
-    fun clearRandomPrepareFilters() {
-        randomPrepareSourceFilter.update { "" }
-        randomPrepareRarityFilter.update { null }
     }
 }
 

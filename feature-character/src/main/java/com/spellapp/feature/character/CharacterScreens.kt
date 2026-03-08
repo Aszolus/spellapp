@@ -38,6 +38,16 @@ import com.spellapp.core.model.AbilityScore
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 
+private val coreSpellSourceBooks = setOf(
+    "Pathfinder Core Rulebook",
+    "Pathfinder Advanced Player's Guide",
+    "Pathfinder Secrets of Magic",
+    "Pathfinder Player Core",
+    "Pathfinder Player Core 2",
+    "Pathfinder GM Core",
+    "Pathfinder Rage of Elements",
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharacterListRoute(
@@ -209,8 +219,10 @@ fun CharacterEditorDialog(
     val level = levelText.toIntOrNull()?.coerceIn(1, 20)
     val spellDc = spellDcText.toIntOrNull()?.coerceIn(0, 99)
     val spellAttack = spellAttackText.toIntOrNull()?.coerceIn(-99, 99)
+    val selectedSpellSources = availableSpellSources.filter { it in acceptedSourceBooks }
     val filteredSpellSources = availableSpellSources.filter { sourceBook ->
-        sourceSearchQuery.isBlank() || sourceBook.contains(sourceSearchQuery.trim(), ignoreCase = true)
+        sourceBook !in acceptedSourceBooks &&
+            (sourceSearchQuery.isBlank() || sourceBook.contains(sourceSearchQuery.trim(), ignoreCase = true))
     }
     val canSave = name.isNotBlank() && level != null && spellDc != null && spellAttack != null
     val contentScroll = rememberScrollState()
@@ -525,6 +537,15 @@ fun CharacterEditorDialog(
                         TextButton(onClick = { acceptedSourceBooks = availableSpellSources.toSet() }) {
                             Text("All")
                         }
+                        TextButton(
+                            onClick = {
+                                acceptedSourceBooks = availableSpellSources
+                                    .filter { it in coreSpellSourceBooks }
+                                    .toSet()
+                            },
+                        ) {
+                            Text("Core Only")
+                        }
                         TextButton(onClick = { acceptedSourceBooks = emptySet() }) {
                             Text("None")
                         }
@@ -537,9 +558,43 @@ fun CharacterEditorDialog(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Text(
-                        text = "Showing ${filteredSpellSources.size} of ${availableSpellSources.size}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "Selected (${selectedSpellSources.size})",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    if (selectedSpellSources.isEmpty()) {
+                        Text(
+                            text = "No sources selected.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 180.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            items(selectedSpellSources, key = { it }) { sourceBook ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(
+                                        text = sourceBook,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Checkbox(
+                                        checked = true,
+                                        onCheckedChange = {
+                                            acceptedSourceBooks = acceptedSourceBooks - sourceBook
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Text(
+                        text = "Available (${filteredSpellSources.size})",
+                        style = MaterialTheme.typography.labelLarge,
                     )
                     LazyColumn(
                         modifier = Modifier.heightIn(max = 320.dp),
@@ -548,7 +603,11 @@ fun CharacterEditorDialog(
                         if (filteredSpellSources.isEmpty()) {
                             item("empty-search") {
                                 Text(
-                                    text = "No sources matched that search.",
+                                    text = if (sourceSearchQuery.isBlank()) {
+                                        "All available sources are already selected."
+                                    } else {
+                                        "No unselected sources matched that search."
+                                    },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )

@@ -298,14 +298,7 @@ class PreparedSlotsService(
     suspend fun prepareRandom(
         characterId: Long,
         trackKey: String,
-        sourceFilter: String? = null,
-        rarityFilter: String? = null,
     ) {
-        val normalizedSourceFilter = sourceFilter.orEmpty().trim()
-        val normalizedRarityFilter = rarityFilter
-            ?.trim()
-            ?.lowercase()
-            ?.takeIf { it.isNotBlank() }
         val slots = preparedSlotRepository.observePreparedSlots(
             characterId = characterId,
             trackKey = trackKey,
@@ -321,10 +314,6 @@ class PreparedSlotsService(
 
         val filteredSpells = knownSpellIds.mapNotNull { spellId ->
             spellRepository.getSpellDetail(spellId)
-        }.filter { spell ->
-            normalizedRarityFilter == null || spell.rarity.equals(normalizedRarityFilter, ignoreCase = true)
-        }.filter { spell ->
-            normalizedSourceFilter.isBlank() || spell.sourceBook.contains(normalizedSourceFilter, ignoreCase = true)
         }
         val heightenProgressionBySpellId = mutableMapOf<String, HeightenedProgression>()
 
