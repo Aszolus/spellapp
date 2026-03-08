@@ -7,11 +7,13 @@ import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.FocusStateRepository
+import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.PreparedSlotRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CastingTrack
+import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEventType
 import com.spellapp.core.model.SpellSlotSummary
@@ -32,6 +34,7 @@ data class PreparedSlotsUiState(
     val selectedTrackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
     val castingTracks: List<CastingTrack> = emptyList(),
     val allSlots: List<PreparedSlot> = emptyList(),
+    val knownSpellSummaries: List<SpellSlotSummary> = emptyList(),
     val spellSummaryById: Map<String, SpellSlotSummary> = emptyMap(),
     val focusCurrentPoints: Int = 0,
     val focusMaxPoints: Int = 1,
@@ -46,6 +49,7 @@ private data class SlotContext(
     val selectedTrackKey: String,
     val castingTracks: List<CastingTrack>,
     val allSlots: List<PreparedSlot>,
+    val knownSpells: List<KnownSpell>,
 )
 
 private data class EventContext(
@@ -125,6 +129,18 @@ class PreparedSlotsViewModel(
     )
 
     @OptIn(ExperimentalCoroutinesApi::class)
+    private val knownSpells = activeTrackKey.flatMapLatest { trackKey ->
+        service.observeKnownSpells(
+            characterId = characterId,
+            trackKey = trackKey,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList(),
+    )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val sessionEvents = activeTrackKey.flatMapLatest { trackKey ->
         service.observeSessionEvents(
             characterId = characterId,
@@ -157,13 +173,14 @@ class PreparedSlotsViewModel(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val spellSummaryById = combine(preparedSlots, sessionEvents) { slots, events ->
-        slots to events
-    }.mapLatest { (slots, events) ->
-        service.resolveSpellSummaries(
-            preparedSlots = slots,
-            sessionEvents = events,
-        )
+    private val spellSummaryById = combine(preparedSlots, sessionEvents, knownSpells) { slots, events, known ->
+        buildSet {
+            addAll(slots.mapNotNull { it.preparedSpellId })
+            addAll(events.mapNotNull { it.spellId })
+            addAll(known.map { it.spellId })
+        }
+    }.mapLatest { spellIds ->
+        service.resolveSpellSummaries(spellIds)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -174,7 +191,8 @@ class PreparedSlotsViewModel(
         activeTrackKey,
         castingTracks,
         preparedSlots,
-    ) { trackKey, tracks, slots ->
+        knownSpells,
+    ) { trackKey, tracks, slots, known ->
         val sortedSlots = slots.sortedWith(
             compareBy<PreparedSlot> { it.rank }.thenBy { it.slotIndex },
         )
@@ -182,6 +200,7 @@ class PreparedSlotsViewModel(
             selectedTrackKey = trackKey,
             castingTracks = tracks,
             allSlots = sortedSlots,
+            knownSpells = known.sortedBy { it.spellId },
         )
     }
 
@@ -211,6 +230,11 @@ class PreparedSlotsViewModel(
             selectedTrackKey = slots.selectedTrackKey,
             castingTracks = slots.castingTracks,
             allSlots = slots.allSlots,
+            knownSpellSummaries = slots.knownSpells.mapNotNull { knownSpell ->
+                events.spellSummaryById[knownSpell.spellId]
+            }.sortedWith(
+                compareBy<SpellSlotSummary> { it.rank }.thenBy { it.name },
+            ),
             spellSummaryById = events.spellSummaryById,
             focusCurrentPoints = meta.focusCurrentPoints,
             focusMaxPoints = meta.focusMaxPoints,
@@ -373,6 +397,7 @@ class PreparedSlotsViewModelFactory(
     private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
     private val sessionEventRepository: SessionEventRepository,
     private val focusStateRepository: FocusStateRepository,
+    private val knownSpellRepository: KnownSpellRepository,
     private val spellRepository: SpellRepository,
     private val characterCrudRepository: CharacterCrudRepository,
     private val characterBuildRepository: CharacterBuildRepository,
@@ -388,6 +413,7 @@ class PreparedSlotsViewModelFactory(
             preparedSlotSyncRepository = preparedSlotSyncRepository,
             sessionEventRepository = sessionEventRepository,
             focusStateRepository = focusStateRepository,
+            knownSpellRepository = knownSpellRepository,
             spellRepository = spellRepository,
             characterCrudRepository = characterCrudRepository,
             characterBuildRepository = characterBuildRepository,

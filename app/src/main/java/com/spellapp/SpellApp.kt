@@ -12,6 +12,7 @@ import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
 import com.spellapp.feature.character.CharacterClassDefinitionSource
 import com.spellapp.feature.character.CharacterListViewModel
 import com.spellapp.feature.character.CharacterListViewModelFactory
+import com.spellapp.feature.spells.AssignPreparedSpellUseCase
 import com.spellapp.feature.spells.SpellListViewModel
 import com.spellapp.feature.spells.SpellListViewModelFactory
 
@@ -42,14 +43,22 @@ fun SpellApp(
     val spellListViewModel: SpellListViewModel = viewModel(
         key = "spell-list",
         factory = remember {
-            SpellListViewModelFactory(spellRepository = spellRepository)
+            SpellListViewModelFactory(
+                spellRepository = spellRepository,
+                knownSpellRepository = characterRepository,
+            )
         },
     )
     val navigationViewModel: SpellAppNavigationViewModel = viewModel(
         key = "app-navigation",
         factory = remember {
             SpellAppNavigationViewModelFactory(
-                preparedSlotRepository = characterRepository,
+                assignPreparedSpellUseCase = AssignPreparedSpellUseCase(
+                    characterCrudRepository = characterRepository,
+                    knownSpellRepository = characterRepository,
+                    preparedSlotRepository = characterRepository,
+                    spellRepository = spellRepository,
+                ),
             )
         },
     )
@@ -63,6 +72,7 @@ fun SpellApp(
             preparedSlotSyncRepository = characterRepository,
             sessionEventRepository = characterRepository,
             focusStateRepository = characterRepository,
+            knownSpellRepository = characterRepository,
             characterCrudRepository = characterRepository,
             characterBuildRepository = characterRepository,
             characterListViewModel = characterListViewModel,

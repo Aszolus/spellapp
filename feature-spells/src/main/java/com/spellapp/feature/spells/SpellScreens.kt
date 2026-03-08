@@ -45,6 +45,8 @@ private val filterRanks = (0..10).toList()
 fun SpellListRoute(
     spells: List<SpellListItem>,
     title: String = "Spell List",
+    browserMode: SpellBrowserMode,
+    knownSpellIds: Set<String>,
     query: String,
     onQueryChange: (String) -> Unit,
     traitQuery: String,
@@ -60,9 +62,12 @@ fun SpellListRoute(
     onRetryLoad: () -> Unit,
     onClearFilters: () -> Unit,
     onSpellClick: (String) -> Unit,
+    onKnownSpellToggle: (String) -> Unit,
     onBack: (() -> Unit)? = null,
 ) {
     var showAdvancedFilters by rememberSaveable { mutableStateOf(false) }
+    val isManageKnownSpells = browserMode is SpellBrowserMode.ManageKnownSpells
+    val isAssignPreparedSlot = browserMode is SpellBrowserMode.AssignPreparedSlot
     val hasActiveFilters = query.isNotBlank() ||
         traitQuery.isNotBlank() ||
         selectedRank != null ||
@@ -185,6 +190,20 @@ fun SpellListRoute(
                     )
                 }
             }
+            if (isManageKnownSpells || isAssignPreparedSlot) {
+                item {
+                    StatusPanel {
+                        Text(
+                            text = if (isManageKnownSpells) {
+                                "Manage the spell pool used for preparation on this track."
+                            } else {
+                                "Choose from the known spells on this track."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
             item {
                 if (isLoading) {
                     StatusPanel {
@@ -215,12 +234,20 @@ fun SpellListRoute(
                         }
                     }
                 } else if (spells.isEmpty()) {
-                    val primary = if (hasActiveFilters) {
+                    val primary = if (hasActiveFilters && isAssignPreparedSlot) {
+                        "No known spells matched this filter set."
+                    } else if (hasActiveFilters) {
                         "No spells matched this filter set."
+                    } else if (isAssignPreparedSlot) {
+                        "No known spells available."
+                    } else if (isManageKnownSpells) {
+                        "No spells available to manage."
                     } else {
                         "No spells available."
                     }
-                    val secondary = if (hasActiveFilters) {
+                    val secondary = if (isAssignPreparedSlot && !hasActiveFilters) {
+                        "Add known spells first, then prepare from this list."
+                    } else if (hasActiveFilters) {
                         "Adjust filters or clear them."
                     } else {
                         "Try reloading the app data."
@@ -266,18 +293,43 @@ fun SpellListRoute(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSpellClick(spell.id) }
                         .padding(vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    Text(
-                        text = spell.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = "$rankLabel | $traditions",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onSpellClick(spell.id) },
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                text = spell.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Text(
+                                text = "$rankLabel | $traditions",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        if (isManageKnownSpells) {
+                            val isKnown = spell.id in knownSpellIds
+                            TextButton(onClick = { onKnownSpellToggle(spell.id) }) {
+                                Text(if (isKnown) "Remove" else "Add")
+                            }
+                        }
+                    }
+                    if (isManageKnownSpells && spell.id in knownSpellIds) {
+                        Text(
+                            text = "Known on this track",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
                 HorizontalDivider()
             }

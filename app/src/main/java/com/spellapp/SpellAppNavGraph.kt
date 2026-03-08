@@ -16,6 +16,7 @@ import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.FocusStateRepository
+import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.PreparedSlotRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SessionEventRepository
@@ -30,7 +31,7 @@ import com.spellapp.feature.character.PreparedSlotsViewModelFactory
 import com.spellapp.feature.spells.SpellDetailRoute
 import com.spellapp.feature.spells.SpellDetailViewModel
 import com.spellapp.feature.spells.SpellDetailViewModelFactory
-import com.spellapp.feature.spells.PreparedSlotAssignmentContext
+import com.spellapp.feature.spells.SpellBrowserMode
 import com.spellapp.feature.spells.SpellListRoute
 import com.spellapp.feature.spells.SpellListViewModel
 import kotlinx.coroutines.flow.collect
@@ -44,6 +45,7 @@ fun SpellAppNavGraph(
     preparedSlotSyncRepository: PreparedSlotSyncRepository,
     sessionEventRepository: SessionEventRepository,
     focusStateRepository: FocusStateRepository,
+    knownSpellRepository: KnownSpellRepository,
     characterCrudRepository: CharacterCrudRepository,
     characterBuildRepository: CharacterBuildRepository,
     characterListViewModel: CharacterListViewModel,
@@ -68,6 +70,7 @@ fun SpellAppNavGraph(
             preparedSlotSyncRepository = preparedSlotSyncRepository,
             sessionEventRepository = sessionEventRepository,
             focusStateRepository = focusStateRepository,
+            knownSpellRepository = knownSpellRepository,
             spellRepository = spellRepository,
             characterCrudRepository = characterCrudRepository,
             characterBuildRepository = characterBuildRepository,
@@ -133,6 +136,7 @@ private fun NavGraphBuilder.preparedSlotsDestination(
     preparedSlotSyncRepository: PreparedSlotSyncRepository,
     sessionEventRepository: SessionEventRepository,
     focusStateRepository: FocusStateRepository,
+    knownSpellRepository: KnownSpellRepository,
     spellRepository: SpellRepository,
     characterCrudRepository: CharacterCrudRepository,
     characterBuildRepository: CharacterBuildRepository,
@@ -157,6 +161,7 @@ private fun NavGraphBuilder.preparedSlotsDestination(
                     preparedSlotSyncRepository = preparedSlotSyncRepository,
                     sessionEventRepository = sessionEventRepository,
                     focusStateRepository = focusStateRepository,
+                    knownSpellRepository = knownSpellRepository,
                     spellRepository = spellRepository,
                     characterCrudRepository = characterCrudRepository,
                     characterBuildRepository = characterBuildRepository,
@@ -192,8 +197,15 @@ private fun NavGraphBuilder.preparedSlotsDestination(
             onRandomPrepareRarityFilterChange = preparedSlotsViewModel::onRandomPrepareRarityFilterChange,
             onClearRandomPrepareFilters = preparedSlotsViewModel::clearRandomPrepareFilters,
             onUndoLastCast = preparedSlotsViewModel::undoLastCast,
+            onManageKnownSpells = { trackKey ->
+                navigationViewModel.manageKnownSpells(
+                    characterId = characterId,
+                    trackKey = trackKey,
+                )
+                navController.navigate(AppDestinations.SpellList.route)
+            },
             onOpenSpellBrowser = {
-                navigationViewModel.clearPreparedSlotTarget()
+                navigationViewModel.clearSpellBrowserMode()
                 navigationViewModel.openSpellList(characterId)
                 navController.navigate(AppDestinations.SpellList.route)
             },
@@ -226,40 +238,28 @@ private fun NavGraphBuilder.spellListDestination(
             }
         }
 
-        val target = navigationUiState.preparedSlotTarget
-        val targetCharacter = characterListUiState.characters.firstOrNull { character ->
-            character.id == target?.characterId
-        }
-        LaunchedEffect(target, targetCharacter) {
-            if (target != null) {
-                spellListViewModel.clearAllFilters()
-                spellListViewModel.setPreparedSlotAssignmentContext(
-                    targetCharacter?.let { character ->
-                        PreparedSlotAssignmentContext(
-                            characterClass = character.characterClass,
-                            trackKey = target.trackKey,
-                            slotRank = target.rank,
-                        )
-                    },
-                )
-                if (target.rank == 0) {
-                    spellListViewModel.setRank(0)
-                } else {
-                    spellListViewModel.clearRankSelection()
-                }
+        val browserMode = navigationUiState.spellBrowserMode
+            ?: SpellBrowserMode.BrowseCatalog(characterId = navigationUiState.activeCharacterId)
+        LaunchedEffect(browserMode) {
+            spellListViewModel.clearAllFilters()
+            spellListViewModel.setBrowserMode(browserMode)
+            if (browserMode is SpellBrowserMode.AssignPreparedSlot && browserMode.slotRank == 0) {
+                spellListViewModel.setRank(0)
             } else {
-                spellListViewModel.clearPreparedSlotAssignmentContext()
+                spellListViewModel.clearRankSelection()
             }
         }
 
         SpellListRoute(
             spells = spells,
             title = spellListTitle(
-                target = target,
+                browserMode = browserMode,
                 activeCharacter = characterListUiState.characters.firstOrNull {
                     it.id == navigationUiState.activeCharacterId
                 },
             ),
+            browserMode = spellListUiState.browserMode,
+            knownSpellIds = spellListUiState.knownSpellIds,
             query = spellListUiState.queryInput,
             onQueryChange = spellListViewModel::onQueryChange,
             traitQuery = spellListUiState.traitQueryInput,
@@ -275,14 +275,15 @@ private fun NavGraphBuilder.spellListDestination(
             onRetryLoad = onRetrySeed,
             onClearFilters = spellListViewModel::clearAllFilters,
             onSpellClick = { spellId ->
-                if (navigationUiState.preparedSlotTarget != null) {
+                if (browserMode is SpellBrowserMode.AssignPreparedSlot) {
                     navigationViewModel.completeSlotAssignment(spellId)
                 } else {
                     navController.navigate(AppDestinations.SpellDetail.routeFor(spellId))
                 }
             },
+            onKnownSpellToggle = spellListViewModel::toggleKnownSpell,
             onBack = {
-                navigationViewModel.clearPreparedSlotTarget()
+                navigationViewModel.clearSpellBrowserMode()
                 navController.popBackStack()
             },
         )
@@ -321,14 +322,24 @@ private fun NavGraphBuilder.spellDetailDestination(
 }
 
 private fun spellListTitle(
-    target: PreparedSlotTarget?,
+    browserMode: SpellBrowserMode,
     activeCharacter: CharacterProfile?,
 ): String {
-    return target?.let {
-        if (it.rank == 0) {
-            "Choose Cantrip ${it.slotIndex + 1}"
-        } else {
-            "Choose Rank ${it.rank} Slot ${it.slotIndex + 1}"
+    return when (browserMode) {
+        is SpellBrowserMode.AssignPreparedSlot -> {
+            if (browserMode.slotRank == 0) {
+                "Choose Cantrip ${browserMode.slotIndex + 1}"
+            } else {
+                "Choose Rank ${browserMode.slotRank} Slot ${browserMode.slotIndex + 1}"
+            }
         }
-    } ?: activeCharacter?.let { "${it.name} Spells" } ?: "Spell List"
+
+        is SpellBrowserMode.ManageKnownSpells -> {
+            activeCharacter?.let { "${it.name} Known Spells" } ?: "Known Spells"
+        }
+
+        is SpellBrowserMode.BrowseCatalog -> {
+            activeCharacter?.let { "${it.name} Spells" } ?: "Spell List"
+        }
+    }
 }

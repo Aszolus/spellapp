@@ -3,6 +3,7 @@ package com.spellapp.feature.spells
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.SpellListItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,9 +14,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class SpellListUiState(
     val queryInput: String = "",
@@ -23,21 +26,41 @@ data class SpellListUiState(
     val selectedRank: Int? = null,
     val selectedTradition: String? = null,
     val selectedRarity: String? = null,
+    val browserMode: SpellBrowserMode = SpellBrowserMode.BrowseCatalog(),
+    val knownSpellIds: Set<String> = emptySet(),
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class SpellListViewModel(
     private val spellRepository: SpellRepository,
-    private val assignmentPolicy: PreparedSpellAssignmentPolicy = DefaultPreparedSpellAssignmentPolicy(),
+    private val knownSpellRepository: KnownSpellRepository,
 ) : ViewModel() {
     private val queryInput = MutableStateFlow("")
     private val traitQueryInput = MutableStateFlow("")
     private val selectedRank = MutableStateFlow<Int?>(null)
     private val selectedTradition = MutableStateFlow<String?>(null)
     private val selectedRarity = MutableStateFlow<String?>(null)
-    private val assignmentContext = MutableStateFlow<PreparedSlotAssignmentContext?>(null)
+    private val browserMode = MutableStateFlow<SpellBrowserMode>(SpellBrowserMode.BrowseCatalog())
 
-    val uiState = combine(
+    private val knownSpellIds = browserMode.flatMapLatest { mode ->
+        when (mode) {
+            is SpellBrowserMode.ManageKnownSpells -> {
+                knownSpellRepository.observeKnownSpellIds(mode.characterId, mode.trackKey)
+            }
+
+            is SpellBrowserMode.AssignPreparedSlot -> {
+                knownSpellRepository.observeKnownSpellIds(mode.characterId, mode.trackKey)
+            }
+
+            is SpellBrowserMode.BrowseCatalog -> flowOf(emptySet())
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptySet(),
+    )
+
+    private val filterUiState = combine(
         queryInput,
         traitQueryInput,
         selectedRank,
@@ -50,6 +73,17 @@ class SpellListViewModel(
             selectedRank = rank,
             selectedTradition = tradition,
             selectedRarity = rarity,
+        )
+    }
+
+    val uiState = combine(
+        filterUiState,
+        browserMode,
+        knownSpellIds,
+    ) { filters, mode, knownIds ->
+        filters.copy(
+            browserMode = mode,
+            knownSpellIds = knownIds,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -73,37 +107,38 @@ class SpellListViewModel(
         )
     }
 
-    private val spellFilters: Flow<SpellFilters> = combine(
+    val spells = combine(
         filterInputs,
-        assignmentContext,
-    ) { base: SpellFilterInputs, preparedTarget: PreparedSlotAssignmentContext? ->
-        SpellFilters(
-            query = base.query,
-            trait = base.trait,
-            rank = base.rank,
-            tradition = base.tradition,
-            rarity = base.rarity,
-            preparedTarget = preparedTarget,
-        )
-    }
-
-    val spells = spellFilters.flatMapLatest { filters: SpellFilters ->
+        browserMode,
+        knownSpellIds,
+    ) { filters, mode, knownIds ->
+        Triple(filters, mode, knownIds)
+    }.flatMapLatest { (filters, mode, knownIds) ->
         spellRepository.observeSpells(
             query = filters.query,
-            rank = filters.rank.takeUnless { filters.preparedTarget != null },
+            rank = filters.rank.takeUnless { mode is SpellBrowserMode.AssignPreparedSlot },
             tradition = filters.tradition,
             rarity = filters.rarity,
             trait = filters.trait,
-        ).map { sourceSpells: List<SpellListItem> ->
+        ).map { sourceSpells ->
             var filtered = sourceSpells
             if (filters.rank != null) {
-                filtered = filtered.filter { spell: SpellListItem -> spell.rank == filters.rank }
+                filtered = filtered.filter { spell -> spell.rank == filters.rank }
             }
-            if (filters.preparedTarget != null) {
-                filtered = assignmentPolicy.filterLegalTargets(
-                    spells = filtered,
-                    context = filters.preparedTarget,
-                )
+            when (mode) {
+                is SpellBrowserMode.AssignPreparedSlot -> {
+                    filtered = filtered.filter { spell -> spell.id in knownIds }
+                    filtered = filtered.filter { spell ->
+                        if (mode.slotRank == 0) {
+                            spell.rank == 0
+                        } else {
+                            spell.rank in 1..mode.slotRank
+                        }
+                    }
+                }
+
+                is SpellBrowserMode.ManageKnownSpells -> Unit
+                is SpellBrowserMode.BrowseCatalog -> Unit
             }
             filtered
         }
@@ -112,6 +147,10 @@ class SpellListViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList(),
     )
+
+    fun setBrowserMode(mode: SpellBrowserMode) {
+        browserMode.update { mode }
+    }
 
     fun onQueryChange(query: String) {
         queryInput.update { query }
@@ -160,35 +199,46 @@ class SpellListViewModel(
         selectedRarity.update { null }
     }
 
-    fun setPreparedSlotAssignmentContext(context: PreparedSlotAssignmentContext?) {
-        assignmentContext.update { context }
-    }
-
-    fun clearPreparedSlotAssignmentContext() {
-        assignmentContext.update { null }
+    fun toggleKnownSpell(spellId: String) {
+        val mode = browserMode.value as? SpellBrowserMode.ManageKnownSpells ?: return
+        viewModelScope.launch {
+            val isKnown = knownSpellRepository.isKnownSpell(
+                characterId = mode.characterId,
+                trackKey = mode.trackKey,
+                spellId = spellId,
+            )
+            if (isKnown) {
+                knownSpellRepository.removeKnownSpell(
+                    characterId = mode.characterId,
+                    trackKey = mode.trackKey,
+                    spellId = spellId,
+                )
+            } else {
+                knownSpellRepository.addKnownSpell(
+                    characterId = mode.characterId,
+                    trackKey = mode.trackKey,
+                    spellId = spellId,
+                )
+            }
+        }
     }
 }
 
 class SpellListViewModelFactory(
     private val spellRepository: SpellRepository,
+    private val knownSpellRepository: KnownSpellRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (!modelClass.isAssignableFrom(SpellListViewModel::class.java)) {
             throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
         }
-        return SpellListViewModel(spellRepository) as T
+        return SpellListViewModel(
+            spellRepository = spellRepository,
+            knownSpellRepository = knownSpellRepository,
+        ) as T
     }
 }
-
-private data class SpellFilters(
-    val query: String,
-    val trait: String,
-    val rank: Int?,
-    val tradition: String?,
-    val rarity: String?,
-    val preparedTarget: PreparedSlotAssignmentContext?,
-)
 
 private data class SpellFilterInputs(
     val query: String,

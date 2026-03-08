@@ -3,8 +3,8 @@ package com.spellapp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.spellapp.core.data.PreparedSlotRepository
-import com.spellapp.core.model.PreparedSlot
+import com.spellapp.feature.spells.AssignPreparedSpellUseCase
+import com.spellapp.feature.spells.SpellBrowserMode
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -14,20 +14,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class PreparedSlotTarget(
-    val characterId: Long,
-    val rank: Int,
-    val slotIndex: Int,
-    val trackKey: String,
-)
-
 data class SpellAppNavigationUiState(
     val activeCharacterId: Long? = null,
-    val preparedSlotTarget: PreparedSlotTarget? = null,
+    val spellBrowserMode: SpellBrowserMode? = null,
 )
 
 class SpellAppNavigationViewModel(
-    private val preparedSlotRepository: PreparedSlotRepository,
+    private val assignPreparedSpellUseCase: AssignPreparedSpellUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SpellAppNavigationUiState())
     val uiState: StateFlow<SpellAppNavigationUiState> = _uiState.asStateFlow()
@@ -38,7 +31,7 @@ class SpellAppNavigationViewModel(
         _uiState.update { current ->
             current.copy(
                 activeCharacterId = characterId,
-                preparedSlotTarget = null,
+                spellBrowserMode = null,
             )
         }
     }
@@ -47,7 +40,22 @@ class SpellAppNavigationViewModel(
         _uiState.update { current ->
             current.copy(
                 activeCharacterId = characterId,
-                preparedSlotTarget = null,
+                spellBrowserMode = SpellBrowserMode.BrowseCatalog(characterId = characterId),
+            )
+        }
+    }
+
+    fun manageKnownSpells(
+        characterId: Long,
+        trackKey: String,
+    ) {
+        _uiState.update { current ->
+            current.copy(
+                activeCharacterId = characterId,
+                spellBrowserMode = SpellBrowserMode.ManageKnownSpells(
+                    characterId = characterId,
+                    trackKey = trackKey,
+                ),
             )
         }
     }
@@ -56,41 +64,38 @@ class SpellAppNavigationViewModel(
         characterId: Long,
         rank: Int,
         slotIndex: Int,
-        trackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
+        trackKey: String,
     ) {
         _uiState.update { current ->
             current.copy(
                 activeCharacterId = characterId,
-                preparedSlotTarget = PreparedSlotTarget(
+                spellBrowserMode = SpellBrowserMode.AssignPreparedSlot(
                     characterId = characterId,
-                    rank = rank,
-                    slotIndex = slotIndex,
                     trackKey = trackKey,
+                    slotRank = rank,
+                    slotIndex = slotIndex,
                 ),
             )
         }
     }
 
-    fun clearPreparedSlotTarget() {
+    fun clearSpellBrowserMode() {
         _uiState.update { current ->
-            current.copy(preparedSlotTarget = null)
+            current.copy(spellBrowserMode = null)
         }
     }
 
     fun completeSlotAssignment(spellId: String) {
-        val target = _uiState.value.preparedSlotTarget ?: return
+        val mode = _uiState.value.spellBrowserMode as? SpellBrowserMode.AssignPreparedSlot ?: return
         viewModelScope.launch {
             val success = runCatching {
-                preparedSlotRepository.assignSpellToPreparedSlot(
-                    characterId = target.characterId,
-                    rank = target.rank,
-                    slotIndex = target.slotIndex,
+                assignPreparedSpellUseCase.assign(
+                    mode = mode,
                     spellId = spellId,
-                    trackKey = target.trackKey,
                 )
-            }.isSuccess
+            }.getOrDefault(false)
             if (success) {
-                clearPreparedSlotTarget()
+                clearSpellBrowserMode()
             }
             _slotAssignmentResult.emit(success)
         }
@@ -98,7 +103,7 @@ class SpellAppNavigationViewModel(
 }
 
 class SpellAppNavigationViewModelFactory(
-    private val preparedSlotRepository: PreparedSlotRepository,
+    private val assignPreparedSpellUseCase: AssignPreparedSpellUseCase,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -106,7 +111,7 @@ class SpellAppNavigationViewModelFactory(
             throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
         }
         return SpellAppNavigationViewModel(
-            preparedSlotRepository = preparedSlotRepository,
+            assignPreparedSpellUseCase = assignPreparedSpellUseCase,
         ) as T
     }
 }

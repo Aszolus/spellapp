@@ -13,12 +13,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CharacterEntity::class,
         CharacterBuildIdentityEntity::class,
         CharacterBuildOptionEntity::class,
+        KnownSpellEntity::class,
         PreparedSlotEntity::class,
         CastingTrackEntity::class,
         FocusStateEntity::class,
         SessionEventEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class SpellDatabase : RoomDatabase() {
@@ -26,6 +27,7 @@ abstract class SpellDatabase : RoomDatabase() {
     abstract fun characterDao(): CharacterDao
     abstract fun characterBuildIdentityDao(): CharacterBuildIdentityDao
     abstract fun characterBuildOptionDao(): CharacterBuildOptionDao
+    abstract fun knownSpellDao(): KnownSpellDao
     abstract fun preparedSlotDao(): PreparedSlotDao
     abstract fun castingTrackDao(): CastingTrackDao
     abstract fun focusStateDao(): FocusStateDao
@@ -215,6 +217,34 @@ abstract class SpellDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `known_spells` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `characterId` INTEGER NOT NULL,
+                        `trackKey` TEXT NOT NULL,
+                        `spellId` TEXT NOT NULL,
+                        FOREIGN KEY(`characterId`) REFERENCES `characters`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE INDEX IF NOT EXISTS `index_known_spells_characterId`
+                    ON `known_spells` (`characterId`)
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS `index_known_spells_characterId_trackKey_spellId`
+                    ON `known_spells` (`characterId`, `trackKey`, `spellId`)
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun create(context: Context): SpellDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -225,6 +255,7 @@ abstract class SpellDatabase : RoomDatabase() {
                     .addMigrations(MIGRATION_2_3)
                     .addMigrations(MIGRATION_3_4)
                     .addMigrations(MIGRATION_4_5)
+                    .addMigrations(MIGRATION_5_6)
                     .build()
                     .also { INSTANCE = it }
             }

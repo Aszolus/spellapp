@@ -4,6 +4,7 @@ import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.FocusStateRepository
+import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.PreparedSlotRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SessionEventRepository
@@ -16,6 +17,7 @@ import com.spellapp.core.model.CharacterBuildOptionType
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.FocusState
+import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEvent
 import com.spellapp.core.model.SpellDetail
@@ -23,6 +25,7 @@ import com.spellapp.core.model.SpellListItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -223,10 +226,31 @@ class PreparedSlotsServiceTest {
         assertNull(fixture.preparedSlotRepository.preparedSpellIdFor(rank = 1, slotIndex = 0))
     }
 
+    @Test
+    fun prepareRandom_usesKnownSpellsOnly() = runTest {
+        val fixture = fixture(
+            slots = listOf(emptySlot(rank = 1)),
+            spells = listOf(
+                spell(id = "known-spell", rank = 1),
+                spell(id = "unknown-spell", rank = 1),
+            ),
+            details = mapOf(
+                "known-spell" to detail(id = "known-spell", rank = 1, description = ""),
+                "unknown-spell" to detail(id = "unknown-spell", rank = 1, description = ""),
+            ),
+            knownSpellIds = setOf("known-spell"),
+        )
+
+        fixture.service.prepareRandom(characterId = CHARACTER_ID, trackKey = PreparedSlot.PRIMARY_TRACK_KEY)
+
+        assertEquals("known-spell", fixture.preparedSlotRepository.preparedSpellIdFor(rank = 1, slotIndex = 0))
+    }
+
     private fun fixture(
         slots: List<PreparedSlot>,
         spells: List<SpellListItem>,
         details: Map<String, SpellDetail>,
+        knownSpellIds: Set<String> = spells.map { it.id }.toSet(),
     ): TestFixture {
         val preparedSlotRepository = FakePreparedSlotRepository(
             slotsByTrack = mapOf(
@@ -235,6 +259,7 @@ class PreparedSlotsServiceTest {
                 },
             ),
         )
+        val knownSpellRepository = FakeKnownSpellRepository(knownSpellIds = knownSpellIds)
         val spellRepository = FakeSpellRepository(
             spells = spells.map { it.copy(tradition = "arcane") },
             detailsById = details,
@@ -248,6 +273,7 @@ class PreparedSlotsServiceTest {
             preparedSlotSyncRepository = FakePreparedSlotSyncRepository(),
             sessionEventRepository = FakeSessionEventRepository(),
             focusStateRepository = FakeFocusStateRepository(),
+            knownSpellRepository = knownSpellRepository,
             spellRepository = spellRepository,
             characterCrudRepository = characterCrudRepository,
             characterBuildRepository = FakeCharacterBuildRepository(),
@@ -381,9 +407,73 @@ class PreparedSlotsServiceTest {
             return flowOf(filtered)
         }
 
-        override suspend fun getSpellDetail(spellId: String): SpellDetail? = detailsById[spellId]
+        override suspend fun getSpellDetail(spellId: String): SpellDetail? {
+            return detailsById[spellId] ?: spells.firstOrNull { it.id == spellId }?.let { spell ->
+                SpellDetail(
+                    id = spell.id,
+                    name = spell.name,
+                    rank = spell.rank,
+                    tradition = spell.tradition,
+                    rarity = spell.rarity,
+                    traits = emptyList(),
+                    castTime = "2 actions",
+                    range = "",
+                    target = "",
+                    duration = "",
+                    description = "",
+                    license = "",
+                    sourceBook = spell.sourceBook,
+                    sourcePage = null,
+                )
+            }
+        }
 
         override suspend fun seedFromDatasetIfEmpty(datasetJson: String) = Unit
+    }
+
+    private class FakeKnownSpellRepository(
+        knownSpellIds: Set<String>,
+    ) : KnownSpellRepository {
+        private val knownSpells = MutableStateFlow(
+            knownSpellIds.mapIndexed { index, spellId ->
+                KnownSpell(
+                    id = index + 1L,
+                    characterId = CHARACTER_ID,
+                    trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+                    spellId = spellId,
+                )
+            }
+        )
+
+        override fun observeKnownSpells(characterId: Long, trackKey: String): Flow<List<KnownSpell>> {
+            return knownSpells
+        }
+
+        override fun observeKnownSpellIds(characterId: Long, trackKey: String): Flow<Set<String>> {
+            return knownSpells.map { spells -> spells.map { it.spellId }.toSet() }
+        }
+
+        override suspend fun addKnownSpell(characterId: Long, trackKey: String, spellId: String): Long {
+            val nextId = (knownSpells.value.maxOfOrNull { it.id } ?: 0L) + 1L
+            knownSpells.value = knownSpells.value + KnownSpell(
+                id = nextId,
+                characterId = characterId,
+                trackKey = trackKey,
+                spellId = spellId,
+            )
+            return nextId
+        }
+
+        override suspend fun removeKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean {
+            val updated = knownSpells.value.filterNot { it.spellId == spellId }
+            val removed = updated.size != knownSpells.value.size
+            knownSpells.value = updated
+            return removed
+        }
+
+        override suspend fun isKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean {
+            return knownSpells.value.any { it.spellId == spellId }
+        }
     }
 
     private class FakeCharacterCrudRepository(

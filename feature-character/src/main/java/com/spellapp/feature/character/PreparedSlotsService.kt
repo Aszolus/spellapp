@@ -4,6 +4,7 @@ import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.FocusStateRepository
+import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.PreparedSlotRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SessionEventRepository
@@ -12,6 +13,7 @@ import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.FocusState
+import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEvent
 import com.spellapp.core.model.SessionEventType
@@ -26,6 +28,7 @@ class PreparedSlotsService(
     private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
     private val sessionEventRepository: SessionEventRepository,
     private val focusStateRepository: FocusStateRepository,
+    private val knownSpellRepository: KnownSpellRepository,
     private val spellRepository: SpellRepository,
     private val characterCrudRepository: CharacterCrudRepository,
     private val characterBuildRepository: CharacterBuildRepository,
@@ -44,6 +47,16 @@ class PreparedSlotsService(
         trackKey: String,
     ): Flow<List<PreparedSlot>> {
         return preparedSlotRepository.observePreparedSlots(
+            characterId = characterId,
+            trackKey = trackKey,
+        )
+    }
+
+    fun observeKnownSpells(
+        characterId: Long,
+        trackKey: String,
+    ): Flow<List<KnownSpell>> {
+        return knownSpellRepository.observeKnownSpells(
             characterId = characterId,
             trackKey = trackKey,
         )
@@ -77,17 +90,13 @@ class PreparedSlotsService(
         }
     }
 
-    suspend fun resolveSpellSummaries(
-        preparedSlots: List<PreparedSlot>,
-        sessionEvents: List<SessionEvent>,
-    ): Map<String, SpellSlotSummary> {
-        val ids = (preparedSlots.mapNotNull { it.preparedSpellId } + sessionEvents.mapNotNull { it.spellId })
-            .distinct()
-        return ids.mapNotNull { spellId ->
+    suspend fun resolveSpellSummaries(spellIds: Set<String>): Map<String, SpellSlotSummary> {
+        return spellIds.mapNotNull { spellId ->
             spellRepository.getSpellDetail(spellId)?.let { detail ->
                 spellId to SpellSlotSummary(
                     spellId = detail.id,
                     name = detail.name,
+                    rank = detail.rank,
                     castTime = detail.castTime,
                     range = detail.range,
                     traits = detail.traits,
@@ -292,8 +301,6 @@ class PreparedSlotsService(
         sourceFilter: String? = null,
         rarityFilter: String? = null,
     ) {
-        val character = characterCrudRepository.getCharacter(characterId) ?: return
-        val tradition = traditionStringForTrack(trackKey, character.characterClass) ?: return
         val normalizedSourceFilter = sourceFilter.orEmpty().trim()
         val normalizedRarityFilter = rarityFilter
             ?.trim()
@@ -306,19 +313,18 @@ class PreparedSlotsService(
         val emptySlots = slots.filter { it.preparedSpellId == null }
         if (emptySlots.isEmpty()) return
 
-        // Fetch all spells for this tradition once, then filter per-rank in memory.
-        // A spell of rank N can fill any slot of rank >= N (heightening).
-        // Cantrip slots (rank 0) only accept cantrips.
-        val allTraditionSpells = spellRepository.observeSpells(
-            tradition = tradition,
-            rarity = normalizedRarityFilter,
+        val knownSpellIds = knownSpellRepository.observeKnownSpellIds(
+            characterId = characterId,
+            trackKey = trackKey,
         ).first()
-        val filteredSpells = if (normalizedSourceFilter.isBlank()) {
-            allTraditionSpells
-        } else {
-            allTraditionSpells.filter { spell ->
-                spell.sourceBook.contains(normalizedSourceFilter, ignoreCase = true)
-            }
+        if (knownSpellIds.isEmpty()) return
+
+        val filteredSpells = knownSpellIds.mapNotNull { spellId ->
+            spellRepository.getSpellDetail(spellId)
+        }.filter { spell ->
+            normalizedRarityFilter == null || spell.rarity.equals(normalizedRarityFilter, ignoreCase = true)
+        }.filter { spell ->
+            normalizedSourceFilter.isBlank() || spell.sourceBook.contains(normalizedSourceFilter, ignoreCase = true)
         }
         val heightenProgressionBySpellId = mutableMapOf<String, HeightenedProgression>()
 
@@ -416,30 +422,6 @@ class PreparedSlotsService(
             incrementSteps = increments,
             absoluteRanks = absoluteRanks,
         )
-    }
-
-    private fun traditionStringForTrack(
-        trackKey: String,
-        characterClass: CharacterClass,
-    ): String? {
-        if (trackKey == PreparedSlot.PRIMARY_TRACK_KEY) {
-            return when (characterClass) {
-                CharacterClass.WIZARD -> "arcane"
-                CharacterClass.CLERIC -> "divine"
-                CharacterClass.DRUID -> "primal"
-                CharacterClass.OTHER -> null
-            }
-        }
-        if (trackKey.startsWith("archetype-")) {
-            val archetypeId = trackKey.removePrefix("archetype-").trim().lowercase()
-            return when (archetypeId) {
-                "wizard" -> "arcane"
-                "cleric" -> "divine"
-                "druid" -> "primal"
-                else -> null
-            }
-        }
-        return null
     }
 
     private fun formatSessionEventLine(
