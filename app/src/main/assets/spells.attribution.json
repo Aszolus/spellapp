@@ -1,10 +1,10 @@
 ﻿{
-    "datasetVersion":  "20260214-112741",
-    "sourceCommit":  "02a6f020986",
+    "datasetVersion":  "20260308-160554",
+    "sourceCommit":  "\u003ccommit-hash-from-D:\\pf2e\u003e",
     "entries":  [
                     {
                         "license":  "OGL",
-                        "count":  674,
+                        "count":  675,
                         "sources":  [
                                         "Pathfinder #147: Tomorrow Must Burn",
                                         "Pathfinder #148: Fires of the Haunted City",
