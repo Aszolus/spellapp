@@ -1,13 +1,15 @@
 package com.spellapp.feature.character
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -151,6 +153,7 @@ private fun CharacterRow(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CharacterEditorDialog(
     initialCharacter: CharacterProfile?,
@@ -197,7 +200,6 @@ fun CharacterEditorDialog(
     val spellDc = spellDcText.toIntOrNull()?.coerceIn(0, 99)
     val spellAttack = spellAttackText.toIntOrNull()?.coerceIn(-99, 99)
     val canSave = name.isNotBlank() && level != null && spellDc != null && spellAttack != null
-    val packageScroll = rememberScrollState()
     val contentScroll = rememberScrollState()
 
     AlertDialog(
@@ -213,7 +215,9 @@ fun CharacterEditorDialog(
         },
         text = {
             Column(
-                modifier = Modifier.verticalScroll(contentScroll),
+                modifier = Modifier
+                    .heightIn(max = 520.dp)
+                    .verticalScroll(contentScroll),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 OutlinedTextField(
@@ -287,6 +291,11 @@ fun CharacterEditorDialog(
                     text = "Archetype spellcasting",
                     style = MaterialTheme.typography.labelLarge,
                 )
+                Text(
+                    text = "Slot unlocks: Basic 4/6/8, Expert 12/14/16, Master 18/20.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 if (archetypeSpellcastingPackages.isEmpty()) {
                     Text(
                         text = "No phase-one archetype spellcasting packages available.",
@@ -309,11 +318,21 @@ fun CharacterEditorDialog(
                             text = packageDef.label,
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(packageScroll),
+                        val slotSummary = summarizeArchetypeSlotsForLevel(
+                            level = level ?: 1,
+                            hasBasic = basicSelected,
+                            hasExpert = expertSelected,
+                            hasMaster = masterSelected,
+                        )
+                        Text(
+                            text = slotSummary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             FilterChip(
                                 selected = dedicationSelected,
@@ -448,4 +467,34 @@ fun CharacterEditorDialog(
             }
         },
     )
+}
+
+private fun summarizeArchetypeSlotsForLevel(
+    level: Int,
+    hasBasic: Boolean,
+    hasExpert: Boolean,
+    hasMaster: Boolean,
+): String {
+    val unlockedRanks = mutableListOf<Int>()
+    if (hasBasic) {
+        if (level >= 4) unlockedRanks += 1
+        if (level >= 6) unlockedRanks += 2
+        if (level >= 8) unlockedRanks += 3
+    }
+    if (hasExpert) {
+        if (level >= 12) unlockedRanks += 4
+        if (level >= 14) unlockedRanks += 5
+        if (level >= 16) unlockedRanks += 6
+    }
+    if (hasMaster) {
+        if (level >= 18) unlockedRanks += 7
+        if (level >= 20) unlockedRanks += 8
+    }
+    if (unlockedRanks.isEmpty()) {
+        return "At level $level: no archetype spell slots unlocked."
+    }
+    val rankText = unlockedRanks
+        .sorted()
+        .joinToString(", ") { rank -> "R$rank" }
+    return "At level $level: $rankText (1 slot each)."
 }

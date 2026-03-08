@@ -12,6 +12,7 @@ local.properties
 
 # Logs
 *.log
+nul
 
 # Importer artifacts
 tools/importer/out/

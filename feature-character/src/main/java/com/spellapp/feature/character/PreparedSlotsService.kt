@@ -320,7 +320,7 @@ class PreparedSlotsService(
                 spell.sourceBook.contains(normalizedSourceFilter, ignoreCase = true)
             }
         }
-        val canHeightenBySpellId = mutableMapOf<String, Boolean>()
+        val heightenProgressionBySpellId = mutableMapOf<String, HeightenedProgression>()
 
         val slotsByRank = emptySlots.groupBy { it.rank }
         for ((slotRank, rankSlots) in slotsByRank) {
@@ -329,7 +329,7 @@ class PreparedSlotsService(
                     spellId = spell.id,
                     spellRank = spell.rank,
                     slotRank = slotRank,
-                    canHeightenBySpellId = canHeightenBySpellId,
+                    heightenProgressionBySpellId = heightenProgressionBySpellId,
                 )
             }
             if (candidates.isEmpty()) continue
@@ -350,7 +350,7 @@ class PreparedSlotsService(
         spellId: String,
         spellRank: Int,
         slotRank: Int,
-        canHeightenBySpellId: MutableMap<String, Boolean>,
+        heightenProgressionBySpellId: MutableMap<String, HeightenedProgression>,
     ): Boolean {
         if (slotRank == 0) {
             return spellRank == 0
@@ -361,17 +361,61 @@ class PreparedSlotsService(
         if (spellRank == slotRank) {
             return true
         }
-        val cachedCanHeighten = canHeightenBySpellId[spellId]
-        if (cachedCanHeighten != null) {
-            return cachedCanHeighten
+        val progression = resolveHeightenedProgression(
+            spellId = spellId,
+            heightenProgressionBySpellId = heightenProgressionBySpellId,
+        )
+        return progression.grantsBenefitForTargetRank(
+            baseRank = spellRank,
+            targetRank = slotRank,
+        )
+    }
+
+    private suspend fun resolveHeightenedProgression(
+        spellId: String,
+        heightenProgressionBySpellId: MutableMap<String, HeightenedProgression>,
+    ): HeightenedProgression {
+        heightenProgressionBySpellId[spellId]?.let { cached ->
+            return cached
         }
-        val canHeighten = spellRepository.getSpellDetail(spellId)
+        val progression = spellRepository.getSpellDetail(spellId)
             ?.description
             ?.let { description ->
-                HEIGHTENED_BLOCK_PATTERN.containsMatchIn(description)
-            } == true
-        canHeightenBySpellId[spellId] = canHeighten
-        return canHeighten
+                parseHeightenedProgression(description)
+            } ?: HeightenedProgression.EMPTY
+        heightenProgressionBySpellId[spellId] = progression
+        return progression
+    }
+
+    private fun parseHeightenedProgression(description: String): HeightenedProgression {
+        val increments = linkedSetOf<Int>()
+        val absoluteRanks = linkedSetOf<Int>()
+        HEIGHTENED_LINE_PATTERN.findAll(description).forEach { match ->
+            val raw = match.groupValues.getOrNull(1).orEmpty().trim().lowercase()
+            if (raw.isBlank()) {
+                return@forEach
+            }
+            val normalized = raw.replace(" ", "")
+            val incrementRank = HEIGHTEN_INCREMENT_PATTERN.matchEntire(normalized)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.toIntOrNull()
+            if (incrementRank != null && incrementRank > 0) {
+                increments += incrementRank
+                return@forEach
+            }
+            val absoluteRank = HEIGHTEN_ABSOLUTE_PATTERN.matchEntire(normalized)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.toIntOrNull()
+            if (absoluteRank != null && absoluteRank > 0) {
+                absoluteRanks += absoluteRank
+            }
+        }
+        return HeightenedProgression(
+            incrementSteps = increments,
+            absoluteRanks = absoluteRanks,
+        )
     }
 
     private fun traditionStringForTrack(
@@ -447,12 +491,42 @@ class PreparedSlotsService(
         return resolved
     }
 
+    private data class HeightenedProgression(
+        val incrementSteps: Set<Int>,
+        val absoluteRanks: Set<Int>,
+    ) {
+        fun grantsBenefitForTargetRank(
+            baseRank: Int,
+            targetRank: Int,
+        ): Boolean {
+            if (targetRank <= baseRank) {
+                return false
+            }
+            val rankIncrease = targetRank - baseRank
+            if (incrementSteps.any { step -> rankIncrease >= step }) {
+                return true
+            }
+            return absoluteRanks.any { absoluteRank ->
+                absoluteRank in (baseRank + 1)..targetRank
+            }
+        }
+
+        companion object {
+            val EMPTY = HeightenedProgression(
+                incrementSteps = emptySet(),
+                absoluteRanks = emptySet(),
+            )
+        }
+    }
+
     companion object {
         private const val MAX_FOCUS_POINTS = 3
         private const val BLESSED_ONE_DEDICATION_OPTION_ID = "archetype/blessed-one/blessed-one-dedication"
-        private val HEIGHTENED_BLOCK_PATTERN = Regex(
-            pattern = "(?m)^\\s*Heightened\\b",
+        private val HEIGHTENED_LINE_PATTERN = Regex(
+            pattern = "(?m)^\\s*Heightened\\s*\\(([^)]+)\\)",
             option = RegexOption.IGNORE_CASE,
         )
+        private val HEIGHTEN_INCREMENT_PATTERN = Regex("^\\+(\\d+)$")
+        private val HEIGHTEN_ABSOLUTE_PATTERN = Regex("^(\\d+)(st|nd|rd|th)$")
     }
 }
