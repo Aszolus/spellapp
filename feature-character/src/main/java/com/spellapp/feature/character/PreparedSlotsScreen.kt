@@ -21,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -206,7 +205,6 @@ fun PreparedSlotsRoute(
                         knownSpells = uiState.knownSpellSummaries,
                         selectedTrackKey = uiState.selectedTrackKey,
                         onManageKnownSpells = onManageKnownSpells,
-                        onOpenPreparedSpell = onOpenPreparedSpell,
                     )
                 }
 
@@ -366,7 +364,6 @@ private fun KnownSpellsSection(
     knownSpells: List<SpellSlotSummary>,
     selectedTrackKey: String,
     onManageKnownSpells: (String) -> Unit,
-    onOpenPreparedSpell: (String) -> Unit,
 ) {
     Surface(
         tonalElevation = 1.dp,
@@ -404,33 +401,6 @@ private fun KnownSpellsSection(
                 }
                 TextButton(onClick = { onManageKnownSpells(selectedTrackKey) }) {
                     Text("Manage")
-                }
-            }
-
-            if (knownSpells.isNotEmpty()) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    knownSpells.take(KNOWN_SPELL_PREVIEW_LIMIT).forEach { spell ->
-                        AssistChip(
-                            onClick = { onOpenPreparedSpell(spell.spellId) },
-                            label = {
-                                Text(
-                                    text = "${rankLabel(spell.rank)} ${spell.name}",
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            },
-                        )
-                    }
-                }
-                if (knownSpells.size > KNOWN_SPELL_PREVIEW_LIMIT) {
-                    Text(
-                        text = "Showing $KNOWN_SPELL_PREVIEW_LIMIT of ${knownSpells.size}. Use Manage to view the full list.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
             }
         }
@@ -748,9 +718,3 @@ private fun CastingTrack.displayName(): String {
 }
 
 private val randomPrepareRarityOptions = listOf("common", "uncommon", "rare", "unique")
-
-private const val KNOWN_SPELL_PREVIEW_LIMIT = 12
-
-private fun rankLabel(rank: Int): String {
-    return if (rank == 0) "C" else "R$rank"
-}

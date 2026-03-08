@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -194,6 +195,7 @@ fun CharacterEditorDialog(
     var legacyEnabled by remember(initialCharacter) {
         mutableStateOf(initialCharacter?.legacyTerminologyEnabled ?: false)
     }
+    var showSourcePicker by remember { mutableStateOf(false) }
     var selectedBuildOptionIds by remember(initialCharacter, initialSelectedBuildOptionIds) {
         mutableStateOf(initialSelectedBuildOptionIds.toSet())
     }
@@ -305,23 +307,17 @@ fun CharacterEditorDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    FlowRow(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        availableSpellSources.forEach { sourceBook ->
-                            FilterChip(
-                                selected = sourceBook in acceptedSourceBooks,
-                                onClick = {
-                                    acceptedSourceBooks = acceptedSourceBooks.toMutableSet().apply {
-                                        if (!add(sourceBook)) {
-                                            remove(sourceBook)
-                                        }
-                                    }
-                                },
-                                label = { Text(sourceBook) },
-                            )
+                        Text(
+                            text = "${acceptedSourceBooks.size} of ${availableSpellSources.size} selected",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        TextButton(onClick = { showSourcePicker = true }) {
+                            Text("Choose")
                         }
                     }
                 }
@@ -506,6 +502,64 @@ fun CharacterEditorDialog(
             }
         },
     )
+
+    if (showSourcePicker) {
+        AlertDialog(
+            onDismissRequest = { showSourcePicker = false },
+            title = { Text("Accepted Sources") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        TextButton(onClick = { acceptedSourceBooks = availableSpellSources.toSet() }) {
+                            Text("All")
+                        }
+                        TextButton(onClick = { acceptedSourceBooks = emptySet() }) {
+                            Text("None")
+                        }
+                    }
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 320.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        items(availableSpellSources, key = { it }) { sourceBook ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = sourceBook,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Checkbox(
+                                    checked = sourceBook in acceptedSourceBooks,
+                                    onCheckedChange = { checked ->
+                                        acceptedSourceBooks = acceptedSourceBooks.toMutableSet().apply {
+                                            if (checked) {
+                                                add(sourceBook)
+                                            } else {
+                                                remove(sourceBook)
+                                            }
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSourcePicker = false }) {
+                    Text("Done")
+                }
+            },
+        )
+    }
 }
 
 private fun summarizeArchetypeSlotsForLevel(
