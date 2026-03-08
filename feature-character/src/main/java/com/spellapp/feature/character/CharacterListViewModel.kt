@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.spellapp.core.data.AcceptedSpellSourceRepository
-import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CastingTrackRepository
+import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
@@ -140,6 +140,7 @@ class CharacterListViewModel(
         acceptedSourceBooks: Set<String>,
     ) {
         viewModelScope.launch {
+            val isNew = character.id == 0L
             val characterId = characterCrudRepository.upsertCharacter(character)
             acceptedSpellSourceRepository.replaceAcceptedSources(
                 characterId = characterId,
@@ -152,10 +153,12 @@ class CharacterListViewModel(
             if (shouldReconcileArchetypes) {
                 reconcileArchetypeTracks(characterId, selectedBuildOptionIds)
             }
-            knownSpellsSeeder.seedForCharacter(
-                character = character.copy(id = characterId),
-                acceptedSourceBooks = acceptedSourceBooks,
-            )
+            if (isNew) {
+                knownSpellsSeeder.seedForCharacter(
+                    character = character.copy(id = characterId),
+                    acceptedSourceBooks = acceptedSourceBooks,
+                )
+            }
             preparedSlotSyncRepository.syncPreparedSlotsForCharacter(characterId)
             isEditorVisible.update { false }
         }

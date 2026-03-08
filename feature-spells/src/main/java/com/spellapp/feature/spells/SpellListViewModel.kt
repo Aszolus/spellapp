@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.spellapp.core.data.AcceptedSpellSourceRepository
 import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.SpellRepository
-import com.spellapp.core.model.SpellListItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
@@ -38,7 +37,9 @@ class SpellListViewModel(
     private val spellRepository: SpellRepository,
     private val acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
     private val knownSpellRepository: KnownSpellRepository,
+    private val toggleKnownSpellUseCase: ToggleKnownSpellUseCase,
 ) : ViewModel() {
+    @Volatile
     private var activeBrowserSessionId: Long? = null
     private val queryInput = MutableStateFlow("")
     private val traitQueryInput = MutableStateFlow("")
@@ -214,7 +215,7 @@ class SpellListViewModel(
             selectedTradition.update {
                 when (mode) {
                     is SpellBrowserMode.ManageKnownSpells -> mode.preferredTradition
-                    is SpellBrowserMode.AssignPreparedSlot -> null
+                    is SpellBrowserMode.AssignPreparedSlot -> mode.preferredTradition
                     is SpellBrowserMode.BrowseCatalog -> null
                 }
             }
@@ -295,30 +296,9 @@ class SpellListViewModel(
     fun toggleKnownSpell(spellId: String) {
         val mode = browserMode.value as? SpellBrowserMode.ManageKnownSpells ?: return
         viewModelScope.launch {
-            val isKnown = knownSpellRepository.isKnownSpell(
-                characterId = mode.characterId,
-                trackKey = mode.trackKey,
-                spellId = spellId,
-            )
-            if (isKnown) {
-                knownSpellRepository.removeKnownSpell(
-                    characterId = mode.characterId,
-                    trackKey = mode.trackKey,
-                    spellId = spellId,
-                )
-            } else {
-                val warning = spellRepository.getSpellDetail(spellId)?.let { detail ->
-                    knownSpellWarningFor(
-                        detail = detail,
-                        preferredTradition = mode.preferredTradition,
-                        trackSourceId = mode.trackSourceId,
-                    )
-                }
-                if (warning != null) {
-                    pendingKnownSpellWarning.update { warning }
-                } else {
-                    addKnownSpell(mode, spellId)
-                }
+            val warning = toggleKnownSpellUseCase.toggle(mode, spellId)
+            if (warning != null) {
+                pendingKnownSpellWarning.update { warning }
             }
         }
     }
@@ -327,7 +307,7 @@ class SpellListViewModel(
         val mode = browserMode.value as? SpellBrowserMode.ManageKnownSpells ?: return
         val warning = pendingKnownSpellWarning.value ?: return
         viewModelScope.launch {
-            addKnownSpell(mode, warning.spellId)
+            toggleKnownSpellUseCase.confirmAdd(mode, warning.spellId)
             pendingKnownSpellWarning.update { null }
         }
     }
@@ -335,23 +315,13 @@ class SpellListViewModel(
     fun dismissKnownSpellWarning() {
         pendingKnownSpellWarning.update { null }
     }
-
-    private suspend fun addKnownSpell(
-        mode: SpellBrowserMode.ManageKnownSpells,
-        spellId: String,
-    ) {
-        knownSpellRepository.addKnownSpell(
-            characterId = mode.characterId,
-            trackKey = mode.trackKey,
-            spellId = spellId,
-        )
-    }
 }
 
 class SpellListViewModelFactory(
     private val spellRepository: SpellRepository,
     private val acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
     private val knownSpellRepository: KnownSpellRepository,
+    private val toggleKnownSpellUseCase: ToggleKnownSpellUseCase,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -362,6 +332,7 @@ class SpellListViewModelFactory(
             spellRepository = spellRepository,
             acceptedSpellSourceRepository = acceptedSpellSourceRepository,
             knownSpellRepository = knownSpellRepository,
+            toggleKnownSpellUseCase = toggleKnownSpellUseCase,
         ) as T
     }
 }

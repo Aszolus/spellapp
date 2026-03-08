@@ -6,7 +6,6 @@ import com.spellapp.core.model.AbilityScore
 import com.spellapp.core.model.CastingProgressionType
 import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CastingTrackSourceType
-import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.CharacterBuildIdentity
 import com.spellapp.core.model.CharacterBuildOption
 import com.spellapp.core.model.CharacterBuildOptionType
@@ -24,8 +23,6 @@ class RoomCharacterRepository private constructor(
     private val characterDao: CharacterDao,
     private val characterBuildIdentityDao: CharacterBuildIdentityDao,
     private val characterBuildOptionDao: CharacterBuildOptionDao,
-    private val acceptedSpellSourceDao: AcceptedSpellSourceDao,
-    private val knownSpellDao: KnownSpellDao,
     private val preparedSlotDao: PreparedSlotDao,
     private val castingTrackDao: CastingTrackDao,
     private val focusStateDao: FocusStateDao,
@@ -37,8 +34,6 @@ class RoomCharacterRepository private constructor(
         characterDao: CharacterDao,
         characterBuildIdentityDao: CharacterBuildIdentityDao,
         characterBuildOptionDao: CharacterBuildOptionDao,
-        acceptedSpellSourceDao: AcceptedSpellSourceDao,
-        knownSpellDao: KnownSpellDao,
         preparedSlotDao: PreparedSlotDao,
         castingTrackDao: CastingTrackDao,
         focusStateDao: FocusStateDao,
@@ -48,8 +43,6 @@ class RoomCharacterRepository private constructor(
         characterDao = characterDao,
         characterBuildIdentityDao = characterBuildIdentityDao,
         characterBuildOptionDao = characterBuildOptionDao,
-        acceptedSpellSourceDao = acceptedSpellSourceDao,
-        knownSpellDao = knownSpellDao,
         preparedSlotDao = preparedSlotDao,
         castingTrackDao = castingTrackDao,
         focusStateDao = focusStateDao,
@@ -102,24 +95,6 @@ class RoomCharacterRepository private constructor(
         }
     }
 
-    override fun observeAcceptedSources(characterId: Long): Flow<Set<String>> {
-        return acceptedSpellSourceDao.observeSourceBooksByCharacter(characterId).map { it.toSet() }
-    }
-
-    override suspend fun getAcceptedSources(characterId: Long): Set<String> {
-        return acceptedSpellSourceDao.getSourceBooksByCharacter(characterId).toSet()
-    }
-
-    override suspend fun replaceAcceptedSources(
-        characterId: Long,
-        sources: Set<String>,
-    ) {
-        acceptedSpellSourceDao.replaceForCharacter(
-            characterId = characterId,
-            sourceBooks = sources,
-        )
-    }
-
     override suspend fun getBuildOptions(characterId: Long): List<CharacterBuildOption> {
         return characterBuildOptionDao.getByCharacter(characterId).map { it.toDomain() }
     }
@@ -163,68 +138,6 @@ class RoomCharacterRepository private constructor(
         return castingTrackDao.observeByCharacter(characterId).map { entities ->
             entities.map { it.toDomain() }
         }
-    }
-
-    override fun observeKnownSpells(
-        characterId: Long,
-        trackKey: String,
-    ): Flow<List<KnownSpell>> {
-        return knownSpellDao.observeByCharacterAndTrack(
-            characterId = characterId,
-            trackKey = trackKey,
-        ).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
-
-    override fun observeKnownSpellIds(
-        characterId: Long,
-        trackKey: String,
-    ): Flow<Set<String>> {
-        return knownSpellDao.observeSpellIdsByCharacterAndTrack(
-            characterId = characterId,
-            trackKey = trackKey,
-        ).map { ids ->
-            ids.toSet()
-        }
-    }
-
-    override suspend fun addKnownSpell(
-        characterId: Long,
-        trackKey: String,
-        spellId: String,
-    ): Long {
-        return knownSpellDao.insert(
-            KnownSpellEntity(
-                characterId = characterId,
-                trackKey = trackKey,
-                spellId = spellId,
-            ),
-        )
-    }
-
-    override suspend fun removeKnownSpell(
-        characterId: Long,
-        trackKey: String,
-        spellId: String,
-    ): Boolean {
-        return knownSpellDao.deleteByCharacterTrackAndSpell(
-            characterId = characterId,
-            trackKey = trackKey,
-            spellId = spellId,
-        ) > 0
-    }
-
-    override suspend fun isKnownSpell(
-        characterId: Long,
-        trackKey: String,
-        spellId: String,
-    ): Boolean {
-        return knownSpellDao.getByCharacterTrackAndSpell(
-            characterId = characterId,
-            trackKey = trackKey,
-            spellId = spellId,
-        ) != null
     }
 
     override suspend fun getCastingTracks(characterId: Long): List<CastingTrack> {
@@ -805,15 +718,6 @@ class RoomCharacterRepository private constructor(
             expected += 1
         }
         return expected
-    }
-
-    private fun KnownSpellEntity.toDomain(): KnownSpell {
-        return KnownSpell(
-            id = id,
-            characterId = characterId,
-            trackKey = trackKey,
-            spellId = spellId,
-        )
     }
 }
 

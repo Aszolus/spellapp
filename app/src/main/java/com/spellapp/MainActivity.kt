@@ -20,6 +20,8 @@ class MainActivity : ComponentActivity() {
             SpellApp(
                 spellRepository = appContainer.spellRepository,
                 characterRepository = appContainer.characterRepository,
+                knownSpellRepository = appContainer.knownSpellRepository,
+                acceptedSpellSourceRepository = appContainer.acceptedSpellSourceRepository,
                 classDefinitionSource = appContainer.characterClassDefinitionSource,
                 archetypeSpellcastingCatalogSource = appContainer.archetypeSpellcastingCatalogSource,
                 seedUiState = seedUiState,

@@ -20,7 +20,7 @@ class DefaultKnownSpellsSeeder(
             tradition = tradition,
             rarity = "common",
         ).first().filter { spell ->
-            acceptedSourceBooks.isEmpty() || spell.sourceBook in acceptedSourceBooks
+            spell.sourceBook in acceptedSourceBooks
         }.map { it.id }
 
         knownSpellIds.forEach { spellId ->

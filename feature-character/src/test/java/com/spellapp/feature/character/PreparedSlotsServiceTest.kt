@@ -170,6 +170,46 @@ class PreparedSlotsServiceTest {
     }
 
     @Test
+    fun prepareRandom_blocksSpell_whenIncrementIsNonMultipleOfStep() = runTest {
+        // rank-1 spell, +2 step, slot rank-4 → increase=3, not a multiple of 2 → blocked
+        val fixture = fixture(
+            slots = listOf(emptySlot(rank = 4)),
+            spells = listOf(spell(id = "spell-plus-2", rank = 1)),
+            details = mapOf(
+                "spell-plus-2" to detail(
+                    id = "spell-plus-2",
+                    rank = 1,
+                    description = "Some text\n\n---\nHeightened (+2) Gains stronger effects.",
+                ),
+            ),
+        )
+
+        fixture.service.prepareRandom(characterId = CHARACTER_ID, trackKey = PreparedSlot.PRIMARY_TRACK_KEY)
+
+        assertNull(fixture.preparedSlotRepository.preparedSpellIdFor(rank = 4, slotIndex = 0))
+    }
+
+    @Test
+    fun prepareRandom_allowsSpell_whenIncrementIsExactMultipleOfStep() = runTest {
+        // rank-1 spell, +2 step, slot rank-3 → increase=2, exact multiple of 2 → allowed
+        val fixture = fixture(
+            slots = listOf(emptySlot(rank = 3)),
+            spells = listOf(spell(id = "spell-plus-2", rank = 1)),
+            details = mapOf(
+                "spell-plus-2" to detail(
+                    id = "spell-plus-2",
+                    rank = 1,
+                    description = "Some text\n\n---\nHeightened (+2) Gains stronger effects.",
+                ),
+            ),
+        )
+
+        fixture.service.prepareRandom(characterId = CHARACTER_ID, trackKey = PreparedSlot.PRIMARY_TRACK_KEY)
+
+        assertEquals("spell-plus-2", fixture.preparedSlotRepository.preparedSpellIdFor(rank = 3, slotIndex = 0))
+    }
+
+    @Test
     fun prepareRandom_usesKnownSpellsOnly() = runTest {
         val fixture = fixture(
             slots = listOf(emptySlot(rank = 1)),

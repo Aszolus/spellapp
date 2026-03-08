@@ -28,13 +28,12 @@ import com.spellapp.feature.character.CharacterListViewModel
 import com.spellapp.feature.character.PreparedSlotsRoute
 import com.spellapp.feature.character.PreparedSlotsViewModel
 import com.spellapp.feature.character.PreparedSlotsViewModelFactory
+import com.spellapp.feature.spells.SpellBrowserMode
 import com.spellapp.feature.spells.SpellDetailRoute
 import com.spellapp.feature.spells.SpellDetailViewModel
 import com.spellapp.feature.spells.SpellDetailViewModelFactory
-import com.spellapp.feature.spells.SpellBrowserMode
 import com.spellapp.feature.spells.SpellListRoute
 import com.spellapp.feature.spells.SpellListViewModel
-import kotlinx.coroutines.flow.collect
 
 @Composable
 fun SpellAppNavGraph(
@@ -185,7 +184,7 @@ private fun NavGraphBuilder.preparedSlotsDestination(
                     rank = rank,
                     slotIndex = slotIndex,
                     trackKey = trackKey,
-                    preferredTradition = null,
+                    preferredTradition = preferredTradition,
                 )
                 navController.navigate(AppDestinations.SpellList.route)
             },

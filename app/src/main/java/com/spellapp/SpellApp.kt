@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
+import com.spellapp.core.data.AcceptedSpellSourceRepository
 import com.spellapp.core.data.CharacterRepository
+import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.ui.SpellAppTheme
 import com.spellapp.core.ui.SpellAppThemeMode
@@ -13,13 +15,17 @@ import com.spellapp.feature.character.CharacterClassDefinitionSource
 import com.spellapp.feature.character.CharacterListViewModel
 import com.spellapp.feature.character.CharacterListViewModelFactory
 import com.spellapp.feature.spells.AssignPreparedSpellUseCase
+import com.spellapp.feature.spells.DefaultKnownSpellWarningPolicy
 import com.spellapp.feature.spells.SpellListViewModel
 import com.spellapp.feature.spells.SpellListViewModelFactory
+import com.spellapp.feature.spells.ToggleKnownSpellUseCase
 
 @Composable
 fun SpellApp(
     spellRepository: SpellRepository,
     characterRepository: CharacterRepository,
+    knownSpellRepository: KnownSpellRepository,
+    acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
     classDefinitionSource: CharacterClassDefinitionSource,
     archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
     seedUiState: SeedUiState,
@@ -35,8 +41,8 @@ fun SpellApp(
                 characterBuildRepository = characterRepository,
                 castingTrackRepository = characterRepository,
                 preparedSlotSyncRepository = characterRepository,
-                acceptedSpellSourceRepository = characterRepository,
-                knownSpellRepository = characterRepository,
+                acceptedSpellSourceRepository = acceptedSpellSourceRepository,
+                knownSpellRepository = knownSpellRepository,
                 spellRepository = spellRepository,
                 classDefinitionSource = classDefinitionSource,
                 archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
@@ -48,8 +54,13 @@ fun SpellApp(
         factory = remember {
             SpellListViewModelFactory(
                 spellRepository = spellRepository,
-                acceptedSpellSourceRepository = characterRepository,
-                knownSpellRepository = characterRepository,
+                acceptedSpellSourceRepository = acceptedSpellSourceRepository,
+                knownSpellRepository = knownSpellRepository,
+                toggleKnownSpellUseCase = ToggleKnownSpellUseCase(
+                    knownSpellRepository = knownSpellRepository,
+                    spellRepository = spellRepository,
+                    warningPolicy = DefaultKnownSpellWarningPolicy(),
+                ),
             )
         },
     )
@@ -58,7 +69,7 @@ fun SpellApp(
         factory = remember {
             SpellAppNavigationViewModelFactory(
                 assignPreparedSpellUseCase = AssignPreparedSpellUseCase(
-                    knownSpellRepository = characterRepository,
+                    knownSpellRepository = knownSpellRepository,
                     preparedSlotRepository = characterRepository,
                     spellRepository = spellRepository,
                 ),
@@ -75,7 +86,7 @@ fun SpellApp(
             preparedSlotSyncRepository = characterRepository,
             sessionEventRepository = characterRepository,
             focusStateRepository = characterRepository,
-            knownSpellRepository = characterRepository,
+            knownSpellRepository = knownSpellRepository,
             characterCrudRepository = characterRepository,
             characterBuildRepository = characterRepository,
             characterListViewModel = characterListViewModel,

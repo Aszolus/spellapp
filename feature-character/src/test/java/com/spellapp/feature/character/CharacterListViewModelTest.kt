@@ -375,6 +375,38 @@ class CharacterListViewModelTest {
         assertEquals(setOf("heal"), knownSpellRepository.getKnownSpellIds(savedCharacterId))
     }
 
+    @Test
+    fun saveCharacter_doesNotReseedKnownSpells_whenCharacterIsExisting() = runTest {
+        val characterCrudRepository = FakeCharacterCrudRepository()
+        val knownSpellRepository = FakeKnownSpellRepository()
+        val spellRepository = FakeSpellRepository(
+            availableSources = listOf("Player Core"),
+            spells = listOf(
+                spell(id = "heal", tradition = "divine", rarity = "common", sourceBook = "Player Core"),
+            ),
+        )
+        val viewModel = createViewModel(
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = FakeCharacterBuildRepository(),
+            castingTrackRepository = FakeCastingTrackRepository(),
+            preparedSlotSyncRepository = FakePreparedSlotSyncRepository(),
+            knownSpellRepository = knownSpellRepository,
+            spellRepository = spellRepository,
+        )
+        val existingId = characterCrudRepository.upsertCharacter(
+            sampleCharacter(id = 50L, characterClass = CharacterClass.CLERIC),
+        )
+
+        viewModel.saveCharacter(
+            character = sampleCharacter(id = existingId, characterClass = CharacterClass.CLERIC),
+            selectedBuildOptionIds = emptySet(),
+            acceptedSourceBooks = setOf("Player Core"),
+        )
+        advanceUntilIdle()
+
+        assertEquals(emptySet<String>(), knownSpellRepository.getKnownSpellIds(existingId))
+    }
+
     private fun createViewModel(
         characterCrudRepository: CharacterCrudRepository,
         characterBuildRepository: CharacterBuildRepository,

@@ -10,7 +10,6 @@ import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CastingTrack
-import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.FocusState
 import com.spellapp.core.model.KnownSpell
@@ -488,7 +487,7 @@ class PreparedSlotsService(
                 return false
             }
             val rankIncrease = targetRank - baseRank
-            if (incrementSteps.any { step -> rankIncrease >= step }) {
+            if (incrementSteps.any { step -> rankIncrease % step == 0 }) {
                 return true
             }
             return absoluteRanks.any { absoluteRank ->

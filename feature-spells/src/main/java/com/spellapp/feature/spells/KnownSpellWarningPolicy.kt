@@ -3,6 +3,26 @@ package com.spellapp.feature.spells
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.spellSupportsTradition
 
+interface KnownSpellWarningPolicy {
+    fun warningFor(
+        detail: SpellDetail,
+        preferredTradition: String?,
+        trackSourceId: String?,
+    ): PendingKnownSpellWarning?
+}
+
+class DefaultKnownSpellWarningPolicy : KnownSpellWarningPolicy {
+    override fun warningFor(
+        detail: SpellDetail,
+        preferredTradition: String?,
+        trackSourceId: String?,
+    ): PendingKnownSpellWarning? = knownSpellWarningFor(
+        detail = detail,
+        preferredTradition = preferredTradition,
+        trackSourceId = trackSourceId,
+    )
+}
+
 data class PendingKnownSpellWarning(
     val spellId: String,
     val title: String,
