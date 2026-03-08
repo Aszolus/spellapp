@@ -2,6 +2,7 @@ package com.spellapp.feature.spells
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -50,6 +52,7 @@ fun SpellListRoute(
     query: String,
     onQueryChange: (String) -> Unit,
     traitQuery: String,
+    availableTraits: List<String>,
     onTraitQueryChange: (String) -> Unit,
     selectedRank: Int?,
     onRankChange: (Int) -> Unit,
@@ -68,6 +71,8 @@ fun SpellListRoute(
     var showAdvancedFilters by rememberSaveable { mutableStateOf(false) }
     val isManageKnownSpells = browserMode is SpellBrowserMode.ManageKnownSpells
     val isAssignPreparedSlot = browserMode is SpellBrowserMode.AssignPreparedSlot
+    val normalizedTraitQuery = traitQuery.trim()
+    val traitSuggestions = availableTraits.matchingTraitSuggestions(normalizedTraitQuery)
     val hasActiveFilters = query.isNotBlank() ||
         traitQuery.isNotBlank() ||
         selectedRank != null ||
@@ -128,13 +133,33 @@ fun SpellListRoute(
             }
             if (filtersExpanded) {
                 item {
-                    OutlinedTextField(
-                        value = traitQuery,
-                        onValueChange = onTraitQueryChange,
-                        label = { Text("Trait filter") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            OutlinedTextField(
+                                value = traitQuery,
+                                onValueChange = onTraitQueryChange,
+                                label = { Text("Trait filter") },
+                                placeholder = { Text("Start typing a trait") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            if (traitSuggestions.isNotEmpty()) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    traitSuggestions.forEach { suggestion ->
+                                        DropdownMenuItem(
+                                            text = { Text(suggestion) },
+                                            onClick = { onTraitQueryChange(suggestion) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 item {
                     LazyRow(
@@ -335,6 +360,21 @@ fun SpellListRoute(
             }
         }
     }
+}
+
+private fun List<String>.matchingTraitSuggestions(query: String): List<String> {
+    if (query.isBlank()) {
+        return emptyList()
+    }
+    val prefixMatches = filter { trait ->
+        trait.startsWith(query, ignoreCase = true) && !trait.equals(query, ignoreCase = true)
+    }
+    if (prefixMatches.isNotEmpty()) {
+        return prefixMatches.take(6)
+    }
+    return filter { trait ->
+        trait.contains(query, ignoreCase = true) && !trait.equals(query, ignoreCase = true)
+    }.take(6)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

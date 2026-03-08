@@ -29,6 +29,7 @@ data class SpellListUiState(
     val selectedRarity: String? = null,
     val browserMode: SpellBrowserMode = SpellBrowserMode.BrowseCatalog(),
     val knownSpellIds: Set<String> = emptySet(),
+    val availableTraits: List<String> = emptyList(),
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -84,6 +85,12 @@ class SpellListViewModel(
         initialValue = emptySet(),
     )
 
+    private val availableTraits = spellRepository.observeAvailableTraits().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList(),
+    )
+
     private val filterUiState = combine(
         queryInput,
         traitQueryInput,
@@ -104,10 +111,12 @@ class SpellListViewModel(
         filterUiState,
         browserMode,
         knownSpellIds,
-    ) { filters, mode, knownIds ->
+        availableTraits,
+    ) { filters, mode, knownIds, traits ->
         filters.copy(
             browserMode = mode,
             knownSpellIds = knownIds,
+            availableTraits = traits,
         )
     }.stateIn(
         scope = viewModelScope,

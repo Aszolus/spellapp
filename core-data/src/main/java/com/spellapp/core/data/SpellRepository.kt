@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface SpellRepository {
     fun observeAvailableSources(): Flow<List<String>>
+    fun observeAvailableTraits(): Flow<List<String>>
     fun observeSpells(
         query: String = "",
         rank: Int? = null,

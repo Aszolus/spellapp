@@ -21,13 +21,27 @@ interface SpellDao {
 
     @Query(
         """
+        SELECT traitsCsv FROM spells
+        WHERE TRIM(traitsCsv) != ''
+        """,
+    )
+    fun observeTraitCatalogRows(): Flow<List<String>>
+
+    @Query(
+        """
         SELECT id, name, rank, traditionSummary AS tradition, rarity, sourceBook, (rank = 0) AS isCantrip
         FROM spells
         WHERE (:query = '' OR name LIKE '%' || :query || '%')
           AND (:rank IS NULL OR rank = :rank)
           AND (:tradition = '' OR LOWER(traditionSummary) LIKE '%' || LOWER(:tradition) || '%')
           AND (:rarity = '' OR LOWER(rarity) = LOWER(:rarity))
-          AND (:trait = '' OR LOWER(traitsCsv) LIKE '%' || LOWER(:trait) || '%')
+          AND (
+              :trait = ''
+              OR LOWER(traitsCsv) = LOWER(:trait)
+              OR LOWER(traitsCsv) LIKE LOWER(:trait) || ',%'
+              OR LOWER(traitsCsv) LIKE '%,' || LOWER(:trait)
+              OR LOWER(traitsCsv) LIKE '%,' || LOWER(:trait) || ',%'
+          )
         ORDER BY rank ASC, name ASC
         """,
     )

@@ -4,12 +4,17 @@ import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class RoomSpellRepository(
     private val spellDao: SpellDao,
 ) : SpellRepository {
     override fun observeAvailableSources(): Flow<List<String>> {
         return spellDao.observeAvailableSourceBooks()
+    }
+
+    override fun observeAvailableTraits(): Flow<List<String>> {
+        return spellDao.observeTraitCatalogRows().map(::normalizeTraitCatalog)
     }
 
     override fun observeSpells(
@@ -70,4 +75,16 @@ class RoomSpellRepository(
             spellDao.replaceAll(entities)
         }
     }
+}
+
+internal fun normalizeTraitCatalog(rows: List<String>): List<String> {
+    return rows.asSequence()
+        .flatMap { row ->
+            row.splitToSequence(',')
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+        }
+        .distinctBy { it.lowercase() }
+        .sortedBy { it.lowercase() }
+        .toList()
 }

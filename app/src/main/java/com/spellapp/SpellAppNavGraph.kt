@@ -269,6 +269,7 @@ private fun NavGraphBuilder.spellListDestination(
             query = spellListUiState.queryInput,
             onQueryChange = spellListViewModel::onQueryChange,
             traitQuery = spellListUiState.traitQueryInput,
+            availableTraits = spellListUiState.availableTraits,
             onTraitQueryChange = spellListViewModel::onTraitQueryChange,
             selectedRank = spellListUiState.selectedRank,
             onRankChange = spellListViewModel::onRankToggle,
