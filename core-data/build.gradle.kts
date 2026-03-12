@@ -12,6 +12,10 @@ android {
         minSdk = 28
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -33,4 +37,7 @@ dependencies {
     api(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.robolectric)
 }
+

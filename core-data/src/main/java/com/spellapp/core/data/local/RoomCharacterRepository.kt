@@ -62,8 +62,7 @@ class RoomCharacterRepository private constructor(
 
     override suspend fun upsertCharacter(character: CharacterProfile): Long {
         return database.withTransaction {
-            val upsertId = characterDao.upsert(character.toEntity())
-            val characterId = if (character.id != 0L) character.id else upsertId
+            val characterId = characterDao.insertOrUpdate(character.toEntity())
             val persistedCharacter = character.copy(id = characterId)
             ensurePrimaryTrack(persistedCharacter)
             syncPreparedSlotsForCharacterInternal(persistedCharacter)
@@ -721,6 +720,13 @@ class RoomCharacterRepository private constructor(
     }
 }
 
+internal suspend fun CharacterDao.insertOrUpdate(character: CharacterEntity): Long {
+    return when {
+        character.id == 0L -> insert(character)
+        update(character) > 0 -> character.id
+        else -> insert(character)
+    }
+}
 private object SessionEventMetadata {
     private const val SLOT_INDEX_KEY = "\"slotIndex\""
     private const val TRACK_KEY = "\"trackKey\""
@@ -747,3 +753,5 @@ private object SessionEventMetadata {
             ?: PreparedSlot.PRIMARY_TRACK_KEY
     }
 }
+
+
