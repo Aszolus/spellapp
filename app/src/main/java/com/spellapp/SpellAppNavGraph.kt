@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -217,7 +218,7 @@ private fun NavGraphBuilder.preparedSlotsDestination(
             onOpenPreparedSpell = { spellId ->
                 navController.navigate(AppDestinations.SpellDetail.routeFor(spellId))
             },
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackIfResumed() },
         )
     }
 }
@@ -293,8 +294,9 @@ private fun NavGraphBuilder.spellListDestination(
             },
             onKnownSpellToggle = spellListViewModel::toggleKnownSpell,
             onBack = {
-                navigationViewModel.clearSpellBrowserMode()
-                navController.popBackStack()
+                if (navController.popBackStackIfResumed()) {
+                    navigationViewModel.clearSpellBrowserMode()
+                }
             },
         )
     }
@@ -326,9 +328,15 @@ private fun NavGraphBuilder.spellDetailDestination(
         SpellDetailRoute(
             spell = spellDetailUiState.spell,
             isLoading = spellDetailUiState.isLoading,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackIfResumed() },
         )
     }
+}
+
+private fun NavHostController.popBackStackIfResumed(): Boolean {
+    val lifecycle = currentBackStackEntry?.lifecycle ?: return false
+    if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) return false
+    return popBackStack()
 }
 
 private fun spellListTitle(
