@@ -25,14 +25,17 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
@@ -213,7 +216,108 @@ private fun CharacterRow(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@Stable
+internal class CharacterEditorState(
+    private val initialCharacter: CharacterProfile?,
+    availableClasses: List<CharacterClassDefinition>,
+    private val classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
+    availableSpellSources: List<String>,
+    initialSelectedBuildOptionIds: Set<String>,
+    initialAcceptedSourceBooks: Set<String>,
+) {
+    var name by mutableStateOf(initialCharacter?.name.orEmpty())
+    var levelText by mutableStateOf((initialCharacter?.level ?: 1).toString())
+    var selectedClass by mutableStateOf(
+        initialCharacter?.characterClass
+            ?: availableClasses.firstOrNull()?.characterClass
+            ?: CharacterClass.WIZARD,
+    )
+    var keyAbility by mutableStateOf(
+        initialCharacter?.keyAbility
+            ?: defaultKeyAbility(selectedClass, classDefinitionsByClass),
+    )
+    var spellDcText by mutableStateOf((initialCharacter?.spellDc ?: 10).toString())
+    var spellAttackText by mutableStateOf((initialCharacter?.spellAttackModifier ?: 0).toString())
+    var legacyEnabled by mutableStateOf(initialCharacter?.legacyTerminologyEnabled ?: false)
+    var saveAttempted by mutableStateOf(false)
+        private set
+    var selectedBuildOptionIds by mutableStateOf(initialSelectedBuildOptionIds.toSet())
+        private set
+    var acceptedSourceBooks by mutableStateOf(
+        initialAcceptedSourceBooks.ifEmpty { availableSpellSources.toSet() },
+    )
+
+    val level: Int? get() = levelText.toIntOrNull()?.coerceIn(1, 20)
+    val spellDc: Int? get() = spellDcText.toIntOrNull()?.coerceIn(0, 99)
+    val spellAttack: Int? get() = spellAttackText.toIntOrNull()?.coerceIn(-99, 99)
+    val nameInvalid: Boolean get() = name.isBlank()
+    val levelInvalid: Boolean get() = level == null
+    val spellDcInvalid: Boolean get() = spellDc == null
+    val spellAttackInvalid: Boolean get() = spellAttack == null
+    val canSave: Boolean
+        get() = !nameInvalid && !levelInvalid && !spellDcInvalid && !spellAttackInvalid
+
+    fun selectClass(klass: CharacterClass) {
+        selectedClass = klass
+        keyAbility = defaultKeyAbility(klass, classDefinitionsByClass)
+    }
+
+    fun toggleBuildOption(
+        packageDef: ArchetypeSpellcastingPackage,
+        tier: ArchetypeTier,
+        turnOn: Boolean,
+    ) {
+        selectedBuildOptionIds = toggleArchetypeTier(
+            packageDef,
+            tier,
+            selectedBuildOptionIds,
+            turnOn = turnOn,
+        )
+    }
+
+    fun attemptSave(): CharacterProfile? {
+        if (!canSave) {
+            saveAttempted = true
+            return null
+        }
+        return CharacterProfile(
+            id = initialCharacter?.id ?: 0L,
+            name = name.trim(),
+            level = level ?: 1,
+            characterClass = selectedClass,
+            keyAbility = keyAbility,
+            spellDc = spellDc ?: 10,
+            spellAttackModifier = spellAttack ?: 0,
+            legacyTerminologyEnabled = legacyEnabled,
+        )
+    }
+}
+
+@Composable
+private fun rememberCharacterEditorState(
+    initialCharacter: CharacterProfile?,
+    availableClasses: List<CharacterClassDefinition>,
+    classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
+    availableSpellSources: List<String>,
+    initialSelectedBuildOptionIds: Set<String>,
+    initialAcceptedSourceBooks: Set<String>,
+): CharacterEditorState = remember(
+    initialCharacter,
+    availableClasses,
+    availableSpellSources,
+    initialSelectedBuildOptionIds,
+    initialAcceptedSourceBooks,
+) {
+    CharacterEditorState(
+        initialCharacter = initialCharacter,
+        availableClasses = availableClasses,
+        classDefinitionsByClass = classDefinitionsByClass,
+        availableSpellSources = availableSpellSources,
+        initialSelectedBuildOptionIds = initialSelectedBuildOptionIds,
+        initialAcceptedSourceBooks = initialAcceptedSourceBooks,
+    )
+}
+
 @Composable
 fun CharacterEditorDialog(
     initialCharacter: CharacterProfile?,
@@ -226,67 +330,23 @@ fun CharacterEditorDialog(
     onDismiss: () -> Unit,
     onSave: (CharacterProfile, Set<String>, Set<String>) -> Unit,
 ) {
-    var name by remember(initialCharacter) { mutableStateOf(initialCharacter?.name.orEmpty()) }
-    var levelText by remember(initialCharacter) {
-        mutableStateOf((initialCharacter?.level ?: 1).toString())
-    }
-    var selectedClass by remember(initialCharacter, availableClasses) {
-        mutableStateOf(
-            initialCharacter?.characterClass
-                ?: availableClasses.firstOrNull()?.characterClass
-                ?: CharacterClass.WIZARD,
-        )
-    }
-    var keyAbility by remember(initialCharacter) {
-        mutableStateOf(
-            initialCharacter?.keyAbility ?: defaultKeyAbility(
-                characterClass = selectedClass,
-                classDefinitions = classDefinitionsByClass,
-            ),
-        )
-    }
-    var spellDcText by remember(initialCharacter) {
-        mutableStateOf((initialCharacter?.spellDc ?: 10).toString())
-    }
-    var spellAttackText by remember(initialCharacter) {
-        mutableStateOf((initialCharacter?.spellAttackModifier ?: 0).toString())
-    }
-    var legacyEnabled by remember(initialCharacter) {
-        mutableStateOf(initialCharacter?.legacyTerminologyEnabled ?: false)
-    }
+    val state = rememberCharacterEditorState(
+        initialCharacter = initialCharacter,
+        availableClasses = availableClasses,
+        classDefinitionsByClass = classDefinitionsByClass,
+        availableSpellSources = availableSpellSources,
+        initialSelectedBuildOptionIds = initialSelectedBuildOptionIds,
+        initialAcceptedSourceBooks = initialAcceptedSourceBooks,
+    )
     var showSourcePicker by remember { mutableStateOf(false) }
-    var sourceSearchQuery by remember { mutableStateOf("") }
-    var selectedBuildOptionIds by remember(initialCharacter, initialSelectedBuildOptionIds) {
-        mutableStateOf(initialSelectedBuildOptionIds.toSet())
-    }
-    var acceptedSourceBooks by remember(initialCharacter, initialAcceptedSourceBooks, availableSpellSources) {
-        mutableStateOf(
-            initialAcceptedSourceBooks.ifEmpty { availableSpellSources.toSet() },
-        )
-    }
-
-    val level = levelText.toIntOrNull()?.coerceIn(1, 20)
-    val spellDc = spellDcText.toIntOrNull()?.coerceIn(0, 99)
-    val spellAttack = spellAttackText.toIntOrNull()?.coerceIn(-99, 99)
-    val selectedSpellSources = availableSpellSources.filter { it in acceptedSourceBooks }
-    val filteredSpellSources = availableSpellSources.filter { sourceBook ->
-        sourceBook !in acceptedSourceBooks &&
-            (sourceSearchQuery.isBlank() || sourceBook.contains(sourceSearchQuery.trim(), ignoreCase = true))
-    }
-    val canSave = name.isNotBlank() && level != null && spellDc != null && spellAttack != null
     val contentScroll = rememberScrollState()
-    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
-    val editorMaxHeight = screenHeightDp * 0.70f
+    val editorMaxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.70f
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (initialCharacter == null) {
-                    "Create Character"
-                } else {
-                    "Edit Character"
-                },
+                text = if (initialCharacter == null) "Create Character" else "Edit Character",
             )
         },
         text = {
@@ -296,269 +356,22 @@ fun CharacterEditorDialog(
                     .verticalScroll(contentScroll),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = levelText,
-                    onValueChange = { levelText = it.filter(Char::isDigit).take(2) },
-                    label = { Text("Level (1-20)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text(
-                    text = "Class",
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    availableClasses.forEach { definition ->
-                        val klass = definition.characterClass
-                        FilterChip(
-                            selected = selectedClass == klass,
-                            onClick = {
-                                selectedClass = klass
-                                keyAbility = defaultKeyAbility(
-                                    characterClass = klass,
-                                    classDefinitions = classDefinitionsByClass,
-                                )
-                            },
-                            label = { Text(definition.label) },
-                        )
-                    }
-                }
-                Text(
-                    text = "Key Ability",
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    keyAbilityOptions(
-                        characterClass = selectedClass,
-                        classDefinitions = classDefinitionsByClass,
-                    ).forEach { ability ->
-                        FilterChip(
-                            selected = keyAbility == ability,
-                            onClick = { keyAbility = ability },
-                            label = { Text(ability.label()) },
-                        )
-                    }
-                }
-                OutlinedTextField(
-                    value = spellDcText,
-                    onValueChange = { spellDcText = sanitizeSignedNumber(it, maxLength = 2) },
-                    label = { Text("Spell DC") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = spellAttackText,
-                    onValueChange = { spellAttackText = sanitizeSignedNumber(it, maxLength = 3) },
-                    label = { Text("Spell Attack Modifier") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text(
-                    text = "Accepted Sources",
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                if (availableSpellSources.isEmpty()) {
-                    Text(
-                        text = "No spell sources are available yet.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = "${acceptedSourceBooks.size} of ${availableSpellSources.size} selected",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        TextButton(onClick = { showSourcePicker = true }) {
-                            Text("Choose")
-                        }
-                    }
-                }
-                Text(
-                    text = "Archetype spellcasting",
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                Text(
-                    text = "Slot unlocks: Basic 4/6/8, Expert 12/14/16, Master 18/20.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (archetypeSpellcastingPackages.isEmpty()) {
-                    Text(
-                        text = "No phase-one archetype spellcasting packages available.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                } else {
-                    archetypeSpellcastingPackages.forEach { packageDef ->
-                        val dedicationSelected = packageDef.dedicationOptionId in selectedBuildOptionIds
-                        val basicSelected = packageDef.basicSpellcastingOptionId
-                            ?.let { optionId -> optionId in selectedBuildOptionIds }
-                            ?: false
-                        val expertSelected = packageDef.expertSpellcastingOptionId
-                            ?.let { optionId -> optionId in selectedBuildOptionIds }
-                            ?: false
-                        val masterSelected = packageDef.masterSpellcastingOptionId
-                            ?.let { optionId -> optionId in selectedBuildOptionIds }
-                            ?: false
-
-                        Text(
-                            text = packageDef.label,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        val slotSummary = summarizeArchetypeSlotsForLevel(
-                            level = level ?: 1,
-                            hasBasic = basicSelected,
-                            hasExpert = expertSelected,
-                            hasMaster = masterSelected,
-                        )
-                        Text(
-                            text = slotSummary,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            FilterChip(
-                                selected = dedicationSelected,
-                                onClick = {
-                                    val next = selectedBuildOptionIds.toMutableSet()
-                                    if (dedicationSelected) {
-                                        next -= packageDef.dedicationOptionId
-                                        listOfNotNull(
-                                            packageDef.basicSpellcastingOptionId,
-                                            packageDef.expertSpellcastingOptionId,
-                                            packageDef.masterSpellcastingOptionId,
-                                        ).forEach { optionId -> next -= optionId }
-                                    } else {
-                                        next += packageDef.dedicationOptionId
-                                    }
-                                    selectedBuildOptionIds = next
-                                },
-                                label = { Text("Dedication") },
-                            )
-                            packageDef.basicSpellcastingOptionId?.let { basicOptionId ->
-                                FilterChip(
-                                    selected = basicSelected,
-                                    onClick = {
-                                        val next = selectedBuildOptionIds.toMutableSet()
-                                        if (basicSelected) {
-                                            next -= basicOptionId
-                                            packageDef.expertSpellcastingOptionId?.let { next -= it }
-                                            packageDef.masterSpellcastingOptionId?.let { next -= it }
-                                        } else {
-                                            next += packageDef.dedicationOptionId
-                                            next += basicOptionId
-                                        }
-                                        selectedBuildOptionIds = next
-                                    },
-                                    label = { Text("Basic") },
-                                )
-                            }
-                            packageDef.expertSpellcastingOptionId?.let { expertOptionId ->
-                                FilterChip(
-                                    selected = expertSelected,
-                                    onClick = {
-                                        val basicOptionId = packageDef.basicSpellcastingOptionId
-                                        val next = selectedBuildOptionIds.toMutableSet()
-                                        if (expertSelected) {
-                                            next -= expertOptionId
-                                            packageDef.masterSpellcastingOptionId?.let { next -= it }
-                                        } else {
-                                            next += packageDef.dedicationOptionId
-                                            if (basicOptionId != null) {
-                                                next += basicOptionId
-                                            }
-                                            next += expertOptionId
-                                        }
-                                        selectedBuildOptionIds = next
-                                    },
-                                    label = { Text("Expert") },
-                                )
-                            }
-                            packageDef.masterSpellcastingOptionId?.let { masterOptionId ->
-                                FilterChip(
-                                    selected = masterSelected,
-                                    onClick = {
-                                        val basicOptionId = packageDef.basicSpellcastingOptionId
-                                        val expertOptionId = packageDef.expertSpellcastingOptionId
-                                        val next = selectedBuildOptionIds.toMutableSet()
-                                        if (masterSelected) {
-                                            next -= masterOptionId
-                                        } else {
-                                            next += packageDef.dedicationOptionId
-                                            if (basicOptionId != null) {
-                                                next += basicOptionId
-                                            }
-                                            if (expertOptionId != null) {
-                                                next += expertOptionId
-                                            }
-                                            next += masterOptionId
-                                        }
-                                        selectedBuildOptionIds = next
-                                    },
-                                    label = { Text("Master") },
-                                )
-                            }
-                        }
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = "Legacy terms",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    FilterChip(
-                        selected = legacyEnabled,
-                        onClick = { legacyEnabled = !legacyEnabled },
-                        label = {
-                            Text(if (legacyEnabled) "On" else "Off")
-                        },
-                    )
-                }
+                IdentityFields(state)
+                ClassSelector(state, availableClasses)
+                KeyAbilitySelector(state, classDefinitionsByClass)
+                SpellStatFields(state)
+                AcceptedSourcesRow(state, availableSpellSources) { showSourcePicker = true }
+                ArchetypeSpellcastingSection(state, archetypeSpellcastingPackages)
+                PreRemasterToggle(state)
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (!canSave) {
-                        return@TextButton
+                    state.attemptSave()?.let { profile ->
+                        onSave(profile, state.selectedBuildOptionIds, state.acceptedSourceBooks)
                     }
-                    onSave(
-                        CharacterProfile(
-                            id = initialCharacter?.id ?: 0L,
-                            name = name.trim(),
-                            level = level ?: 1,
-                            characterClass = selectedClass,
-                            keyAbility = keyAbility,
-                            spellDc = spellDc ?: 10,
-                            spellAttackModifier = spellAttack ?: 0,
-                            legacyTerminologyEnabled = legacyEnabled,
-                        ),
-                        selectedBuildOptionIds,
-                        acceptedSourceBooks,
-                    )
                 },
-                enabled = canSave,
             ) {
                 Text("Save")
             }
@@ -571,100 +384,338 @@ fun CharacterEditorDialog(
     )
 
     if (showSourcePicker) {
-        AlertDialog(
-            onDismissRequest = {
-                sourceSearchQuery = ""
-                showSourcePicker = false
-            },
-            title = { Text("Accepted Sources") },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+        SourcePickerDialog(
+            state = state,
+            availableSpellSources = availableSpellSources,
+            onDismiss = { showSourcePicker = false },
+        )
+    }
+}
+
+@Composable
+private fun IdentityFields(state: CharacterEditorState) {
+    OutlinedTextField(
+        value = state.name,
+        onValueChange = { state.name = it },
+        label = { Text("Name") },
+        placeholder = { Text("e.g. Elara Nightweave") },
+        singleLine = true,
+        isError = state.saveAttempted && state.nameInvalid,
+        supportingText = if (state.saveAttempted && state.nameInvalid) {
+            { Text("Name is required.") }
+        } else {
+            null
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = state.levelText,
+        onValueChange = { state.levelText = it.filter(Char::isDigit).take(2) },
+        label = { Text("Level (1-20)") },
+        singleLine = true,
+        isError = state.saveAttempted && state.levelInvalid,
+        supportingText = if (state.saveAttempted && state.levelInvalid) {
+            { Text("Enter a level between 1 and 20.") }
+        } else {
+            null
+        },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ClassSelector(
+    state: CharacterEditorState,
+    availableClasses: List<CharacterClassDefinition>,
+) {
+    SectionLabel("Class")
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        availableClasses.forEach { definition ->
+            val klass = definition.characterClass
+            FilterChip(
+                selected = state.selectedClass == klass,
+                onClick = { state.selectClass(klass) },
+                label = { Text(definition.label) },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun KeyAbilitySelector(
+    state: CharacterEditorState,
+    classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
+) {
+    SectionLabel("Key Ability")
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        keyAbilityOptions(
+            characterClass = state.selectedClass,
+            classDefinitions = classDefinitionsByClass,
+        ).forEach { ability ->
+            FilterChip(
+                selected = state.keyAbility == ability,
+                onClick = { state.keyAbility = ability },
+                label = { Text(ability.label()) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SpellStatFields(state: CharacterEditorState) {
+    OutlinedTextField(
+        value = state.spellDcText,
+        onValueChange = { state.spellDcText = sanitizeSignedNumber(it, maxLength = 2) },
+        label = { Text("Spell DC") },
+        singleLine = true,
+        isError = state.saveAttempted && state.spellDcInvalid,
+        supportingText = if (state.saveAttempted && state.spellDcInvalid) {
+            { Text("Enter a DC between 0 and 99.") }
+        } else {
+            null
+        },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = state.spellAttackText,
+        onValueChange = { state.spellAttackText = sanitizeSignedNumber(it, maxLength = 3) },
+        label = { Text("Spell Attack Modifier") },
+        singleLine = true,
+        isError = state.saveAttempted && state.spellAttackInvalid,
+        supportingText = if (state.saveAttempted && state.spellAttackInvalid) {
+            { Text("Enter a modifier between -99 and 99.") }
+        } else {
+            null
+        },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun AcceptedSourcesRow(
+    state: CharacterEditorState,
+    availableSpellSources: List<String>,
+    onOpenPicker: () -> Unit,
+) {
+    SectionLabel("Accepted Sources")
+    if (availableSpellSources.isEmpty()) {
+        Text(
+            text = "No spell sources are available yet.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "${state.acceptedSourceBooks.size} of ${availableSpellSources.size} selected",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = onOpenPicker) {
+                Text("Choose")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ArchetypeSpellcastingSection(
+    state: CharacterEditorState,
+    packages: List<ArchetypeSpellcastingPackage>,
+) {
+    SectionLabel("Archetype Spellcasting")
+    Text(
+        text = "Slot unlocks: Basic 4/6/8, Expert 12/14/16, Master 18/20.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    if (packages.isEmpty()) {
+        Text(
+            text = "No phase-one archetype spellcasting packages available.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        return
+    }
+    packages.forEach { packageDef ->
+        val dedicationSelected = packageDef.dedicationOptionId in state.selectedBuildOptionIds
+        val basicSelected = packageDef.basicSpellcastingOptionId
+            ?.let { it in state.selectedBuildOptionIds } ?: false
+        val expertSelected = packageDef.expertSpellcastingOptionId
+            ?.let { it in state.selectedBuildOptionIds } ?: false
+        val masterSelected = packageDef.masterSpellcastingOptionId
+            ?.let { it in state.selectedBuildOptionIds } ?: false
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = packageDef.label,
+                style = MaterialTheme.typography.titleSmall,
+            )
+            val effectiveLevel = state.level ?: 1
+            val slotSummary = remember(effectiveLevel, basicSelected, expertSelected, masterSelected) {
+                summarizeArchetypeSlotsForLevel(
+                    level = effectiveLevel,
+                    hasBasic = basicSelected,
+                    hasExpert = expertSelected,
+                    hasMaster = masterSelected,
+                )
+            }
+            Text(
+                text = slotSummary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = dedicationSelected,
+                    onClick = {
+                        state.toggleBuildOption(packageDef, ArchetypeTier.DEDICATION, !dedicationSelected)
+                    },
+                    label = { Text("Dedication") },
+                )
+                if (packageDef.basicSpellcastingOptionId != null) {
+                    FilterChip(
+                        selected = basicSelected,
+                        onClick = {
+                            state.toggleBuildOption(packageDef, ArchetypeTier.BASIC, !basicSelected)
+                        },
+                        label = { Text("Basic") },
+                    )
+                }
+                if (packageDef.expertSpellcastingOptionId != null) {
+                    FilterChip(
+                        selected = expertSelected,
+                        onClick = {
+                            state.toggleBuildOption(packageDef, ArchetypeTier.EXPERT, !expertSelected)
+                        },
+                        label = { Text("Expert") },
+                    )
+                }
+                if (packageDef.masterSpellcastingOptionId != null) {
+                    FilterChip(
+                        selected = masterSelected,
+                        onClick = {
+                            state.toggleBuildOption(packageDef, ArchetypeTier.MASTER, !masterSelected)
+                        },
+                        label = { Text("Master") },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PreRemasterToggle(state: CharacterEditorState) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SectionLabel("Pre-Remaster Terms")
+            Switch(
+                checked = state.legacyEnabled,
+                onCheckedChange = { state.legacyEnabled = it },
+            )
+        }
+        Text(
+            text = "Show pre-Remaster spell names (Heal becomes Soothe, etc.).",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun SourcePickerDialog(
+    state: CharacterEditorState,
+    availableSpellSources: List<String>,
+    onDismiss: () -> Unit,
+) {
+    var sourceSearchQuery by remember { mutableStateOf("") }
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+    val selectedSpellSources = remember(availableSpellSources, state.acceptedSourceBooks) {
+        availableSpellSources.filter { it in state.acceptedSourceBooks }
+    }
+    val filteredSpellSources = remember(availableSpellSources, state.acceptedSourceBooks, sourceSearchQuery) {
+        val query = sourceSearchQuery.trim()
+        availableSpellSources.filter { sourceBook ->
+            sourceBook !in state.acceptedSourceBooks &&
+                (query.isEmpty() || sourceBook.contains(query, ignoreCase = true))
+        }
+    }
+    val close = {
+        sourceSearchQuery = ""
+        onDismiss()
+    }
+
+    AlertDialog(
+        onDismissRequest = close,
+        title = { Text("Accepted Sources") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    TextButton(onClick = { state.acceptedSourceBooks = availableSpellSources.toSet() }) {
+                        Text("All")
+                    }
+                    TextButton(
+                        onClick = {
+                            state.acceptedSourceBooks = availableSpellSources
+                                .filter { it in coreSpellSourceBooks }
+                                .toSet()
+                        },
                     ) {
-                        TextButton(onClick = { acceptedSourceBooks = availableSpellSources.toSet() }) {
-                            Text("All")
-                        }
-                        TextButton(
-                            onClick = {
-                                acceptedSourceBooks = availableSpellSources
-                                    .filter { it in coreSpellSourceBooks }
-                                    .toSet()
-                            },
-                        ) {
-                            Text("Core Only")
-                        }
-                        TextButton(onClick = { acceptedSourceBooks = emptySet() }) {
-                            Text("None")
-                        }
+                        Text("Core Only")
                     }
-                    OutlinedTextField(
-                        value = sourceSearchQuery,
-                        onValueChange = { sourceSearchQuery = it },
-                        label = { Text("Search sources") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text(
-                        text = "Selected (${selectedSpellSources.size})",
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                    if (selectedSpellSources.isEmpty()) {
-                        Text(
-                            text = "No sources selected.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.heightIn(max = screenHeightDp * 0.25f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            items(selectedSpellSources, key = { it }) { sourceBook ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Text(
-                                        text = sourceBook,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    Checkbox(
-                                        checked = true,
-                                        onCheckedChange = {
-                                            acceptedSourceBooks = acceptedSourceBooks - sourceBook
-                                        },
-                                    )
-                                }
-                            }
-                        }
+                    TextButton(onClick = { state.acceptedSourceBooks = emptySet() }) {
+                        Text("None")
                     }
+                }
+                OutlinedTextField(
+                    value = sourceSearchQuery,
+                    onValueChange = { sourceSearchQuery = it },
+                    label = { Text("Search sources") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                SectionLabel("Selected (${selectedSpellSources.size})")
+                if (selectedSpellSources.isEmpty()) {
                     Text(
-                        text = "Available (${filteredSpellSources.size})",
-                        style = MaterialTheme.typography.labelLarge,
+                        text = "No sources selected.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                } else {
                     LazyColumn(
-                        modifier = Modifier.heightIn(max = screenHeightDp * 0.45f),
+                        modifier = Modifier.heightIn(max = screenHeightDp * 0.25f),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        if (filteredSpellSources.isEmpty()) {
-                            item("empty-search") {
-                                Text(
-                                    text = if (sourceSearchQuery.isBlank()) {
-                                        "All available sources are already selected."
-                                    } else {
-                                        "No unselected sources matched that search."
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        items(filteredSpellSources, key = { it }) { sourceBook ->
+                        items(selectedSpellSources, key = { it }) { sourceBook ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -675,32 +726,100 @@ fun CharacterEditorDialog(
                                     modifier = Modifier.weight(1f),
                                 )
                                 Checkbox(
-                                    checked = sourceBook in acceptedSourceBooks,
-                                    onCheckedChange = { checked ->
-                                        acceptedSourceBooks = acceptedSourceBooks.toMutableSet().apply {
-                                            if (checked) {
-                                                add(sourceBook)
-                                            } else {
-                                                remove(sourceBook)
-                                            }
-                                        }
+                                    checked = true,
+                                    onCheckedChange = {
+                                        state.acceptedSourceBooks = state.acceptedSourceBooks - sourceBook
                                     },
                                 )
                             }
                         }
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    sourceSearchQuery = ""
-                    showSourcePicker = false
-                }) {
-                    Text("Done")
+                SectionLabel("Available (${filteredSpellSources.size})")
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = screenHeightDp * 0.45f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (filteredSpellSources.isEmpty()) {
+                        item("empty-search") {
+                            Text(
+                                text = if (sourceSearchQuery.isBlank()) {
+                                    "All available sources are already selected."
+                                } else {
+                                    "No unselected sources matched that search."
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    items(filteredSpellSources, key = { it }) { sourceBook ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = sourceBook,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Checkbox(
+                                checked = sourceBook in state.acceptedSourceBooks,
+                                onCheckedChange = { checked ->
+                                    state.acceptedSourceBooks = state.acceptedSourceBooks.toMutableSet().apply {
+                                        if (checked) add(sourceBook) else remove(sourceBook)
+                                    }
+                                },
+                            )
+                        }
+                    }
                 }
-            },
-        )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = close) {
+                Text("Done")
+            }
+        },
+    )
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+internal enum class ArchetypeTier { DEDICATION, BASIC, EXPERT, MASTER }
+
+private fun ArchetypeSpellcastingPackage.optionIdFor(tier: ArchetypeTier): String? = when (tier) {
+    ArchetypeTier.DEDICATION -> dedicationOptionId
+    ArchetypeTier.BASIC -> basicSpellcastingOptionId
+    ArchetypeTier.EXPERT -> expertSpellcastingOptionId
+    ArchetypeTier.MASTER -> masterSpellcastingOptionId
+}
+
+private fun toggleArchetypeTier(
+    packageDef: ArchetypeSpellcastingPackage,
+    tier: ArchetypeTier,
+    currentIds: Set<String>,
+    turnOn: Boolean,
+): Set<String> {
+    val next = currentIds.toMutableSet()
+    val tiers = ArchetypeTier.values()
+    if (turnOn) {
+        tiers.takeWhile { it != tier }.plus(tier).forEach { t ->
+            packageDef.optionIdFor(t)?.let { next += it }
+        }
+    } else {
+        tiers.dropWhile { it != tier }.forEach { t ->
+            packageDef.optionIdFor(t)?.let { next -= it }
+        }
     }
+    return next
 }
 
 private fun summarizeArchetypeSlotsForLevel(
