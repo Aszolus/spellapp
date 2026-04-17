@@ -23,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -535,18 +536,17 @@ private fun AcceptedSourcesRow(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ArchetypeSpellcastingSection(
     state: CharacterEditorState,
     packages: List<ArchetypeSpellcastingPackage>,
 ) {
+    var showPicker by remember { mutableStateOf(false) }
+    val selectedPackages = packages.filter { it.dedicationOptionId in state.selectedBuildOptionIds }
+    val availableToAdd = packages.filter { it.dedicationOptionId !in state.selectedBuildOptionIds }
+
     SectionLabel("Archetype Spellcasting")
-    Text(
-        text = "Slot unlocks: Basic 4/6/8, Expert 12/14/16, Master 18/20.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+
     if (packages.isEmpty()) {
         Text(
             text = "No phase-one archetype spellcasting packages available.",
@@ -554,46 +554,97 @@ private fun ArchetypeSpellcastingSection(
         )
         return
     }
-    packages.forEach { packageDef ->
-        val dedicationSelected = packageDef.dedicationOptionId in state.selectedBuildOptionIds
-        val basicSelected = packageDef.basicSpellcastingOptionId
-            ?.let { it in state.selectedBuildOptionIds } ?: false
-        val expertSelected = packageDef.expertSpellcastingOptionId
-            ?.let { it in state.selectedBuildOptionIds } ?: false
-        val masterSelected = packageDef.masterSpellcastingOptionId
-            ?.let { it in state.selectedBuildOptionIds } ?: false
 
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    if (selectedPackages.isEmpty()) {
+        Text(
+            text = "No archetypes selected.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    } else {
+        selectedPackages.forEach { packageDef ->
+            SelectedArchetypeRow(state, packageDef)
+        }
+    }
+
+    if (availableToAdd.isNotEmpty()) {
+        OutlinedButton(
+            onClick = { showPicker = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(if (selectedPackages.isEmpty()) "Add Archetype" else "Add Another Archetype")
+        }
+    }
+
+    if (showPicker) {
+        ArchetypePickerDialog(
+            available = availableToAdd,
+            onPick = { picked ->
+                state.toggleBuildOption(picked, ArchetypeTier.DEDICATION, turnOn = true)
+                showPicker = false
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SelectedArchetypeRow(
+    state: CharacterEditorState,
+    packageDef: ArchetypeSpellcastingPackage,
+) {
+    val basicSelected = packageDef.basicSpellcastingOptionId
+        ?.let { it in state.selectedBuildOptionIds } ?: false
+    val expertSelected = packageDef.expertSpellcastingOptionId
+        ?.let { it in state.selectedBuildOptionIds } ?: false
+    val masterSelected = packageDef.masterSpellcastingOptionId
+        ?.let { it in state.selectedBuildOptionIds } ?: false
+    val effectiveLevel = state.level ?: 1
+    val slotSummary = remember(effectiveLevel, basicSelected, expertSelected, masterSelected) {
+        summarizeArchetypeSlotsForLevel(
+            level = effectiveLevel,
+            hasBasic = basicSelected,
+            hasExpert = expertSelected,
+            hasMaster = masterSelected,
+        )
+    }
+    val hasAnyUpgrade = packageDef.basicSpellcastingOptionId != null ||
+        packageDef.expertSpellcastingOptionId != null ||
+        packageDef.masterSpellcastingOptionId != null
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 text = packageDef.label,
                 style = MaterialTheme.typography.titleSmall,
             )
-            val effectiveLevel = state.level ?: 1
-            val slotSummary = remember(effectiveLevel, basicSelected, expertSelected, masterSelected) {
-                summarizeArchetypeSlotsForLevel(
-                    level = effectiveLevel,
-                    hasBasic = basicSelected,
-                    hasExpert = expertSelected,
-                    hasMaster = masterSelected,
+            TextButton(
+                onClick = {
+                    state.toggleBuildOption(packageDef, ArchetypeTier.DEDICATION, turnOn = false)
+                },
+            ) {
+                Text(
+                    text = "Remove",
+                    color = MaterialTheme.colorScheme.error,
                 )
             }
-            Text(
-                text = slotSummary,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        }
+        Text(
+            text = slotSummary,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (hasAnyUpgrade) {
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                FilterChip(
-                    selected = dedicationSelected,
-                    onClick = {
-                        state.toggleBuildOption(packageDef, ArchetypeTier.DEDICATION, !dedicationSelected)
-                    },
-                    label = { Text("Dedication") },
-                )
                 if (packageDef.basicSpellcastingOptionId != null) {
                     FilterChip(
                         selected = basicSelected,
@@ -624,6 +675,35 @@ private fun ArchetypeSpellcastingSection(
             }
         }
     }
+}
+
+@Composable
+private fun ArchetypePickerDialog(
+    available: List<ArchetypeSpellcastingPackage>,
+    onPick: (ArchetypeSpellcastingPackage) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Archetype") },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(available, key = { it.archetypeId }) { pkg ->
+                    Text(
+                        text = pkg.label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(role = Role.Button) { onPick(pkg) }
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable
