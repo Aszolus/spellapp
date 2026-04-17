@@ -6,7 +6,8 @@
       "Bash(ls:*)",
       "Bash(grep:*)",
       "Read(//c/Program Files/**)",
-      "Read(//c/Users/steve/AppData/Local/**)"
+      "Read(//c/Users/steve/AppData/Local/**)",
+      "Bash(JAVA_HOME=\"/c/Users/steve/.jdks/ms-21.0.10\" ./gradlew assembleDebug)"
     ]
   }
 }

@@ -1,5 +1,6 @@
 package com.spellapp.feature.character
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -11,15 +12,16 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -32,6 +34,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.spellapp.core.model.CharacterClass
@@ -84,8 +88,9 @@ fun CharacterListRoute(
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    text = "Add a prepared caster to start tracking spell slots.",
+                    text = "Add a caster to prepare slots.",
                     style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Button(onClick = onAddCharacter) {
                     Text("Create Character")
@@ -97,11 +102,12 @@ fun CharacterListRoute(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+                .padding(innerPadding),
         ) {
-            items(items = characters, key = { it.id }) { character ->
+            itemsIndexed(items = characters, key = { _, character -> character.id }) { index, character ->
+                if (index > 0) {
+                    HorizontalDivider()
+                }
                 CharacterRow(
                     character = character,
                     classDefinitionsByClass = classDefinitionsByClass,
@@ -164,41 +170,44 @@ private fun CharacterRow(
     onOpenPreparedSlots: () -> Unit,
     onOpenSpells: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onOpenPreparedSlots)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            text = character.name,
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = "Level ${character.level} ${character.characterClass.label(classDefinitionsByClass)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = "DC ${character.spellDc} · Attack ${character.spellAttackModifier.withSign()}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.End,
         ) {
-            Text(
-                text = character.name,
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(
-                text = "Level ${character.level} ${character.characterClass.label(classDefinitionsByClass)}",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(
-                text = "DC ${character.spellDc} | Attack ${character.spellAttackModifier.withSign()}",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                TextButton(onClick = onEdit) {
-                    Text("Edit")
-                }
-                TextButton(onClick = onDelete) {
-                    Text("Delete")
-                }
-                TextButton(onClick = onOpenPreparedSlots) {
-                    Text("Prepare")
-                }
-                TextButton(onClick = onOpenSpells) {
-                    Text("Spells")
-                }
+            TextButton(onClick = onEdit) {
+                Text("Edit")
+            }
+            TextButton(onClick = onOpenSpells) {
+                Text("Spells")
+            }
+            TextButton(onClick = onDelete) {
+                Text(
+                    text = "Delete",
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
         }
     }
@@ -266,6 +275,8 @@ fun CharacterEditorDialog(
     }
     val canSave = name.isNotBlank() && level != null && spellDc != null && spellAttack != null
     val contentScroll = rememberScrollState()
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+    val editorMaxHeight = screenHeightDp * 0.70f
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -281,7 +292,7 @@ fun CharacterEditorDialog(
         text = {
             Column(
                 modifier = Modifier
-                    .heightIn(max = 520.dp)
+                    .heightIn(max = editorMaxHeight)
                     .verticalScroll(contentScroll),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -609,7 +620,7 @@ fun CharacterEditorDialog(
                         )
                     } else {
                         LazyColumn(
-                            modifier = Modifier.heightIn(max = 180.dp),
+                            modifier = Modifier.heightIn(max = screenHeightDp * 0.25f),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             items(selectedSpellSources, key = { it }) { sourceBook ->
@@ -637,7 +648,7 @@ fun CharacterEditorDialog(
                         style = MaterialTheme.typography.labelLarge,
                     )
                     LazyColumn(
-                        modifier = Modifier.heightIn(max = 320.dp),
+                        modifier = Modifier.heightIn(max = screenHeightDp * 0.45f),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         if (filteredSpellSources.isEmpty()) {

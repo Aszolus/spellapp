@@ -2,12 +2,8 @@ package com.spellapp.core.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-
-private val LightColors = lightColorScheme()
-private val DarkColors = darkColorScheme()
+import androidx.compose.runtime.CompositionLocalProvider
 
 enum class SpellAppThemeMode {
     DARK,
@@ -25,9 +21,14 @@ fun SpellAppTheme(
         SpellAppThemeMode.LIGHT -> false
         SpellAppThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
-    val colorScheme = if (darkTheme) DarkColors else LightColors
-    MaterialTheme(
-        colorScheme = colorScheme,
-        content = content,
-    )
+    val colorScheme = if (darkTheme) SpellAppDarkColorScheme else SpellAppLightColorScheme
+    val traditionColors = if (darkTheme) SpellAppDarkTraditionColors else SpellAppLightTraditionColors
+
+    CompositionLocalProvider(LocalTraditionColors provides traditionColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = SpellAppTypography,
+            content = content,
+        )
+    }
 }

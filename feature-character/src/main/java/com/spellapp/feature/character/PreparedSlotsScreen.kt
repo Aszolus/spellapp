@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,7 +29,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -46,6 +44,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -366,9 +369,9 @@ private fun KnownSpellsSection(
                     )
                     Text(
                         text = if (knownSpells.isEmpty()) {
-                            "No spells selected for preparation on this track."
+                            "None known on this track."
                         } else {
-                            "${knownSpells.size} spell${if (knownSpells.size == 1) "" else "s"} available for preparation."
+                            "${knownSpells.size} available to prepare."
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -423,7 +426,7 @@ private fun CombatStatsBar(
                     )
                     Text(
                         text = "$spellDc",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum"),
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -432,8 +435,8 @@ private fun CombatStatsBar(
                         style = MaterialTheme.typography.labelSmall,
                     )
                     Text(
-                        text = "+$spellAttackModifier",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = spellAttackModifier.withSign(),
+                        style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum"),
                     )
                 }
             }
@@ -443,21 +446,30 @@ private fun CombatStatsBar(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = "Focus:",
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                    repeat(focusMax) { index ->
-                        val isFilled = index < focusCurrent
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.semantics(mergeDescendants = true) {
+                            contentDescription = "Focus $focusCurrent of $focusMax points"
+                        },
+                    ) {
                         Text(
-                            text = if (isFilled) "\u25CF" else "\u25CB",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = if (isFilled) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.outline
-                            },
+                            text = "Focus:",
+                            style = MaterialTheme.typography.labelSmall,
                         )
+                        repeat(focusMax) { index ->
+                            val isFilled = index < focusCurrent
+                            Text(
+                                text = if (isFilled) "\u25CF" else "\u25CB",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (isFilled) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outline
+                                },
+                                modifier = Modifier.clearAndSetSemantics { },
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     if (focusCurrent > 0) {
@@ -502,22 +514,25 @@ private fun RankSectionHeader(
         tonalElevation = 1.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = rankLabel,
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HorizontalDivider()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = rankLabel,
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -542,13 +557,17 @@ private fun CompactSlotRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(rowAlpha),
+            .alpha(rowAlpha)
+            .semantics {
+                if (isExpended) stateDescription = "expended"
+            },
     ) {
         if (isPrepared && summary != null) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .combinedClickable(
+                        role = Role.Button,
                         onClick = { onOpenSpellDetail(slot.preparedSpellId!!) },
                         onLongClick = { showContextMenu = true },
                     )
@@ -566,7 +585,7 @@ private fun CompactSlotRow(
                     ) {
                         Text(
                             text = summary.name,
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             textDecoration = if (isExpended) TextDecoration.LineThrough else TextDecoration.None,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -589,17 +608,11 @@ private fun CompactSlotRow(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     if (isExpended) {
-                        OutlinedButton(
-                            onClick = onUncast,
-                            modifier = Modifier.height(32.dp),
-                        ) {
+                        OutlinedButton(onClick = onUncast) {
                             Text("Restore", style = MaterialTheme.typography.labelMedium)
                         }
                     } else {
-                        Button(
-                            onClick = onCast,
-                            modifier = Modifier.height(32.dp),
-                        ) {
+                        Button(onClick = onCast) {
                             Text("Cast", style = MaterialTheme.typography.labelMedium)
                         }
                     }
@@ -643,6 +656,7 @@ private fun CompactSlotRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .combinedClickable(
+                        role = Role.Button,
                         onClick = onChooseSpell,
                     )
                     .padding(horizontal = 12.dp, vertical = 10.dp),

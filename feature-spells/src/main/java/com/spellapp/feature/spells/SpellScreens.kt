@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -34,11 +35,20 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
 
@@ -210,11 +220,12 @@ fun SpellListRoute(
                     StatusPanel {
                         Text(
                             text = if (isManageKnownSpells) {
-                                "Manage the spell pool used for preparation on this track."
+                                "Mark spells known on this track."
                             } else {
-                                "Choose from the known spells on this track."
+                                "Showing known spells for this track."
                             },
                             style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -249,37 +260,29 @@ fun SpellListRoute(
                         }
                     }
                 } else if (spells.isEmpty()) {
-                    val primary = if ((hasActiveFilters || hasActiveSearch) && isAssignPreparedSlot) {
-                        "No known spells matched this filter set."
-                    } else if (hasActiveFilters || hasActiveSearch) {
-                        "No spells matched this filter set."
-                    } else if (isAssignPreparedSlot) {
-                        "No known spells available."
-                    } else if (isManageKnownSpells) {
-                        "No spells available to manage."
-                    } else {
-                        "No spells available."
+                    val isFiltered = hasActiveFilters || hasActiveSearch
+                    val primary = when {
+                        isFiltered && isAssignPreparedSlot -> "No known spells match."
+                        isFiltered -> "No spells match."
+                        isAssignPreparedSlot -> "No known spells yet."
+                        else -> "Dataset is empty."
                     }
-                    val secondary = if (isAssignPreparedSlot && !hasActiveFilters && !hasActiveSearch) {
-                        "Add known spells first, then prepare from this list."
-                    } else if (hasActiveFilters || hasActiveSearch) {
-                        "Adjust filters or clear them."
-                    } else {
-                        "Try reloading the app data."
+                    val secondary = when {
+                        isFiltered -> null
+                        isAssignPreparedSlot -> "Mark spells known to prepare them."
+                        else -> "Reload to refresh the dataset."
                     }
                     StatusPanel {
                         Text(
                             text = primary,
                             style = MaterialTheme.typography.titleMedium,
                         )
-                        Text(
-                            text = secondary,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        if (hasActiveFilters) {
-                            TextButton(onClick = onClearFilters) {
-                                Text("Clear Filters")
-                            }
+                        if (secondary != null) {
+                            Text(
+                                text = secondary,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
@@ -299,12 +302,9 @@ fun SpellListRoute(
                 }
             }
             items(items = spells, key = { it.id }) { spell ->
-                val rankLabel = if (spell.rank == 0) "Cantrip" else "Rank ${spell.rank}"
-                val traditions = spell.tradition
-                    .split(",")
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
-                    .joinToString(", ") { it.replaceFirstChar { ch -> ch.uppercase() } }
+                val subtitle = remember(spell.id, spell.rank, spell.tradition) {
+                    formatSpellSubtitle(spell.rank, spell.tradition)
+                }
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -319,16 +319,17 @@ fun SpellListRoute(
                         Column(
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable { onSpellClick(spell.id) },
+                                .clickable(role = Role.Button) { onSpellClick(spell.id) },
                             verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
                             Text(
                                 text = spell.name,
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = MaterialTheme.typography.titleLarge,
                             )
                             Text(
-                                text = "$rankLabel | $traditions",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = subtitle,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         if (isManageKnownSpells) {
@@ -599,12 +600,31 @@ fun SpellDetailRoute(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(top = 4.dp),
                 )
+                val displayFamily = MaterialTheme.typography.titleLarge.fontFamily
+                val primaryColor = MaterialTheme.colorScheme.primary
+                val description = remember(spell.description, displayFamily, primaryColor) {
+                    buildAnnotatedString {
+                        val text = spell.description
+                        if (text.isEmpty()) return@buildAnnotatedString
+                        withStyle(
+                            SpanStyle(
+                                fontFamily = displayFamily,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = primaryColor,
+                            ),
+                        ) {
+                            append(text.first())
+                        }
+                        append(text.drop(1))
+                    }
+                }
                 Text(
-                    text = spell.description,
+                    text = description,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                DetailField(label = "License", value = spell.license)
-                DetailField(
+                MarginNote(label = "License", value = spell.license)
+                MarginNote(
                     label = "Source",
                     value = "${spell.sourceBook} ${spell.sourcePage ?: ""}".trim(),
                 )
@@ -634,8 +654,47 @@ private fun DetailField(
     if (value.isBlank()) {
         return
     }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.End,
+            modifier = Modifier.width(88.dp),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun MarginNote(
+    label: String,
+    value: String,
+) {
+    if (value.isBlank()) {
+        return
+    }
     Text(
-        text = "$label: $value",
-        style = MaterialTheme.typography.bodyMedium,
+        text = "$label — $value",
+        style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 2.dp),
     )
+}
+
+private fun formatSpellSubtitle(rank: Int, tradition: String): String {
+    val rankLabel = if (rank == 0) "Cantrip" else "Rank $rank"
+    val traditions = tradition
+        .splitToSequence(',')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .joinToString(", ") { it.replaceFirstChar { ch -> ch.uppercase() } }
+    return if (traditions.isEmpty()) rankLabel else "$rankLabel | $traditions"
 }
