@@ -54,6 +54,7 @@ class RoomSpellRepository(
             license = entity.license,
             sourceBook = entity.sourceBook,
             sourcePage = entity.sourcePage,
+            heightenedEntries = HeightenedEntryCodec.decode(entity.heightenedEntriesJson),
         )
     }
 
@@ -82,6 +83,16 @@ class RoomSpellRepository(
         val populatedAreaCount = spellDao.getCountWithArea()
         val importedAreaCount = entities.count { it.areaText != null }
         if (populatedAreaCount == 0 && importedAreaCount > 0) {
+            spellDao.replaceAll(entities)
+            return
+        }
+
+        // One-time repair path for datasets imported before structured heighten entries existed.
+        val populatedHeightenCount = spellDao.getCountWithHeightenedEntries()
+        val importedHeightenCount = entities.count { entity ->
+            entity.heightenedEntriesJson.isNotBlank() && entity.heightenedEntriesJson != "[]"
+        }
+        if (populatedHeightenCount == 0 && importedHeightenCount > 0) {
             spellDao.replaceAll(entities)
         }
     }

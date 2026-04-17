@@ -56,6 +56,7 @@ import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SpellSlotSummary
+import com.spellapp.core.model.ordinalRank
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -77,7 +78,7 @@ fun PreparedSlotsRoute(
     onUndoLastCast: () -> Unit,
     onManageKnownSpells: (String, String?, String?) -> Unit,
     onOpenSpellBrowser: () -> Unit,
-    onOpenPreparedSpell: (String) -> Unit,
+    onOpenPreparedSpell: (String, Int) -> Unit,
     onBack: () -> Unit,
 ) {
     var pendingAction by remember { mutableStateOf<DayCycleAction?>(null) }
@@ -215,12 +216,14 @@ fun PreparedSlotsRoute(
                         RankSectionHeader(
                             rank = rank,
                             slots = slots,
+                            effectiveCantripRank = uiState.effectiveCantripRank,
                         )
                     }
                     items(slots, key = { "${it.trackKey}-${it.rank}-${it.slotIndex}" }) { slot ->
                         CompactSlotRow(
                             slot = slot,
                             summary = slot.preparedSpellId?.let { uiState.spellSummaryById[it] },
+                            effectiveCantripRank = uiState.effectiveCantripRank,
                             onCast = { onCastSlot(slot.rank, slot.slotIndex) },
                             onUncast = { onUncastSlot(slot.rank, slot.slotIndex) },
                             onChooseSpell = {
@@ -232,7 +235,10 @@ fun PreparedSlotsRoute(
                                 )
                             },
                             onClearSpell = { onClearSpell(slot.rank, slot.slotIndex) },
-                            onOpenSpellDetail = { spellId -> onOpenPreparedSpell(spellId) },
+                            onOpenSpellDetail = { spellId ->
+                                val heightenedAt = if (slot.rank == 0) uiState.effectiveCantripRank else slot.rank
+                                onOpenPreparedSpell(spellId, heightenedAt)
+                            },
                         )
                     }
                 }
@@ -498,17 +504,15 @@ private fun CombatStatsBar(
 private fun RankSectionHeader(
     rank: Int,
     slots: List<PreparedSlot>,
+    effectiveCantripRank: Int,
 ) {
     val rankLabel = if (rank == 0) "Cantrips" else "Rank $rank"
-    val totalSlots = slots.size
-    val preparedCount = slots.count { it.preparedSpellId != null }
-    val remainingCount = if (rank == 0) {
-        null
+    val subtitle = if (rank == 0) {
+        "Heightened to rank $effectiveCantripRank"
     } else {
         val unexpended = slots.count { it.preparedSpellId != null && !it.isExpended }
-        "$unexpended/$totalSlots remaining"
+        "$unexpended/${slots.size} remaining"
     }
-    val subtitle = remainingCount ?: "$preparedCount prepared"
 
     Surface(
         tonalElevation = 1.dp,
@@ -542,6 +546,7 @@ private fun RankSectionHeader(
 private fun CompactSlotRow(
     slot: PreparedSlot,
     summary: SpellSlotSummary?,
+    effectiveCantripRank: Int,
     onCast: () -> Unit,
     onUncast: () -> Unit,
     onChooseSpell: () -> Unit,
@@ -596,6 +601,18 @@ private fun CompactSlotRow(
                                 text = formatActionSymbols(summary.castTime),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        val rankLabel = when {
+                            slot.rank == 0 -> "R$effectiveCantripRank"
+                            slot.rank > summary.rank -> "${ordinalRank(slot.rank)} (+${slot.rank - summary.rank})"
+                            else -> null
+                        }
+                        if (rankLabel != null) {
+                            Text(
+                                text = rankLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
                             )
                         }
                         if (summary.range.isNotBlank()) {

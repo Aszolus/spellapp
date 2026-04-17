@@ -7,4 +7,5 @@ data class SpellSlotSummary(
     val castTime: String,
     val range: String,
     val traits: List<String>,
+    val heightenedEntries: List<HeightenedEntry> = emptyList(),
 )

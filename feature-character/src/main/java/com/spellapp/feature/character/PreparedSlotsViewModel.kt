@@ -17,6 +17,7 @@ import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEventType
 import com.spellapp.core.model.SpellSlotSummary
+import com.spellapp.core.model.effectiveCantripRank
 import com.spellapp.core.model.preferredSpellTradition
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +31,8 @@ import kotlinx.coroutines.launch
 
 data class PreparedSlotsUiState(
     val characterName: String = "Character",
+    val characterLevel: Int = 1,
+    val effectiveCantripRank: Int = 1,
     val spellDc: Int = 0,
     val spellAttackModifier: Int = 0,
     val selectedTrackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
@@ -61,6 +64,7 @@ private data class EventContext(
 
 private data class CharacterContext(
     val characterName: String,
+    val characterLevel: Int,
     val spellDc: Int,
     val spellAttackModifier: Int,
 )
@@ -70,6 +74,7 @@ private data class UiMetaContext(
     val focusMaxPoints: Int,
     val hasBlessedOneDedication: Boolean,
     val characterName: String,
+    val characterLevel: Int,
     val spellDc: Int,
     val spellAttackModifier: Int,
 )
@@ -82,6 +87,7 @@ class PreparedSlotsViewModel(
     private val characterProfile = MutableStateFlow(
         CharacterContext(
             characterName = "Character",
+            characterLevel = 1,
             spellDc = 0,
             spellAttackModifier = 0,
         )
@@ -157,6 +163,7 @@ class PreparedSlotsViewModel(
             focusMaxPoints = focus.maxPoints,
             hasBlessedOneDedication = blessedOne,
             characterName = character.characterName,
+            characterLevel = character.characterLevel,
             spellDc = character.spellDc,
             spellAttackModifier = character.spellAttackModifier,
         )
@@ -215,6 +222,8 @@ class PreparedSlotsViewModel(
     ) { slots, events, meta ->
         PreparedSlotsUiState(
             characterName = meta.characterName,
+            characterLevel = meta.characterLevel,
+            effectiveCantripRank = effectiveCantripRank(meta.characterLevel),
             spellDc = meta.spellDc,
             spellAttackModifier = meta.spellAttackModifier,
             selectedTrackKey = slots.selectedTrackKey,
@@ -252,6 +261,7 @@ class PreparedSlotsViewModel(
             service.getCharacterProfile(characterId)?.let { profile ->
                 characterProfile.value = CharacterContext(
                     characterName = profile.name,
+                    characterLevel = profile.level,
                     spellDc = profile.spellDc,
                     spellAttackModifier = profile.spellAttackModifier,
                 )

@@ -15,11 +15,13 @@ sealed class AppDestinations(val route: String) {
         }
     }
 
-    data object SpellDetail : AppDestinations("spell_detail/{spellId}") {
+    data object SpellDetail : AppDestinations("spell_detail/{spellId}?heightenedAt={heightenedAt}") {
         const val argSpellId = "spellId"
+        const val argHeightenedAt = "heightenedAt"
 
-        fun routeFor(spellId: String): String {
-            return "spell_detail/${Uri.encode(spellId)}"
+        fun routeFor(spellId: String, heightenedAt: Int? = null): String {
+            val base = "spell_detail/${Uri.encode(spellId)}"
+            return if (heightenedAt != null) "$base?heightenedAt=$heightenedAt" else base
         }
     }
 }

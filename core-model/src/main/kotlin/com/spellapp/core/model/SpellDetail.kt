@@ -17,4 +17,5 @@ data class SpellDetail(
     val license: String,
     val sourceBook: String,
     val sourcePage: Int?,
+    val heightenedEntries: List<HeightenedEntry> = emptyList(),
 )

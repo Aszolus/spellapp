@@ -17,6 +17,8 @@ import com.spellapp.core.model.CharacterBuildOptionType
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.FocusState
+import com.spellapp.core.model.HeightenTrigger
+import com.spellapp.core.model.HeightenedEntry
 import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEvent
@@ -37,7 +39,7 @@ class PreparedSlotsServiceTest {
         val fixture = fixture(
             slots = listOf(emptySlot(rank = 3)),
             spells = listOf(spell(id = "spell-3", rank = 3)),
-            details = mapOf("spell-3" to detail(id = "spell-3", rank = 3, description = "No heightened block")),
+            details = mapOf("spell-3" to detail(id = "spell-3", rank = 3)),
         )
 
         fixture.service.prepareRandom(characterId = CHARACTER_ID, trackKey = PreparedSlot.PRIMARY_TRACK_KEY)
@@ -50,7 +52,7 @@ class PreparedSlotsServiceTest {
         val fixture = fixture(
             slots = listOf(emptySlot(rank = 3)),
             spells = listOf(spell(id = "spell-2", rank = 2)),
-            details = mapOf("spell-2" to detail(id = "spell-2", rank = 2, description = "No heightened block")),
+            details = mapOf("spell-2" to detail(id = "spell-2", rank = 2)),
         )
 
         fixture.service.prepareRandom(characterId = CHARACTER_ID, trackKey = PreparedSlot.PRIMARY_TRACK_KEY)
@@ -67,7 +69,7 @@ class PreparedSlotsServiceTest {
                 "spell-plus-2" to detail(
                     id = "spell-plus-2",
                     rank = 2,
-                    description = "Some text\n\n---\nHeightened (+2) Gains stronger effects.",
+                    heightenedEntries = listOf(stepEntry(2)),
                 ),
             ),
         )
@@ -86,7 +88,7 @@ class PreparedSlotsServiceTest {
                 "spell-plus-2" to detail(
                     id = "spell-plus-2",
                     rank = 2,
-                    description = "Some text\n\n---\nHeightened (+2) Gains stronger effects.",
+                    heightenedEntries = listOf(stepEntry(2)),
                 ),
             ),
         )
@@ -105,7 +107,7 @@ class PreparedSlotsServiceTest {
                 "spell-absolute-4" to detail(
                     id = "spell-absolute-4",
                     rank = 2,
-                    description = "Some text\n\n---\nHeightened (4th) Gains stronger effects.",
+                    heightenedEntries = listOf(absoluteEntry(4)),
                 ),
             ),
         )
@@ -124,7 +126,7 @@ class PreparedSlotsServiceTest {
                 "spell-absolute-4" to detail(
                     id = "spell-absolute-4",
                     rank = 2,
-                    description = "Some text\n\n---\nHeightened (4th) Gains stronger effects.",
+                    heightenedEntries = listOf(absoluteEntry(4)),
                 ),
             ),
         )
@@ -143,7 +145,7 @@ class PreparedSlotsServiceTest {
                 "spell-absolute-4" to detail(
                     id = "spell-absolute-4",
                     rank = 4,
-                    description = "Some text\n\n---\nHeightened (4th) Gains stronger effects.",
+                    heightenedEntries = listOf(absoluteEntry(4)),
                 ),
             ),
         )
@@ -179,7 +181,7 @@ class PreparedSlotsServiceTest {
                 "spell-plus-2" to detail(
                     id = "spell-plus-2",
                     rank = 1,
-                    description = "Some text\n\n---\nHeightened (+2) Gains stronger effects.",
+                    heightenedEntries = listOf(stepEntry(2)),
                 ),
             ),
         )
@@ -199,7 +201,7 @@ class PreparedSlotsServiceTest {
                 "spell-plus-2" to detail(
                     id = "spell-plus-2",
                     rank = 1,
-                    description = "Some text\n\n---\nHeightened (+2) Gains stronger effects.",
+                    heightenedEntries = listOf(stepEntry(2)),
                 ),
             ),
         )
@@ -218,8 +220,8 @@ class PreparedSlotsServiceTest {
                 spell(id = "unknown-spell", rank = 1),
             ),
             details = mapOf(
-                "known-spell" to detail(id = "known-spell", rank = 1, description = ""),
-                "unknown-spell" to detail(id = "unknown-spell", rank = 1, description = ""),
+                "known-spell" to detail(id = "known-spell", rank = 1),
+                "unknown-spell" to detail(id = "unknown-spell", rank = 1),
             ),
             knownSpellIds = setOf("known-spell"),
         )
@@ -238,8 +240,8 @@ class PreparedSlotsServiceTest {
                 spell(id = "primal-spell", rank = 1, tradition = "primal"),
             ),
             details = mapOf(
-                "arcane-spell" to detail(id = "arcane-spell", rank = 1, description = "", tradition = "arcane"),
-                "primal-spell" to detail(id = "primal-spell", rank = 1, description = "", tradition = "primal"),
+                "arcane-spell" to detail(id = "arcane-spell", rank = 1, tradition = "arcane"),
+                "primal-spell" to detail(id = "primal-spell", rank = 1, tradition = "primal"),
             ),
             tracks = listOf(
                 CastingTrack(
@@ -265,7 +267,7 @@ class PreparedSlotsServiceTest {
                 spell(id = "arcane-spell", rank = 1, tradition = "arcane"),
             ),
             details = mapOf(
-                "arcane-spell" to detail(id = "arcane-spell", rank = 1, description = "", tradition = "arcane"),
+                "arcane-spell" to detail(id = "arcane-spell", rank = 1, tradition = "arcane"),
             ),
             tracks = listOf(
                 CastingTrack(
@@ -621,8 +623,8 @@ class PreparedSlotsServiceTest {
     private fun detail(
         id: String,
         rank: Int,
-        description: String,
         tradition: String = "arcane",
+        heightenedEntries: List<HeightenedEntry> = emptyList(),
     ): SpellDetail {
         return SpellDetail(
             id = id,
@@ -635,10 +637,25 @@ class PreparedSlotsServiceTest {
             range = "",
             target = "",
             duration = "",
-            description = description,
+            description = "",
             license = "",
             sourceBook = "",
             sourcePage = null,
+            heightenedEntries = heightenedEntries,
+        )
+    }
+
+    private fun stepEntry(increment: Int): HeightenedEntry {
+        return HeightenedEntry(
+            trigger = HeightenTrigger.Step(increment),
+            text = "",
+        )
+    }
+
+    private fun absoluteEntry(rank: Int): HeightenedEntry {
+        return HeightenedEntry(
+            trigger = HeightenTrigger.Absolute(rank),
+            text = "",
         )
     }
 

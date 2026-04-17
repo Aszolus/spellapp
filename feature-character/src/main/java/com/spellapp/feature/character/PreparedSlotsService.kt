@@ -12,11 +12,13 @@ import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.FocusState
+import com.spellapp.core.model.HeightenTrigger
 import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEvent
 import com.spellapp.core.model.SessionEventType
 import com.spellapp.core.model.SpellSlotSummary
+import com.spellapp.core.model.ordinalRank
 import com.spellapp.core.model.preferredSpellTradition
 import com.spellapp.core.model.spellSupportsTradition
 import kotlinx.coroutines.flow.Flow
@@ -101,6 +103,7 @@ class PreparedSlotsService(
                     castTime = detail.castTime,
                     range = detail.range,
                     traits = detail.traits,
+                    heightenedEntries = detail.heightenedEntries,
                 )
             }
         }.toMap()
@@ -111,10 +114,9 @@ class PreparedSlotsService(
         spellSummaryById: Map<String, SpellSlotSummary>,
         limit: Int = 8,
     ): List<String> {
-        val nameMap = spellSummaryById.mapValues { it.value.name }
         return sessionEvents
             .take(limit)
-            .map { event -> formatSessionEventLine(event, nameMap) }
+            .map { event -> formatSessionEventLine(event, spellSummaryById) }
     }
 
     suspend fun getCharacterProfile(characterId: Long): CharacterProfile? {
@@ -386,60 +388,44 @@ class PreparedSlotsService(
         heightenProgressionBySpellId[spellId]?.let { cached ->
             return cached
         }
-        val progression = spellRepository.getSpellDetail(spellId)
-            ?.description
-            ?.let { description ->
-                parseHeightenedProgression(description)
-            } ?: HeightenedProgression.EMPTY
+        val entries = spellRepository.getSpellDetail(spellId)?.heightenedEntries.orEmpty()
+        val progression = if (entries.isEmpty()) {
+            HeightenedProgression.EMPTY
+        } else {
+            HeightenedProgression(
+                incrementSteps = entries
+                    .mapNotNull { (it.trigger as? HeightenTrigger.Step)?.increment }
+                    .toSet(),
+                absoluteRanks = entries
+                    .mapNotNull { (it.trigger as? HeightenTrigger.Absolute)?.rank }
+                    .toSet(),
+            )
+        }
         heightenProgressionBySpellId[spellId] = progression
         return progression
     }
 
-    private fun parseHeightenedProgression(description: String): HeightenedProgression {
-        val increments = linkedSetOf<Int>()
-        val absoluteRanks = linkedSetOf<Int>()
-        HEIGHTENED_LINE_PATTERN.findAll(description).forEach { match ->
-            val raw = match.groupValues.getOrNull(1).orEmpty().trim().lowercase()
-            if (raw.isBlank()) {
-                return@forEach
-            }
-            val normalized = raw.replace(" ", "")
-            val incrementRank = HEIGHTEN_INCREMENT_PATTERN.matchEntire(normalized)
-                ?.groupValues
-                ?.getOrNull(1)
-                ?.toIntOrNull()
-            if (incrementRank != null && incrementRank > 0) {
-                increments += incrementRank
-                return@forEach
-            }
-            val absoluteRank = HEIGHTEN_ABSOLUTE_PATTERN.matchEntire(normalized)
-                ?.groupValues
-                ?.getOrNull(1)
-                ?.toIntOrNull()
-            if (absoluteRank != null && absoluteRank > 0) {
-                absoluteRanks += absoluteRank
-            }
-        }
-        return HeightenedProgression(
-            incrementSteps = increments,
-            absoluteRanks = absoluteRanks,
-        )
-    }
-
     private fun formatSessionEventLine(
         event: SessionEvent,
-        spellNameById: Map<String, String>,
+        spellSummaryById: Map<String, SpellSlotSummary>,
     ): String {
-        val spellName = event.spellId?.let { spellNameById[it] ?: it }
-            ?: if (event.type == SessionEventType.CAST_FOCUS_SPELL) {
-                "Lay on Hands"
-            } else {
-                "Unknown Spell"
-            }
+        val summary = event.spellId?.let { spellSummaryById[it] }
+        val spellName = summary?.name
+            ?: event.spellId
+            ?: if (event.type == SessionEventType.CAST_FOCUS_SPELL) "Lay on Hands" else "Unknown Spell"
         return when (event.type) {
             SessionEventType.CAST_SPELL -> {
-                val rankLabel = if (event.spellRank == 0) "Cantrip" else "Rank ${event.spellRank ?: "?"}"
-                "Cast $rankLabel: $spellName"
+                val slotRank = event.spellRank
+                when {
+                    slotRank == null -> "Cast $spellName"
+                    slotRank == 0 -> "Cast Cantrip: $spellName"
+                    else -> {
+                        val baseRank = summary?.rank
+                        val delta = if (baseRank != null && slotRank > baseRank) slotRank - baseRank else 0
+                        val suffix = if (delta > 0) " (+$delta)" else ""
+                        "Cast $spellName @ ${ordinalRank(slotRank)}$suffix"
+                    }
+                }
             }
             SessionEventType.CAST_FOCUS_SPELL -> "Cast Focus: $spellName"
             SessionEventType.UNDO_LAST_ACTION -> "Undo last action"
@@ -506,11 +492,5 @@ class PreparedSlotsService(
     companion object {
         private const val MAX_FOCUS_POINTS = 3
         private const val BLESSED_ONE_DEDICATION_OPTION_ID = "archetype/blessed-one/blessed-one-dedication"
-        private val HEIGHTENED_LINE_PATTERN = Regex(
-            pattern = "(?m)^\\s*Heightened\\s*\\(([^)]+)\\)",
-            option = RegexOption.IGNORE_CASE,
-        )
-        private val HEIGHTEN_INCREMENT_PATTERN = Regex("^\\+(\\d+)$")
-        private val HEIGHTEN_ABSOLUTE_PATTERN = Regex("^(\\d+)(st|nd|rd|th)$")
     }
 }

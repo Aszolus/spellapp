@@ -65,6 +65,9 @@ interface SpellDao {
     @Query("SELECT COUNT(*) FROM spells WHERE areaText IS NOT NULL")
     suspend fun getCountWithArea(): Int
 
+    @Query("SELECT COUNT(*) FROM spells WHERE heightenedEntriesJson != '' AND heightenedEntriesJson != '[]'")
+    suspend fun getCountWithHeightenedEntries(): Int
+
     @Query("DELETE FROM spells")
     suspend fun clearAll()
 

@@ -215,8 +215,8 @@ private fun NavGraphBuilder.preparedSlotsDestination(
                 navigationViewModel.openSpellList(characterId)
                 navController.navigate(AppDestinations.SpellList.route)
             },
-            onOpenPreparedSpell = { spellId ->
-                navController.navigate(AppDestinations.SpellDetail.routeFor(spellId))
+            onOpenPreparedSpell = { spellId, heightenedAt ->
+                navController.navigate(AppDestinations.SpellDetail.routeFor(spellId, heightenedAt))
             },
             onBack = { navController.popBackStackIfResumed() },
         )
@@ -308,19 +308,30 @@ private fun NavGraphBuilder.spellDetailDestination(
 ) {
     composable(
         route = AppDestinations.SpellDetail.route,
-        arguments = listOf(navArgument(AppDestinations.SpellDetail.argSpellId) {
-            type = NavType.StringType
-        }),
+        arguments = listOf(
+            navArgument(AppDestinations.SpellDetail.argSpellId) {
+                type = NavType.StringType
+            },
+            navArgument(AppDestinations.SpellDetail.argHeightenedAt) {
+                type = NavType.IntType
+                defaultValue = -1
+            },
+        ),
     ) { backStackEntry ->
         val spellId = backStackEntry.arguments
             ?.getString(AppDestinations.SpellDetail.argSpellId)
             .orEmpty()
+        val heightenedAtArg = backStackEntry.arguments
+            ?.getInt(AppDestinations.SpellDetail.argHeightenedAt)
+            ?: -1
+        val heightenedAt = heightenedAtArg.takeIf { it >= 0 }
         val spellDetailViewModel: SpellDetailViewModel = viewModel(
-            key = "spell-detail-$spellId",
-            factory = remember(spellId) {
+            key = "spell-detail-$spellId-${heightenedAt ?: "none"}",
+            factory = remember(spellId, heightenedAt) {
                 SpellDetailViewModelFactory(
                     spellId = spellId,
                     spellRepository = spellRepository,
+                    initialHeightenedAt = heightenedAt,
                 )
             },
         )
@@ -328,6 +339,7 @@ private fun NavGraphBuilder.spellDetailDestination(
         SpellDetailRoute(
             spell = spellDetailUiState.spell,
             isLoading = spellDetailUiState.isLoading,
+            heightenedAt = spellDetailUiState.heightenedAt,
             onBack = { navController.popBackStackIfResumed() },
         )
     }

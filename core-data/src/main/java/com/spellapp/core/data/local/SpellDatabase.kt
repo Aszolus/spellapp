@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         FocusStateEntity::class,
         SessionEventEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false,
 )
 abstract class SpellDatabase : RoomDatabase() {
@@ -285,6 +285,14 @@ abstract class SpellDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `spells` ADD COLUMN `heightenedEntriesJson` TEXT NOT NULL DEFAULT '[]'",
+                )
+            }
+        }
+
         fun create(context: Context): SpellDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -298,6 +306,7 @@ abstract class SpellDatabase : RoomDatabase() {
                     .addMigrations(MIGRATION_5_6)
                     .addMigrations(MIGRATION_6_7)
                     .addMigrations(MIGRATION_7_8)
+                    .addMigrations(MIGRATION_8_9)
                     .build()
                     .also { INSTANCE = it }
             }

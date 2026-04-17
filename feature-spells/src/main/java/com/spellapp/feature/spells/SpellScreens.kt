@@ -13,7 +13,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -41,6 +42,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -48,9 +53,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.spellapp.core.model.HeightenTrigger
+import com.spellapp.core.model.HeightenedEntry
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
+import com.spellapp.core.model.heightenBonusDice
+import com.spellapp.core.model.ordinalRank
 
 private val filterTraditions = listOf("arcane", "divine", "occult", "primal")
 private val filterRarities = listOf("common", "uncommon", "rare", "unique")
@@ -533,6 +541,7 @@ private data class ActiveSpellFilter(
 fun SpellDetailRoute(
     spell: SpellDetail?,
     isLoading: Boolean,
+    heightenedAt: Int? = null,
     onBack: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
@@ -598,18 +607,21 @@ fun SpellDetailRoute(
                 Text(
                     text = "Rules Text",
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .semantics { heading() },
                 )
                 val displayFamily = MaterialTheme.typography.titleLarge.fontFamily
                 val primaryColor = MaterialTheme.colorScheme.primary
-                val description = remember(spell.description, displayFamily, primaryColor) {
+                val dropCapSize = MaterialTheme.typography.headlineMedium.fontSize
+                val description = remember(spell.description, displayFamily, primaryColor, dropCapSize) {
                     buildAnnotatedString {
-                        val text = spell.description
+                        val text = spell.description.trimStart()
                         if (text.isEmpty()) return@buildAnnotatedString
                         withStyle(
                             SpanStyle(
                                 fontFamily = displayFamily,
-                                fontSize = 28.sp,
+                                fontSize = dropCapSize,
                                 fontWeight = FontWeight.SemiBold,
                                 color = primaryColor,
                             ),
@@ -623,6 +635,13 @@ fun SpellDetailRoute(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                if (spell.heightenedEntries.isNotEmpty()) {
+                    HeightenSection(
+                        entries = spell.heightenedEntries,
+                        baseRank = if (spell.rank == 0) 1 else spell.rank,
+                        heightenedAt = heightenedAt,
+                    )
+                }
                 MarginNote(label = "License", value = spell.license)
                 MarginNote(
                     label = "Source",
@@ -663,7 +682,9 @@ private fun DetailField(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.End,
-            modifier = Modifier.width(88.dp),
+            modifier = Modifier
+                .widthIn(min = 88.dp)
+                .wrapContentWidth(Alignment.End),
         )
         Text(
             text = value,
@@ -685,8 +706,103 @@ private fun MarginNote(
         text = "$label — $value",
         style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 2.dp),
+        modifier = Modifier
+            .padding(top = 2.dp)
+            .semantics { contentDescription = "$label: $value" },
     )
+}
+
+@Composable
+private fun HeightenSection(
+    entries: List<HeightenedEntry>,
+    baseRank: Int,
+    heightenedAt: Int?,
+) {
+    Text(
+        text = "Heightened",
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier
+            .padding(top = 8.dp)
+            .semantics { heading() },
+    )
+    if (heightenedAt != null) {
+        val bonusDice = heightenBonusDice(entries, baseRank, heightenedAt)
+        if (bonusDice != null) {
+            Text(
+                text = "At ${ordinalRank(heightenedAt)}: $bonusDice",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        entries.forEach { entry ->
+            val active = heightenedAt != null && isEntryActive(entry, baseRank, heightenedAt)
+            HeightenBlock(entry = entry, active = active)
+        }
+    }
+}
+
+@Composable
+private fun HeightenBlock(
+    entry: HeightenedEntry,
+    active: Boolean,
+) {
+    val bg = if (active) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+    val fg = if (active) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Surface(
+        color = bg,
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                if (active) stateDescription = "applied"
+            },
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = formatHeightenLabel(entry.trigger, active),
+                style = MaterialTheme.typography.labelLarge,
+                color = fg,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = entry.text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = fg,
+            )
+        }
+    }
+}
+
+private fun formatHeightenLabel(trigger: HeightenTrigger, active: Boolean): String {
+    val prefix = if (active) "\u2713 " else ""
+    return when (trigger) {
+        is HeightenTrigger.Step -> "${prefix}Heightened (+${trigger.increment})"
+        is HeightenTrigger.Absolute -> "${prefix}Heightened (${ordinalRank(trigger.rank)})"
+    }
+}
+
+private fun isEntryActive(
+    entry: HeightenedEntry,
+    baseRank: Int,
+    heightenedAt: Int,
+): Boolean {
+    return when (val t = entry.trigger) {
+        is HeightenTrigger.Absolute -> heightenedAt >= t.rank
+        is HeightenTrigger.Step -> heightenedAt >= baseRank + t.increment
+    }
 }
 
 private fun formatSpellSubtitle(rank: Int, tradition: String): String {

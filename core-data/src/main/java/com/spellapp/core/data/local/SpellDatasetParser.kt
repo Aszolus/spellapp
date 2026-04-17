@@ -25,6 +25,10 @@ internal object SpellDatasetParser {
             } else {
                 spellObj.optString("tradition")
             }
+            val heightenedEntries = HeightenedDescriptionParser.parse(
+                descriptionRaw = spellObj.optString("descriptionRaw").takeIf { it.isNotBlank() },
+                description = spellObj.optString("description").takeIf { it.isNotBlank() },
+            )
 
             entities += SpellEntity(
                 id = id,
@@ -43,6 +47,7 @@ internal object SpellDatasetParser {
                 license = spellObj.optString("license"),
                 sourceBook = sourceObj?.optString("book").orEmpty(),
                 sourcePage = sourceObj?.optIntOrNull("page"),
+                heightenedEntriesJson = HeightenedEntryCodec.encode(heightenedEntries),
             )
         }
 

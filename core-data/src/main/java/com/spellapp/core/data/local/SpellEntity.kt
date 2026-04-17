@@ -29,4 +29,5 @@ data class SpellEntity(
     val license: String,
     val sourceBook: String,
     val sourcePage: Int?,
+    val heightenedEntriesJson: String = "[]",
 )
