@@ -46,7 +46,9 @@ class RoomSpellRepository(
                 .filter { it.isNotBlank() },
             castTime = entity.castTime,
             range = entity.rangeText,
+            area = entity.areaText.orEmpty(),
             target = entity.targetText,
+            defense = entity.defenseText.orEmpty(),
             duration = entity.durationText,
             description = entity.description,
             license = entity.license,
@@ -72,6 +74,14 @@ class RoomSpellRepository(
 
         // One-time repair path for datasets imported before cantrips were normalized to rank 0.
         if (importedCantripCount > 0 && existingCantripCount == 0) {
+            spellDao.replaceAll(entities)
+            return
+        }
+
+        // One-time repair path for datasets imported before area/defense were extracted.
+        val populatedAreaCount = spellDao.getCountWithArea()
+        val importedAreaCount = entities.count { it.areaText != null }
+        if (populatedAreaCount == 0 && importedAreaCount > 0) {
             spellDao.replaceAll(entities)
         }
     }

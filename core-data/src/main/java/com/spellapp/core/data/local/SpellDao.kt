@@ -62,6 +62,9 @@ interface SpellDao {
     @Query("SELECT COUNT(*) FROM spells WHERE rank = :rank")
     suspend fun getSpellCountByRank(rank: Int): Int
 
+    @Query("SELECT COUNT(*) FROM spells WHERE areaText IS NOT NULL")
+    suspend fun getCountWithArea(): Int
+
     @Query("DELETE FROM spells")
     suspend fun clearAll()
 

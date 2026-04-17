@@ -1,10 +1,10 @@
 ﻿{
-    "datasetVersion":  "20260308-160554",
-    "sourceCommit":  "\u003ccommit-hash-from-D:\\pf2e\u003e",
+    "datasetVersion":  "20260416-233521",
+    "sourceCommit":  "cd1f3cac4b960b726b846e4b280151de13f43fd5",
     "entries":  [
                     {
                         "license":  "OGL",
-                        "count":  675,
+                        "count":  674,
                         "sources":  [
                                         "Pathfinder #147: Tomorrow Must Burn",
                                         "Pathfinder #148: Fires of the Haunted City",
@@ -75,7 +75,7 @@
                     },
                     {
                         "license":  "ORC",
-                        "count":  1121,
+                        "count":  1122,
                         "sources":  [
                                         "Pathfinder #201: Pactbreaker",
                                         "Pathfinder #202: Severed at the Root",
@@ -90,6 +90,7 @@
                                         "Pathfinder #218: Titanbane",
                                         "Pathfinder #219: Lord of the Trinity Star",
                                         "Pathfinder Adventure Path: Gatewalkers",
+                                        "Pathfinder Adventure Path: Hellbreakers",
                                         "Pathfinder Adventure: Prey for Death",
                                         "Pathfinder Battlecry!",
                                         "Pathfinder Dark Archive (Remastered)",

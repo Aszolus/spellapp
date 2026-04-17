@@ -1,7 +1,5 @@
 package com.spellapp.feature.character
 
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -13,11 +11,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.spellapp.core.model.AbilityScore
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 
@@ -59,6 +58,7 @@ fun CharacterListRoute(
     onOpenPreparedSlots: (CharacterProfile) -> Unit,
     onOpenSpells: (CharacterProfile) -> Unit,
 ) {
+    var pendingDeleteCharacter by remember { mutableStateOf<CharacterProfile?>(null) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -106,12 +106,52 @@ fun CharacterListRoute(
                     character = character,
                     classDefinitionsByClass = classDefinitionsByClass,
                     onEdit = { onEditCharacter(character) },
-                    onDelete = { onDeleteCharacter(character) },
+                    onDelete = { pendingDeleteCharacter = character },
                     onOpenPreparedSlots = { onOpenPreparedSlots(character) },
                     onOpenSpells = { onOpenSpells(character) },
                 )
             }
         }
+    }
+
+    pendingDeleteCharacter?.let { character ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteCharacter = null },
+            title = {
+                Text("Delete Character Permanently?")
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "\"${character.name}\" will be deleted permanently.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = "This cannot be undone. Known spells, prepared slots, casting tracks, session history, and focus state for this character will all be removed.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteCharacter(character)
+                        pendingDeleteCharacter = null
+                    },
+                ) {
+                    Text(
+                        text = "Delete Forever",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteCharacter = null }) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
 }
 

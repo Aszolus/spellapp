@@ -37,6 +37,8 @@ internal object SpellDatasetParser {
                 rangeText = spellObj.optString("range"),
                 targetText = spellObj.optString("target"),
                 durationText = spellObj.optString("duration"),
+                areaText = formatArea(spellObj.optJSONObject("area")),
+                defenseText = formatDefense(spellObj.optJSONObject("save")),
                 description = spellObj.optString("description"),
                 license = spellObj.optString("license"),
                 sourceBook = sourceObj?.optString("book").orEmpty(),
@@ -57,6 +59,29 @@ internal object SpellDatasetParser {
             }
         }
         return values
+    }
+
+    private fun formatArea(areaObj: JSONObject?): String? {
+        if (areaObj == null) return null
+        val value = areaObj.optIntOrNull("value") ?: return null
+        val type = areaObj.optString("type", "").takeIf { it.isNotBlank() }
+        return if (type != null) {
+            "$value-foot $type"
+        } else {
+            "$value-foot area"
+        }
+    }
+
+    private fun formatDefense(saveObj: JSONObject?): String? {
+        if (saveObj == null) return null
+        val statistic = saveObj.optString("statistic", "").takeIf { it.isNotBlank() } ?: return null
+        val isBasic = saveObj.optBoolean("basic", false)
+        val capitalizedStat = statistic.replaceFirstChar { it.uppercase() }
+        return if (isBasic) {
+            "basic $capitalizedStat"
+        } else {
+            capitalizedStat
+        }
     }
 
     private fun JSONObject.optIntOrNull(key: String): Int? {

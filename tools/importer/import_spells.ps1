@@ -194,8 +194,10 @@ foreach ($file in $spellFiles) {
     $rangeValue = Get-NestedValue -Object $json -Path @("system", "range", "value")
     $targetValue = Get-NestedValue -Object $json -Path @("system", "target", "value")
     $areaValue = Get-NestedValue -Object $json -Path @("system", "area", "value")
+    $areaTypeValue = Get-NestedValue -Object $json -Path @("system", "area", "type")
     $durationValue = Get-NestedValue -Object $json -Path @("system", "duration", "value")
     $saveValue = Get-NestedValue -Object $json -Path @("system", "defense", "save", "basic")
+    $saveStatisticValue = Get-NestedValue -Object $json -Path @("system", "defense", "save", "statistic")
     $descriptionRaw = Get-NestedValue -Object $json -Path @("system", "description", "value")
     $descriptionValue = Convert-FoundryMarkupToPlainText -InputText $descriptionRaw
 
@@ -209,9 +211,13 @@ foreach ($file in $spellFiles) {
         cast = $castValue
         range = $rangeValue
         target = $targetValue
-        area = $areaValue
+        area = if ($null -ne $areaValue) {
+            [PSCustomObject]@{ value = $areaValue; type = $areaTypeValue }
+        } else { $null }
         duration = $durationValue
-        save = $saveValue
+        save = if (-not [string]::IsNullOrWhiteSpace("$saveStatisticValue")) {
+            [PSCustomObject]@{ basic = ($saveValue -eq $true); statistic = "$saveStatisticValue" }
+        } else { $null }
         source = [PSCustomObject]@{
             book = $publicationTitle
             page = $publicationPage

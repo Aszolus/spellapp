@@ -4,7 +4,9 @@
       "Bash(cmd /c dir:*)",
       "Bash(dir:*)",
       "Bash(ls:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Users/steve/AppData/Local/**)"
     ]
   }
 }

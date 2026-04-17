@@ -21,8 +21,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -587,7 +587,9 @@ fun SpellDetailRoute(
                 DetailField(label = "Rarity", value = spell.rarity)
                 DetailField(label = "Cast", value = spell.castTime)
                 DetailField(label = "Range", value = spell.range)
+                DetailField(label = "Area", value = spell.area)
                 DetailField(label = "Target", value = spell.target)
+                DetailField(label = "Defense", value = spell.defense)
                 DetailField(label = "Duration", value = spell.duration)
                 if (spell.traits.isNotEmpty()) {
                     DetailField(label = "Traits", value = spell.traits.joinToString(", "))

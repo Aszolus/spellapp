@@ -23,6 +23,8 @@ data class SpellEntity(
     val rangeText: String,
     val targetText: String,
     val durationText: String,
+    val areaText: String?,
+    val defenseText: String?,
     val description: String,
     val license: String,
     val sourceBook: String,
