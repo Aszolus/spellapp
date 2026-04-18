@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.spellapp.core.model.HeightenTrigger
@@ -541,10 +543,14 @@ private data class ActiveSpellFilter(
 fun SpellDetailRoute(
     spell: SpellDetail?,
     isLoading: Boolean,
+    traitLookups: List<SpellTraitLookupUiState>,
+    rulesText: String,
+    rulesTextReferences: List<SpellRulesReferenceUiState>,
     heightenedAt: Int? = null,
     onBack: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
+    var activeLookup by remember { mutableStateOf<SpellLookupDialogState?>(null) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -601,8 +607,16 @@ fun SpellDetailRoute(
                 DetailField(label = "Target", value = spell.target)
                 DetailField(label = "Defense", value = spell.defense)
                 DetailField(label = "Duration", value = spell.duration)
-                if (spell.traits.isNotEmpty()) {
-                    DetailField(label = "Traits", value = spell.traits.joinToString(", "))
+                if (traitLookups.isNotEmpty()) {
+                    TraitLookupField(
+                        traitLookups = traitLookups,
+                        onLookupClick = { lookup ->
+                            activeLookup = SpellLookupDialogState(
+                                title = lookup.label,
+                                description = lookup.description.orEmpty(),
+                            )
+                        },
+                    )
                 }
                 Text(
                     text = "Rules Text",
@@ -614,9 +628,17 @@ fun SpellDetailRoute(
                 val displayFamily = MaterialTheme.typography.titleLarge.fontFamily
                 val primaryColor = MaterialTheme.colorScheme.primary
                 val dropCapSize = MaterialTheme.typography.headlineMedium.fontSize
-                val description = remember(spell.description, displayFamily, primaryColor, dropCapSize) {
+                val description = remember(
+                    rulesText,
+                    rulesTextReferences,
+                    displayFamily,
+                    primaryColor,
+                    dropCapSize,
+                ) {
+                    val clickableReferences = rulesTextReferences.withIndex()
+                        .filter { it.value.description != null }
                     buildAnnotatedString {
-                        val text = spell.description.trimStart()
+                        val text = rulesText
                         if (text.isEmpty()) return@buildAnnotatedString
                         withStyle(
                             SpanStyle(
@@ -629,11 +651,49 @@ fun SpellDetailRoute(
                             append(text.first())
                         }
                         append(text.drop(1))
+                        clickableReferences.forEach { indexedReference ->
+                            addStyle(
+                                style = SpanStyle(
+                                    color = primaryColor,
+                                    fontWeight = FontWeight.Medium,
+                                    textDecoration = TextDecoration.Underline,
+                                ),
+                                start = indexedReference.value.start,
+                                end = indexedReference.value.end,
+                            )
+                            addStringAnnotation(
+                                tag = SPELL_LOOKUP_ANNOTATION_TAG,
+                                annotation = indexedReference.index.toString(),
+                                start = indexedReference.value.start,
+                                end = indexedReference.value.end,
+                            )
+                        }
                     }
                 }
-                Text(
+                ClickableText(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
+                    onClick = { offset ->
+                        description
+                            .getStringAnnotations(
+                                tag = SPELL_LOOKUP_ANNOTATION_TAG,
+                                start = offset,
+                                end = offset,
+                            )
+                            .firstOrNull()
+                            ?.item
+                            ?.toIntOrNull()
+                            ?.let { index ->
+                                val reference = rulesTextReferences.getOrNull(index)
+                                val descriptionText = reference?.description
+                                if (reference != null && descriptionText != null) {
+                                    activeLookup = SpellLookupDialogState(
+                                        title = reference.label,
+                                        description = descriptionText,
+                                    )
+                                }
+                            }
+                    },
                 )
                 if (spell.heightenedEntries.isNotEmpty()) {
                     HeightenSection(
@@ -649,6 +709,12 @@ fun SpellDetailRoute(
                 )
             }
         }
+    }
+    activeLookup?.let { lookup ->
+        SpellLookupDialog(
+            lookup = lookup,
+            onDismiss = { activeLookup = null },
+        )
     }
 }
 
@@ -692,6 +758,81 @@ private fun DetailField(
             modifier = Modifier.weight(1f),
         )
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TraitLookupField(
+    traitLookups: List<SpellTraitLookupUiState>,
+    onLookupClick: (SpellTraitLookupUiState) -> Unit,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Traits",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            traitLookups.forEach { lookup ->
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    tonalElevation = 1.dp,
+                    modifier = Modifier.then(
+                        if (lookup.description != null) {
+                            Modifier.clickable { onLookupClick(lookup) }
+                        } else {
+                            Modifier
+                        }
+                    ),
+                ) {
+                    Text(
+                        text = lookup.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (lookup.description != null) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpellLookupDialog(
+    lookup: SpellLookupDialogState,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(lookup.title) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 360.dp)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                Text(
+                    text = lookup.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+    )
 }
 
 @Composable
@@ -814,3 +955,10 @@ private fun formatSpellSubtitle(rank: Int, tradition: String): String {
         .joinToString(", ") { it.replaceFirstChar { ch -> ch.uppercase() } }
     return if (traditions.isEmpty()) rankLabel else "$rankLabel | $traditions"
 }
+
+private data class SpellLookupDialogState(
+    val title: String,
+    val description: String,
+)
+
+private const val SPELL_LOOKUP_ANNOTATION_TAG = "spell-lookup"

@@ -1,4 +1,4 @@
-package com.spellapp.feature.character
+package com.spellapp.feature.character.spellcasting
 
 import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.SpellRepository

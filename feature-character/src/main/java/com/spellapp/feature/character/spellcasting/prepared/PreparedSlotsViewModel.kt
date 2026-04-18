@@ -1,4 +1,4 @@
-package com.spellapp.feature.character
+package com.spellapp.feature.character.spellcasting.prepared
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -19,6 +19,8 @@ import com.spellapp.core.model.SessionEventType
 import com.spellapp.core.model.SpellSlotSummary
 import com.spellapp.core.model.effectiveCantripRank
 import com.spellapp.core.model.preferredSpellTradition
+import com.spellapp.feature.character.spellcasting.CastLayOnHandsUseCase
+import com.spellapp.feature.character.spellcasting.SpellcastingSupportService
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -81,7 +83,9 @@ private data class UiMetaContext(
 
 class PreparedSlotsViewModel(
     private val characterId: Long,
-    private val service: PreparedSlotsService,
+    private val preparedSlotsService: PreparedSlotsService,
+    private val spellcastingSupportService: SpellcastingSupportService,
+    private val castLayOnHandsUseCase: CastLayOnHandsUseCase,
 ) : ViewModel() {
     private val selectedTrackKey = MutableStateFlow(PreparedSlot.PRIMARY_TRACK_KEY)
     private val characterProfile = MutableStateFlow(
@@ -92,7 +96,7 @@ class PreparedSlotsViewModel(
             spellAttackModifier = 0,
         )
     )
-    private val castingTracks = service.observeCastingTracks(characterId)
+    private val castingTracks = spellcastingSupportService.observeCastingTracks(characterId)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -117,7 +121,7 @@ class PreparedSlotsViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val preparedSlots = activeTrackKey.flatMapLatest { trackKey ->
-        service.observePreparedSlots(
+        preparedSlotsService.observePreparedSlots(
             characterId = characterId,
             trackKey = trackKey,
         )
@@ -129,7 +133,7 @@ class PreparedSlotsViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val knownSpells = activeTrackKey.flatMapLatest { trackKey ->
-        service.observeKnownSpells(
+        spellcastingSupportService.observeKnownSpells(
             characterId = characterId,
             trackKey = trackKey,
         )
@@ -141,7 +145,7 @@ class PreparedSlotsViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val sessionEvents = activeTrackKey.flatMapLatest { trackKey ->
-        service.observeSessionEvents(
+        spellcastingSupportService.observeSessionEvents(
             characterId = characterId,
             trackKey = trackKey,
         )
@@ -151,8 +155,8 @@ class PreparedSlotsViewModel(
         initialValue = emptyList(),
     )
 
-    private val focusState = service.observeFocusState(characterId)
-    private val hasBlessedOneDedication = service.observeHasBlessedOneDedication(characterId)
+    private val focusState = spellcastingSupportService.observeFocusState(characterId)
+    private val hasBlessedOneDedication = spellcastingSupportService.observeHasBlessedOneDedication(characterId)
     private val uiMetaContext = combine(
         focusState,
         hasBlessedOneDedication,
@@ -177,7 +181,7 @@ class PreparedSlotsViewModel(
             addAll(known.map { it.spellId })
         }
     }.mapLatest { spellIds ->
-        service.resolveSpellSummaries(spellIds)
+        spellcastingSupportService.resolveSpellSummaries(spellIds)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -207,7 +211,7 @@ class PreparedSlotsViewModel(
     ) { events, summaries ->
         EventContext(
             spellSummaryById = summaries,
-            recentEventLines = service.formatRecentEventLines(
+            recentEventLines = spellcastingSupportService.formatRecentEventLines(
                 sessionEvents = events,
                 spellSummaryById = summaries,
             ),
@@ -255,10 +259,10 @@ class PreparedSlotsViewModel(
 
     init {
         viewModelScope.launch {
-            service.syncPreparedSlots(characterId)
+            preparedSlotsService.syncPreparedSlots(characterId)
         }
         viewModelScope.launch {
-            service.getCharacterProfile(characterId)?.let { profile ->
+            spellcastingSupportService.getCharacterProfile(characterId)?.let { profile ->
                 characterProfile.value = CharacterContext(
                     characterName = profile.name,
                     characterLevel = profile.level,
@@ -275,7 +279,7 @@ class PreparedSlotsViewModel(
 
     fun clearSpell(rank: Int, slotIndex: Int) {
         viewModelScope.launch {
-            service.clearSpell(
+            preparedSlotsService.clearSpell(
                 characterId = characterId,
                 rank = rank,
                 slotIndex = slotIndex,
@@ -286,7 +290,7 @@ class PreparedSlotsViewModel(
 
     fun castSlot(rank: Int, slotIndex: Int) {
         viewModelScope.launch {
-            service.castSlot(
+            preparedSlotsService.castSlot(
                 characterId = characterId,
                 rank = rank,
                 slotIndex = slotIndex,
@@ -297,7 +301,7 @@ class PreparedSlotsViewModel(
 
     fun uncastSlot(rank: Int, slotIndex: Int) {
         viewModelScope.launch {
-            service.uncastSlot(
+            preparedSlotsService.uncastSlot(
                 characterId = characterId,
                 rank = rank,
                 slotIndex = slotIndex,
@@ -308,7 +312,7 @@ class PreparedSlotsViewModel(
 
     fun undoLastCast() {
         viewModelScope.launch {
-            service.undoLastCast(
+            preparedSlotsService.undoLastCast(
                 characterId = characterId,
                 trackKey = activeTrackKey.value,
             )
@@ -317,25 +321,25 @@ class PreparedSlotsViewModel(
 
     fun useFocusPoint() {
         viewModelScope.launch {
-            service.useFocusPoint(characterId)
+            spellcastingSupportService.useFocusPoint(characterId)
         }
     }
 
     fun increaseFocusMax() {
         viewModelScope.launch {
-            service.increaseFocusMax(characterId)
+            spellcastingSupportService.increaseFocusMax(characterId)
         }
     }
 
     fun decreaseFocusMax() {
         viewModelScope.launch {
-            service.decreaseFocusMax(characterId)
+            spellcastingSupportService.decreaseFocusMax(characterId)
         }
     }
 
     fun refocus() {
         viewModelScope.launch {
-            service.refocus(
+            spellcastingSupportService.refocus(
                 characterId = characterId,
                 trackKey = activeTrackKey.value,
             )
@@ -344,7 +348,7 @@ class PreparedSlotsViewModel(
 
     fun castLayOnHands() {
         viewModelScope.launch {
-            service.castLayOnHands(
+            castLayOnHandsUseCase.cast(
                 characterId = characterId,
                 trackKey = activeTrackKey.value,
             )
@@ -353,7 +357,7 @@ class PreparedSlotsViewModel(
 
     fun rest() {
         viewModelScope.launch {
-            service.rest(
+            spellcastingSupportService.rest(
                 characterId = characterId,
                 trackKey = activeTrackKey.value,
             )
@@ -362,7 +366,7 @@ class PreparedSlotsViewModel(
 
     fun newDayPreparation() {
         viewModelScope.launch {
-            service.newDayPreparation(
+            preparedSlotsService.newDayPreparation(
                 characterId = characterId,
                 trackKey = activeTrackKey.value,
             )
@@ -371,7 +375,7 @@ class PreparedSlotsViewModel(
 
     fun prepareRandom() {
         viewModelScope.launch {
-            service.prepareRandom(
+            preparedSlotsService.prepareRandom(
                 characterId = characterId,
                 trackKey = activeTrackKey.value,
             )
@@ -396,10 +400,8 @@ class PreparedSlotsViewModelFactory(
         if (!modelClass.isAssignableFrom(PreparedSlotsViewModel::class.java)) {
             throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
         }
-        val service = PreparedSlotsService(
-            preparedSlotRepository = preparedSlotRepository,
+        val spellcastingSupportService = SpellcastingSupportService(
             castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
             sessionEventRepository = sessionEventRepository,
             focusStateRepository = focusStateRepository,
             knownSpellRepository = knownSpellRepository,
@@ -407,9 +409,27 @@ class PreparedSlotsViewModelFactory(
             characterCrudRepository = characterCrudRepository,
             characterBuildRepository = characterBuildRepository,
         )
+        val preparedSlotsService = PreparedSlotsService(
+            preparedSlotRepository = preparedSlotRepository,
+            castingTrackRepository = castingTrackRepository,
+            preparedSlotSyncRepository = preparedSlotSyncRepository,
+            focusStateRepository = focusStateRepository,
+            sessionEventRepository = sessionEventRepository,
+            knownSpellRepository = knownSpellRepository,
+            spellRepository = spellRepository,
+            spellcastingSupportService = spellcastingSupportService,
+        )
+        val castLayOnHandsUseCase = CastLayOnHandsUseCase(
+            characterBuildRepository = characterBuildRepository,
+            focusStateRepository = focusStateRepository,
+            sessionEventRepository = sessionEventRepository,
+            spellcastingSupportService = spellcastingSupportService,
+        )
         return PreparedSlotsViewModel(
             characterId = characterId,
-            service = service,
+            preparedSlotsService = preparedSlotsService,
+            spellcastingSupportService = spellcastingSupportService,
+            castLayOnHandsUseCase = castLayOnHandsUseCase,
         ) as T
     }
 }

@@ -1,4 +1,4 @@
-package com.spellapp.feature.character
+package com.spellapp.feature.character.spellcasting.prepared
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -729,4 +729,8 @@ private fun CastingTrack.displayName(): String {
         CastingTrackSourceType.PRIMARY_CLASS -> "Primary"
         CastingTrackSourceType.ARCHETYPE -> sourceId.ifBlank { trackKey }
     }
+}
+
+private fun Int.withSign(): String {
+    return if (this >= 0) "+$this" else toString()
 }

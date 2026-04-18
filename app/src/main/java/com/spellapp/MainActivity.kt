@@ -18,12 +18,10 @@ class MainActivity : ComponentActivity() {
         syncSpellData()
         setContent {
             SpellApp(
-                spellRepository = appContainer.spellRepository,
-                characterRepository = appContainer.characterRepository,
-                knownSpellRepository = appContainer.knownSpellRepository,
-                acceptedSpellSourceRepository = appContainer.acceptedSpellSourceRepository,
-                classDefinitionSource = appContainer.characterClassDefinitionSource,
-                archetypeSpellcastingCatalogSource = appContainer.archetypeSpellcastingCatalogSource,
+                characterFeatureFactoryProvider = appContainer.characterFeatureFactoryProvider,
+                spellCatalogFeatureFactoryProvider = appContainer.spellCatalogFeatureFactoryProvider,
+                preparedCastingFeatureFactoryProvider = appContainer.preparedCastingFeatureFactoryProvider,
+                navigationViewModelFactory = appContainer.navigationViewModelFactory,
                 seedUiState = seedUiState,
                 onRetrySeed = ::syncSpellData,
             )

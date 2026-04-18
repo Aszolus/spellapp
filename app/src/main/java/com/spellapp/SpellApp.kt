@@ -4,93 +4,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
-import com.spellapp.core.data.AcceptedSpellSourceRepository
-import com.spellapp.core.data.CharacterRepository
-import com.spellapp.core.data.KnownSpellRepository
-import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.ui.SpellAppTheme
 import com.spellapp.core.ui.SpellAppThemeMode
-import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
-import com.spellapp.feature.character.CharacterClassDefinitionSource
-import com.spellapp.feature.character.CharacterListViewModel
-import com.spellapp.feature.character.CharacterListViewModelFactory
-import com.spellapp.feature.spells.AssignPreparedSpellUseCase
-import com.spellapp.feature.spells.DefaultKnownSpellWarningPolicy
-import com.spellapp.feature.spells.SpellListViewModel
-import com.spellapp.feature.spells.SpellListViewModelFactory
-import com.spellapp.feature.spells.ToggleKnownSpellUseCase
 
 @Composable
 fun SpellApp(
-    spellRepository: SpellRepository,
-    characterRepository: CharacterRepository,
-    knownSpellRepository: KnownSpellRepository,
-    acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
-    classDefinitionSource: CharacterClassDefinitionSource,
-    archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
+    characterFeatureFactoryProvider: CharacterFeatureFactoryProvider,
+    spellCatalogFeatureFactoryProvider: SpellCatalogFeatureFactoryProvider,
+    preparedCastingFeatureFactoryProvider: PreparedCastingFeatureFactoryProvider,
+    navigationViewModelFactory: SpellAppNavigationViewModelFactory,
     seedUiState: SeedUiState,
     onRetrySeed: () -> Unit,
     themeMode: SpellAppThemeMode = SpellAppThemeMode.DARK,
 ) {
     val navController = rememberNavController()
-    val characterListViewModel: CharacterListViewModel = viewModel(
-        key = "character-list",
-        factory = remember {
-            CharacterListViewModelFactory(
-                characterCrudRepository = characterRepository,
-                characterBuildRepository = characterRepository,
-                castingTrackRepository = characterRepository,
-                preparedSlotSyncRepository = characterRepository,
-                acceptedSpellSourceRepository = acceptedSpellSourceRepository,
-                knownSpellRepository = knownSpellRepository,
-                spellRepository = spellRepository,
-                classDefinitionSource = classDefinitionSource,
-                archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
-            )
-        },
-    )
-    val spellListViewModel: SpellListViewModel = viewModel(
-        key = "spell-list",
-        factory = remember {
-            SpellListViewModelFactory(
-                spellRepository = spellRepository,
-                acceptedSpellSourceRepository = acceptedSpellSourceRepository,
-                knownSpellRepository = knownSpellRepository,
-                toggleKnownSpellUseCase = ToggleKnownSpellUseCase(
-                    knownSpellRepository = knownSpellRepository,
-                    spellRepository = spellRepository,
-                    warningPolicy = DefaultKnownSpellWarningPolicy(),
-                ),
-            )
-        },
-    )
     val navigationViewModel: SpellAppNavigationViewModel = viewModel(
         key = "app-navigation",
-        factory = remember {
-            SpellAppNavigationViewModelFactory(
-                assignPreparedSpellUseCase = AssignPreparedSpellUseCase(
-                    knownSpellRepository = knownSpellRepository,
-                    preparedSlotRepository = characterRepository,
-                    spellRepository = spellRepository,
-                ),
-            )
-        },
+        factory = remember(navigationViewModelFactory) { navigationViewModelFactory },
     )
 
     SpellAppTheme(themeMode = themeMode) {
         SpellAppNavGraph(
             navController = navController,
-            spellRepository = spellRepository,
-            preparedSlotRepository = characterRepository,
-            castingTrackRepository = characterRepository,
-            preparedSlotSyncRepository = characterRepository,
-            sessionEventRepository = characterRepository,
-            focusStateRepository = characterRepository,
-            knownSpellRepository = knownSpellRepository,
-            characterCrudRepository = characterRepository,
-            characterBuildRepository = characterRepository,
-            characterListViewModel = characterListViewModel,
-            spellListViewModel = spellListViewModel,
+            characterFeatureFactoryProvider = characterFeatureFactoryProvider,
+            spellCatalogFeatureFactoryProvider = spellCatalogFeatureFactoryProvider,
+            preparedCastingFeatureFactoryProvider = preparedCastingFeatureFactoryProvider,
             navigationViewModel = navigationViewModel,
             seedUiState = seedUiState,
             onRetrySeed = onRetrySeed,

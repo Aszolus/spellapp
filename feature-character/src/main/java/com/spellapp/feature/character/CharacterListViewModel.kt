@@ -4,18 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.spellapp.core.data.AcceptedSpellSourceRepository
-import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CharacterCrudRepository
-import com.spellapp.core.data.KnownSpellRepository
-import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SpellRepository
-import com.spellapp.core.model.CastingProgressionType
-import com.spellapp.core.model.CastingTrack
-import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.CharacterBuildOption
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
+import com.spellapp.feature.character.spellcasting.RefreshSpellcastingProjectionUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -38,11 +33,9 @@ data class CharacterListUiState(
 class CharacterListViewModel(
     private val characterCrudRepository: CharacterCrudRepository,
     private val characterBuildRepository: CharacterBuildRepository,
-    private val castingTrackRepository: CastingTrackRepository,
-    private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
     private val acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
     spellRepository: SpellRepository,
-    knownSpellRepository: KnownSpellRepository,
+    private val refreshSpellcastingProjectionUseCase: RefreshSpellcastingProjectionUseCase,
     private val classDefinitionSource: CharacterClassDefinitionSource,
     private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
 ) : ViewModel() {
@@ -58,10 +51,6 @@ class CharacterListViewModel(
         archetypeSpellcastingCatalogSource.phaseOnePackages()
     private val managedArchetypeOptionIds: Set<String> =
         archetypeSpellcastingCatalogSource.managedOptionIds()
-    private val knownSpellsSeeder = DefaultKnownSpellsSeeder(
-        spellRepository = spellRepository,
-        knownSpellRepository = knownSpellRepository,
-    )
     private val availableSpellSources = spellRepository.observeAvailableSources()
         .stateIn(
             scope = viewModelScope,
@@ -150,16 +139,13 @@ class CharacterListViewModel(
                 characterId = characterId,
                 selectedBuildOptionIds = selectedBuildOptionIds,
             )
-            if (shouldReconcileArchetypes) {
-                reconcileArchetypeTracks(characterId, selectedBuildOptionIds)
-            }
-            if (isNew) {
-                knownSpellsSeeder.seedForCharacter(
-                    character = character.copy(id = characterId),
-                    acceptedSourceBooks = acceptedSourceBooks,
-                )
-            }
-            preparedSlotSyncRepository.syncPreparedSlotsForCharacter(characterId)
+            refreshSpellcastingProjectionUseCase.refreshCharacterSpellcasting(
+                character = character.copy(id = characterId),
+                selectedBuildOptionIds = selectedBuildOptionIds,
+                acceptedSourceBooks = acceptedSourceBooks,
+                isNewCharacter = isNew,
+                reconcileArchetypeTracks = shouldReconcileArchetypes,
+            )
             isEditorVisible.update { false }
         }
     }
@@ -167,43 +153,6 @@ class CharacterListViewModel(
     fun deleteCharacter(characterId: Long) {
         viewModelScope.launch {
             characterCrudRepository.deleteCharacter(characterId)
-        }
-    }
-
-    private suspend fun reconcileArchetypeTracks(
-        characterId: Long,
-        selectedBuildOptionIds: Set<String>,
-    ) {
-        val existingArchetypeTracks = castingTrackRepository.getCastingTracks(characterId)
-            .filter { it.sourceType == CastingTrackSourceType.ARCHETYPE }
-        val selectedArchetypes = archetypeSpellcastingPackages
-            .filter { packageDef ->
-                packageDef.dedicationOptionId in selectedBuildOptionIds &&
-                    packageDef.supportsPreparedSpellcastingTrack()
-            }
-        val desiredTracksByKey = selectedArchetypes.associateBy { packageDef ->
-            trackKeyForArchetype(packageDef.archetypeId)
-        }
-
-        existingArchetypeTracks
-            .filterNot { track -> track.trackKey in desiredTracksByKey.keys }
-            .forEach { track ->
-                castingTrackRepository.deleteCastingTrack(
-                    characterId = characterId,
-                    trackKey = track.trackKey,
-                )
-            }
-
-        desiredTracksByKey.forEach { (trackKey, packageDef) ->
-            castingTrackRepository.upsertCastingTrack(
-                CastingTrack(
-                    characterId = characterId,
-                    trackKey = trackKey,
-                    sourceType = CastingTrackSourceType.ARCHETYPE,
-                    sourceId = packageDef.label,
-                    progressionType = CastingProgressionType.ARCHETYPE_PREPARED,
-                ),
-            )
         }
     }
 
@@ -243,16 +192,6 @@ class CharacterListViewModel(
         return true
     }
 
-    private fun trackKeyForArchetype(archetypeId: String): String {
-        return "archetype-$archetypeId"
-    }
-
-    private fun ArchetypeSpellcastingPackage.supportsPreparedSpellcastingTrack(): Boolean {
-        return basicSpellcastingOptionId != null ||
-            expertSpellcastingOptionId != null ||
-            masterSpellcastingOptionId != null
-    }
-
     private data class EditorState(
         val editingCharacter: CharacterProfile?,
         val selectedBuildOptionIds: Set<String>,
@@ -264,11 +203,9 @@ class CharacterListViewModel(
 class CharacterListViewModelFactory(
     private val characterCrudRepository: CharacterCrudRepository,
     private val characterBuildRepository: CharacterBuildRepository,
-    private val castingTrackRepository: CastingTrackRepository,
-    private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
     private val acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
-    private val knownSpellRepository: KnownSpellRepository,
     private val spellRepository: SpellRepository,
+    private val refreshSpellcastingProjectionUseCase: RefreshSpellcastingProjectionUseCase,
     private val classDefinitionSource: CharacterClassDefinitionSource = StaticCharacterClassDefinitionSource,
     private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource =
         StaticArchetypeSpellcastingCatalogSource,
@@ -281,11 +218,9 @@ class CharacterListViewModelFactory(
         return CharacterListViewModel(
             characterCrudRepository = characterCrudRepository,
             characterBuildRepository = characterBuildRepository,
-            castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
             acceptedSpellSourceRepository = acceptedSpellSourceRepository,
             spellRepository = spellRepository,
-            knownSpellRepository = knownSpellRepository,
+            refreshSpellcastingProjectionUseCase = refreshSpellcastingProjectionUseCase,
             classDefinitionSource = classDefinitionSource,
             archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
         ) as T

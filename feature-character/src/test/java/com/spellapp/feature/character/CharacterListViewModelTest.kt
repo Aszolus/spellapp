@@ -19,6 +19,8 @@ import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
+import com.spellapp.feature.character.spellcasting.DefaultKnownSpellsSeeder
+import com.spellapp.feature.character.spellcasting.RefreshSpellcastingProjectionUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -422,11 +424,17 @@ class CharacterListViewModelTest {
         return CharacterListViewModel(
             characterCrudRepository = characterCrudRepository,
             characterBuildRepository = characterBuildRepository,
-            castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
             acceptedSpellSourceRepository = acceptedSpellSourceRepository,
             spellRepository = spellRepository,
-            knownSpellRepository = knownSpellRepository,
+            refreshSpellcastingProjectionUseCase = RefreshSpellcastingProjectionUseCase(
+                castingTrackRepository = castingTrackRepository,
+                preparedSlotSyncRepository = preparedSlotSyncRepository,
+                knownSpellsSeeder = DefaultKnownSpellsSeeder(
+                    spellRepository = spellRepository,
+                    knownSpellRepository = knownSpellRepository,
+                ),
+                archetypeSpellcastingCatalogSource = StaticArchetypeSpellcastingCatalogSource,
+            ),
             classDefinitionSource = StaticCharacterClassDefinitionSource,
             archetypeSpellcastingCatalogSource = StaticArchetypeSpellcastingCatalogSource,
         )

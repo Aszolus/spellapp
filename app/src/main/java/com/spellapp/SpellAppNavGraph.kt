@@ -13,43 +13,24 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.spellapp.core.data.CastingTrackRepository
-import com.spellapp.core.data.CharacterBuildRepository
-import com.spellapp.core.data.CharacterCrudRepository
-import com.spellapp.core.data.FocusStateRepository
-import com.spellapp.core.data.KnownSpellRepository
-import com.spellapp.core.data.PreparedSlotRepository
-import com.spellapp.core.data.PreparedSlotSyncRepository
-import com.spellapp.core.data.SessionEventRepository
-import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.feature.character.CharacterEditorDialog
 import com.spellapp.feature.character.CharacterListRoute
 import com.spellapp.feature.character.CharacterListViewModel
-import com.spellapp.feature.character.PreparedSlotsRoute
-import com.spellapp.feature.character.PreparedSlotsViewModel
-import com.spellapp.feature.character.PreparedSlotsViewModelFactory
+import com.spellapp.feature.character.spellcasting.prepared.PreparedSlotsRoute
+import com.spellapp.feature.character.spellcasting.prepared.PreparedSlotsViewModel
 import com.spellapp.feature.spells.SpellBrowserMode
 import com.spellapp.feature.spells.SpellDetailRoute
 import com.spellapp.feature.spells.SpellDetailViewModel
-import com.spellapp.feature.spells.SpellDetailViewModelFactory
 import com.spellapp.feature.spells.SpellListRoute
 import com.spellapp.feature.spells.SpellListViewModel
 
 @Composable
 fun SpellAppNavGraph(
     navController: NavHostController,
-    spellRepository: SpellRepository,
-    preparedSlotRepository: PreparedSlotRepository,
-    castingTrackRepository: CastingTrackRepository,
-    preparedSlotSyncRepository: PreparedSlotSyncRepository,
-    sessionEventRepository: SessionEventRepository,
-    focusStateRepository: FocusStateRepository,
-    knownSpellRepository: KnownSpellRepository,
-    characterCrudRepository: CharacterCrudRepository,
-    characterBuildRepository: CharacterBuildRepository,
-    characterListViewModel: CharacterListViewModel,
-    spellListViewModel: SpellListViewModel,
+    characterFeatureFactoryProvider: CharacterFeatureFactoryProvider,
+    spellCatalogFeatureFactoryProvider: SpellCatalogFeatureFactoryProvider,
+    preparedCastingFeatureFactoryProvider: PreparedCastingFeatureFactoryProvider,
     navigationViewModel: SpellAppNavigationViewModel,
     seedUiState: SeedUiState,
     onRetrySeed: () -> Unit,
@@ -60,43 +41,41 @@ fun SpellAppNavGraph(
     ) {
         characterListDestination(
             navController = navController,
-            characterListViewModel = characterListViewModel,
+            characterFeatureFactoryProvider = characterFeatureFactoryProvider,
             navigationViewModel = navigationViewModel,
         )
         preparedSlotsDestination(
             navController = navController,
-            preparedSlotRepository = preparedSlotRepository,
-            castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
-            sessionEventRepository = sessionEventRepository,
-            focusStateRepository = focusStateRepository,
-            knownSpellRepository = knownSpellRepository,
-            spellRepository = spellRepository,
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = characterBuildRepository,
+            preparedCastingFeatureFactoryProvider = preparedCastingFeatureFactoryProvider,
             navigationViewModel = navigationViewModel,
         )
         spellListDestination(
             navController = navController,
-            spellListViewModel = spellListViewModel,
-            characterListViewModel = characterListViewModel,
+            spellCatalogFeatureFactoryProvider = spellCatalogFeatureFactoryProvider,
+            characterFeatureFactoryProvider = characterFeatureFactoryProvider,
             navigationViewModel = navigationViewModel,
             seedUiState = seedUiState,
             onRetrySeed = onRetrySeed,
         )
         spellDetailDestination(
             navController = navController,
-            spellRepository = spellRepository,
+            spellCatalogFeatureFactoryProvider = spellCatalogFeatureFactoryProvider,
         )
     }
 }
 
 private fun NavGraphBuilder.characterListDestination(
     navController: NavHostController,
-    characterListViewModel: CharacterListViewModel,
+    characterFeatureFactoryProvider: CharacterFeatureFactoryProvider,
     navigationViewModel: SpellAppNavigationViewModel,
 ) {
     composable(route = AppDestinations.CharacterList.route) {
+        val characterListViewModel: CharacterListViewModel = viewModel(
+            key = "character-list",
+            factory = remember(characterFeatureFactoryProvider) {
+                characterFeatureFactoryProvider.characterListFactory()
+            },
+        )
         val characterListUiState by characterListViewModel.uiState.collectAsState()
         CharacterListRoute(
             characters = characterListUiState.characters,
@@ -137,15 +116,7 @@ private fun NavGraphBuilder.characterListDestination(
 
 private fun NavGraphBuilder.preparedSlotsDestination(
     navController: NavHostController,
-    preparedSlotRepository: PreparedSlotRepository,
-    castingTrackRepository: CastingTrackRepository,
-    preparedSlotSyncRepository: PreparedSlotSyncRepository,
-    sessionEventRepository: SessionEventRepository,
-    focusStateRepository: FocusStateRepository,
-    knownSpellRepository: KnownSpellRepository,
-    spellRepository: SpellRepository,
-    characterCrudRepository: CharacterCrudRepository,
-    characterBuildRepository: CharacterBuildRepository,
+    preparedCastingFeatureFactoryProvider: PreparedCastingFeatureFactoryProvider,
     navigationViewModel: SpellAppNavigationViewModel,
 ) {
     composable(
@@ -160,18 +131,7 @@ private fun NavGraphBuilder.preparedSlotsDestination(
         val preparedSlotsViewModel: PreparedSlotsViewModel = viewModel(
             key = "prepared-slots-$characterId",
             factory = remember(characterId) {
-                PreparedSlotsViewModelFactory(
-                    characterId = characterId,
-                    preparedSlotRepository = preparedSlotRepository,
-                    castingTrackRepository = castingTrackRepository,
-                    preparedSlotSyncRepository = preparedSlotSyncRepository,
-                    sessionEventRepository = sessionEventRepository,
-                    focusStateRepository = focusStateRepository,
-                    knownSpellRepository = knownSpellRepository,
-                    spellRepository = spellRepository,
-                    characterCrudRepository = characterCrudRepository,
-                    characterBuildRepository = characterBuildRepository,
-                )
+                preparedCastingFeatureFactoryProvider.preparedSlotsFactory(characterId)
             },
         )
         val uiState by preparedSlotsViewModel.uiState.collectAsState()
@@ -225,13 +185,25 @@ private fun NavGraphBuilder.preparedSlotsDestination(
 
 private fun NavGraphBuilder.spellListDestination(
     navController: NavHostController,
-    spellListViewModel: SpellListViewModel,
-    characterListViewModel: CharacterListViewModel,
+    spellCatalogFeatureFactoryProvider: SpellCatalogFeatureFactoryProvider,
+    characterFeatureFactoryProvider: CharacterFeatureFactoryProvider,
     navigationViewModel: SpellAppNavigationViewModel,
     seedUiState: SeedUiState,
     onRetrySeed: () -> Unit,
 ) {
     composable(route = AppDestinations.SpellList.route) {
+        val spellListViewModel: SpellListViewModel = viewModel(
+            key = "spell-list",
+            factory = remember(spellCatalogFeatureFactoryProvider) {
+                spellCatalogFeatureFactoryProvider.spellListFactory()
+            },
+        )
+        val characterListViewModel: CharacterListViewModel = viewModel(
+            key = "character-list",
+            factory = remember(characterFeatureFactoryProvider) {
+                characterFeatureFactoryProvider.characterListFactory()
+            },
+        )
         val spellListUiState by spellListViewModel.uiState.collectAsState()
         val spells by spellListViewModel.spells.collectAsState()
         val navigationUiState by navigationViewModel.uiState.collectAsState()
@@ -304,7 +276,7 @@ private fun NavGraphBuilder.spellListDestination(
 
 private fun NavGraphBuilder.spellDetailDestination(
     navController: NavHostController,
-    spellRepository: SpellRepository,
+    spellCatalogFeatureFactoryProvider: SpellCatalogFeatureFactoryProvider,
 ) {
     composable(
         route = AppDestinations.SpellDetail.route,
@@ -328,10 +300,9 @@ private fun NavGraphBuilder.spellDetailDestination(
         val spellDetailViewModel: SpellDetailViewModel = viewModel(
             key = "spell-detail-$spellId-${heightenedAt ?: "none"}",
             factory = remember(spellId, heightenedAt) {
-                SpellDetailViewModelFactory(
+                spellCatalogFeatureFactoryProvider.spellDetailFactory(
                     spellId = spellId,
-                    spellRepository = spellRepository,
-                    initialHeightenedAt = heightenedAt,
+                    heightenedAt = heightenedAt,
                 )
             },
         )
@@ -339,6 +310,9 @@ private fun NavGraphBuilder.spellDetailDestination(
         SpellDetailRoute(
             spell = spellDetailUiState.spell,
             isLoading = spellDetailUiState.isLoading,
+            traitLookups = spellDetailUiState.traitLookups,
+            rulesText = spellDetailUiState.rulesText,
+            rulesTextReferences = spellDetailUiState.rulesTextReferences,
             heightenedAt = spellDetailUiState.heightenedAt,
             onBack = { navController.popBackStackIfResumed() },
         )

@@ -11,6 +11,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+Add-Type -AssemblyName System.Web.Extensions
 
 function Get-NestedValue {
     param(
@@ -256,7 +257,7 @@ function Get-JournalSpellcastingReferences {
 
     $journalFiles = @(Get-ChildItem -LiteralPath $JournalsDir -Filter *.json -File -Recurse)
     foreach ($file in $journalFiles) {
-        $raw = Get-Content -LiteralPath $file.FullName -Raw
+        $raw = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8
         $json = $raw | ConvertFrom-Json
         $pages = Get-NestedValue -Object $json -Path @("pages")
         if ($null -eq $pages) {
@@ -334,6 +335,267 @@ function Get-ScannedCountKey {
     }
 }
 
+function Normalize-RulesLookupSlug {
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$Value
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return ""
+    }
+
+    $normalized = $Value.Trim().ToLowerInvariant()
+    $normalized = [regex]::Replace($normalized, "[\s_]+", "-")
+    $normalized = [regex]::Replace($normalized, "[^a-z0-9\-]", "")
+    $normalized = [regex]::Replace($normalized, "-+", "-")
+    return $normalized.Trim('-')
+}
+
+function Format-RulesLookupLabel {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Slug
+    )
+
+    $textInfo = [System.Globalization.CultureInfo]::InvariantCulture.TextInfo
+    return (
+        $Slug -split "-" |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            ForEach-Object {
+                if ($_ -match '^\d+$') {
+                    $_
+                } else {
+                    $textInfo.ToTitleCase($_)
+                }
+            }
+    ) -join " "
+}
+
+function Get-LocalizationValueByKey {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Root,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Key
+    )
+
+    $current = $Root
+    foreach ($segment in $Key.Split('.')) {
+        if ($current -isnot [System.Collections.IDictionary]) {
+            return $null
+        }
+
+        $keys = @($current.Keys)
+        if ($keys -notcontains $segment) {
+            return $null
+        }
+
+        $current = $current[$segment]
+    }
+
+    if ($current -is [string]) {
+        return "$current"
+    }
+
+    return $null
+}
+
+function Get-TraitLabelLocalizationKey {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DescriptionKey
+    )
+
+    if ($DescriptionKey -match '\.TraitDescription\.') {
+        return ($DescriptionKey -replace '\.TraitDescription\.', '.Trait.')
+    }
+
+    if ($DescriptionKey -match 'TraitDescription') {
+        return ($DescriptionKey -replace 'TraitDescription', 'Trait')
+    }
+
+    if ($DescriptionKey -match 'Description$') {
+        return ($DescriptionKey -replace 'Description$', '')
+    }
+
+    return $null
+}
+
+function Get-SpellLookupDataset {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PacksDir,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SourceCommit,
+
+        [Parameter(Mandatory = $true)]
+        [string]$DatasetVersion
+    )
+
+    $spellAppRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+    $spellsAssetPath = Join-Path $spellAppRepoRoot "app/src/main/assets/spells.normalized.json"
+    if (-not (Test-Path -LiteralPath $spellsAssetPath)) {
+        throw "Spell asset not found for lookup generation: $spellsAssetPath"
+    }
+
+    $packsFullPath = (Resolve-Path $PacksDir).Path
+    $pf2eRepoRoot = (Resolve-Path (Join-Path $packsFullPath "..\..")).Path
+    $traitsConfigPath = Join-Path $pf2eRepoRoot "src/scripts/config/traits.ts"
+    $localizationPath = Join-Path $pf2eRepoRoot "static/lang/en.json"
+    $conditionsDir = Join-Path $packsFullPath "conditions"
+
+    foreach ($requiredPath in @($traitsConfigPath, $localizationPath, $conditionsDir)) {
+        if (-not (Test-Path -LiteralPath $requiredPath)) {
+            throw "Required rules lookup input not found: $requiredPath"
+        }
+    }
+
+    $spellDataset = Get-Content -LiteralPath $spellsAssetPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $spells = @($spellDataset.spells)
+    $spellTraitSlugs = @(
+        $spells |
+            ForEach-Object { @($_.traits) } |
+            ForEach-Object { Normalize-RulesLookupSlug -Value "$_" } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique
+    )
+
+    $conditionUuidPattern = [regex]'@UUID\[Compendium\.pf2e\.conditionitems\.Item\.([^\]]+)\](?:\{([^}]+)\})?'
+    $spellConditionSlugs = @(
+        foreach ($spell in $spells) {
+            $descriptionRaw = "$($spell.descriptionRaw)"
+            if ([string]::IsNullOrWhiteSpace($descriptionRaw)) {
+                continue
+            }
+
+            foreach ($match in $conditionUuidPattern.Matches($descriptionRaw)) {
+                $slug = Normalize-RulesLookupSlug -Value $match.Groups[1].Value
+                if (-not [string]::IsNullOrWhiteSpace($slug)) {
+                    $slug
+                }
+            }
+        }
+    ) | Sort-Object -Unique
+
+    $jsonSerializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+    $jsonSerializer.MaxJsonLength = 100MB
+    $localizationRoot = $jsonSerializer.DeserializeObject(
+        (Get-Content -LiteralPath $localizationPath -Raw -Encoding UTF8)
+    )
+    $traitDescriptionKeyBySlug = @{}
+    $inTraitDescriptions = $false
+    foreach ($line in Get-Content -LiteralPath $traitsConfigPath -Encoding UTF8) {
+        if (-not $inTraitDescriptions) {
+            if ($line -match '^\s*const traitDescriptions = \{') {
+                $inTraitDescriptions = $true
+            }
+            continue
+        }
+
+        if ($line -match '^\s*\};\s*$') {
+            break
+        }
+
+        if ($line -match '^\s*"(?<slug>[^"]+)"\s*:\s*"(?<key>[^"]+)"\s*,?\s*$') {
+            $traitDescriptionKeyBySlug[(Normalize-RulesLookupSlug -Value $matches.slug)] = $matches.key
+            continue
+        }
+
+        if ($line -match '^\s*(?<slug>[a-z0-9_]+)\s*:\s*"(?<key>[^"]+)"\s*,?\s*$') {
+            $traitDescriptionKeyBySlug[(Normalize-RulesLookupSlug -Value $matches.slug)] = $matches.key
+        }
+    }
+
+    $traitsSection = [ordered]@{}
+    foreach ($traitSlug in $spellTraitSlugs) {
+        $descriptionKey = $traitDescriptionKeyBySlug[$traitSlug]
+        if ([string]::IsNullOrWhiteSpace($descriptionKey)) {
+            continue
+        }
+
+        $descriptionRaw = Get-LocalizationValueByKey -Root $localizationRoot -Key $descriptionKey
+        $description = Convert-FoundryMarkupToPlainText -InputText $descriptionRaw
+        if ([string]::IsNullOrWhiteSpace($description)) {
+            continue
+        }
+
+        $label = $null
+        $labelKey = Get-TraitLabelLocalizationKey -DescriptionKey $descriptionKey
+        if (-not [string]::IsNullOrWhiteSpace($labelKey)) {
+            $label = Get-LocalizationValueByKey -Root $localizationRoot -Key $labelKey
+        }
+        if ([string]::IsNullOrWhiteSpace($label)) {
+            $label = Format-RulesLookupLabel -Slug $traitSlug
+        }
+
+        $traitsSection[$traitSlug] = [ordered]@{
+            slug = $traitSlug
+            label = "$label"
+            description = "$description"
+        }
+    }
+
+    $conditionByAlias = @{}
+    $conditionFiles = @(Get-ChildItem -LiteralPath $conditionsDir -Filter *.json -File -Recurse | Sort-Object -Property Name)
+    foreach ($file in $conditionFiles) {
+        $json = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ((Get-NestedValue -Object $json -Path @("type")) -ne "condition") {
+            continue
+        }
+
+        $name = Get-NestedValue -Object $json -Path @("name")
+        $description = Convert-FoundryMarkupToPlainText -InputText (Get-NestedValue -Object $json -Path @("system", "description", "value"))
+        if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($description)) {
+            continue
+        }
+
+        $aliases = @(
+            Normalize-RulesLookupSlug -Value ([System.IO.Path]::GetFileNameWithoutExtension($file.Name))
+            Normalize-RulesLookupSlug -Value "$name"
+        ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+
+        foreach ($alias in $aliases) {
+            if (-not $conditionByAlias.ContainsKey($alias)) {
+                $conditionByAlias[$alias] = [ordered]@{
+                    label = "$name"
+                    description = "$description"
+                }
+            }
+        }
+    }
+
+    $conditionsSection = [ordered]@{}
+    foreach ($conditionSlug in $spellConditionSlugs) {
+        $record = $conditionByAlias[$conditionSlug]
+        if ($null -eq $record) {
+            continue
+        }
+
+        $conditionsSection[$conditionSlug] = [ordered]@{
+            slug = $conditionSlug
+            label = "$($record.label)"
+            description = "$($record.description)"
+        }
+    }
+
+    return [PSCustomObject]@{
+        datasetVersion = $DatasetVersion
+        sourceCommit = $SourceCommit
+        generatedAtUtc = (Get-Date).ToUniversalTime().ToString("o")
+        counts = [PSCustomObject]@{
+            spellTraitsRequested = $spellTraitSlugs.Count
+            traitsResolved = $traitsSection.Count
+            spellConditionReferencesRequested = $spellConditionSlugs.Count
+            conditionsResolved = $conditionsSection.Count
+        }
+        traits = [PSCustomObject]$traitsSection
+        conditions = [PSCustomObject]$conditionsSection
+    }
+}
+
 if (-not (Test-Path -LiteralPath $PacksDir)) {
     throw "PF2e packs directory not found: $PacksDir"
 }
@@ -383,7 +645,7 @@ foreach ($spec in $entrySpecs) {
     foreach ($file in $files) {
         $json = $null
         try {
-            $raw = Get-Content -LiteralPath $file.FullName -Raw
+            $raw = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8
             $json = $raw | ConvertFrom-Json
         }
         catch {
@@ -527,6 +789,7 @@ $datasetVersion = Get-Date -Format "yyyyMMdd-HHmmss"
 $normalizedPath = Join-Path $OutputDir "rules.catalog.normalized.json"
 $attributionPath = Join-Path $OutputDir "rules.catalog.attribution.json"
 $changelogPath = Join-Path $OutputDir "rules.catalog.changelog.json"
+$lookupPath = Join-Path $OutputDir "rules.lookup.normalized.json"
 
 $normalized = [PSCustomObject]@{
     datasetVersion = $datasetVersion
@@ -570,12 +833,18 @@ $changelog = [PSCustomObject]@{
     changed = 0
     removed = 0
 }
+$lookupDataset = Get-SpellLookupDataset `
+    -PacksDir $PacksDir `
+    -SourceCommit $SourceCommit `
+    -DatasetVersion $datasetVersion
 
 $normalized | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $normalizedPath -Encoding UTF8
 $attribution | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $attributionPath -Encoding UTF8
 $changelog | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $changelogPath -Encoding UTF8
+$lookupDataset | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $lookupPath -Encoding UTF8
 
 Write-Host "Generated rules catalog dataset:"
 Write-Host "  - $normalizedPath"
 Write-Host "  - $attributionPath"
 Write-Host "  - $changelogPath"
+Write-Host "  - $lookupPath"

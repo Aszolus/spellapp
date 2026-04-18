@@ -3,9 +3,9 @@ package com.spellapp.feature.spells
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SpellListItem
-import com.spellapp.core.rules.SpellTradition
-import com.spellapp.core.rules.TrackSpellLegalityProfile
-import com.spellapp.core.rules.parseSpellTraditions
+import com.spellapp.core.rules.spellcasting.SpellTradition
+import com.spellapp.core.rules.spellcasting.TrackSpellLegalityProfile
+import com.spellapp.core.rules.spellcasting.parseSpellTraditions
 
 data class PreparedSlotAssignmentContext(
     val characterClass: CharacterClass,

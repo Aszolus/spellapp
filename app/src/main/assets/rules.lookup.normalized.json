@@ -1,0 +1,655 @@
+﻿{
+    "datasetVersion":  "20260418-120009",
+    "sourceCommit":  "cd1f3cac4b960b726b846e4b280151de13f43fd5",
+    "generatedAtUtc":  "2026-04-18T16:00:10.3875589Z",
+    "counts":  {
+                   "spellTraitsRequested":  92,
+                   "traitsResolved":  88,
+                   "spellConditionReferencesRequested":  40,
+                   "conditionsResolved":  40
+               },
+    "traits":  {
+                   "acid":  {
+                                "slug":  "acid",
+                                "label":  "Acid",
+                                "description":  "Effects with this trait deal acid damage. Creatures with this trait have a magical connection to acid."
+                            },
+                   "air":  {
+                               "slug":  "air",
+                               "label":  "Air",
+                               "description":  "Effects with the air trait either manipulate or conjure air. Those that manipulate air have no effect in a vacuum or an area without air. Creatures with this trait consist primarily of air or have a connection to magical air."
+                           },
+                   "animist":  {
+                                   "slug":  "animist",
+                                   "label":  "Animist",
+                                   "description":  "This indicates abilities from the animist class."
+                               },
+                   "attack":  {
+                                  "slug":  "attack",
+                                  "label":  "Attack",
+                                  "description":  "An ability with this trait involves an attack. For each attack you make beyond the first on your turn, you take a multiple attack penalty."
+                              },
+                   "auditory":  {
+                                    "slug":  "auditory",
+                                    "label":  "Auditory",
+                                    "description":  "Auditory actions and effects rely on sound. An action with the auditory trait can be successfully performed only if the creature using the action can speak or otherwise produce the required sounds. A spell or effect with the auditory trait has its effect only if the target can hear it. This applies only to sound-based parts of the effect, as determined by the GM. This is different from a sonic effect, which still affects targets who can\u0027t hear it (such as deaf targets) as long as the effect itself makes sound."
+                                },
+                   "aura":  {
+                                "slug":  "aura",
+                                "label":  "Aura",
+                                "description":  "An aura is an emanation that continually ebbs out from you, affecting creatures within a certain radius. Aura can also refer to the magical signature of an item."
+                            },
+                   "bard":  {
+                                "slug":  "bard",
+                                "label":  "Bard",
+                                "description":  "This indicates abilities from the bard class."
+                            },
+                   "beast":  {
+                                 "slug":  "beast",
+                                 "label":  "Beast",
+                                 "description":  "A creature similar to an animal but with an Intelligence modifier of –3 or higher is usually a beast. Unlike an animal, a beast might be able to speak and reason."
+                             },
+                   "cantrip":  {
+                                   "slug":  "cantrip",
+                                   "label":  "Cantrip",
+                                   "description":  "A spell you can cast at will that is automatically heightened to half your level rounded up."
+                               },
+                   "champion":  {
+                                    "slug":  "champion",
+                                    "label":  "Champion",
+                                    "description":  "This indicates abilities from the champion class."
+                                },
+                   "cleric":  {
+                                  "slug":  "cleric",
+                                  "label":  "Cleric",
+                                  "description":  "This indicates abilities from the cleric class."
+                              },
+                   "cold":  {
+                                "slug":  "cold",
+                                "label":  "Cold",
+                                "description":  "Effects with this trait deal cold damage. Creatures with this trait have a connection to magical cold."
+                            },
+                   "composition":  {
+                                       "slug":  "composition",
+                                       "label":  "Composition",
+                                       "description":  "To cast a composition cantrip or focus spell, you use a type of Performance. If the spell requires an auditory performance, you might recite a poem, sing a song, or perform a dramatic monologue. If the spell requires a visual performance, you might dance or pantomime. You can cast only one composition spell each turn, and you can have only one active at a time. If you cast a new composition spell, any ongoing effects from your previous composition spell end immediately."
+                                   },
+                   "concentrate":  {
+                                       "slug":  "concentrate",
+                                       "label":  "Concentrate",
+                                       "description":  "An action with this trait requires a degree of mental concentration and discipline."
+                                   },
+                   "consecration":  {
+                                        "slug":  "consecration",
+                                        "label":  "Consecration",
+                                        "description":  "A consecration spell enhances an area for an extended period of time. A given area can have only a single consecration effect at a time. The new effect attempts to counteract any existing one in areas of overlap."
+                                    },
+                   "contingency":  {
+                                       "slug":  "contingency",
+                                       "label":  "Contingency",
+                                       "description":  "Spells with this trait grant you an action during the spell\u0027s effects, typically a reaction with a special trigger. They typically have a long duration, such as 24 hours. You can have only one spell with the contingency trait, or one contingency spell, active at a time. If you cast another spell with the contingency trait or contingency, the newer casting supersedes the older."
+                                   },
+                   "curse":  {
+                                 "slug":  "curse",
+                                 "label":  "Curse",
+                                 "description":  "A curse is an effect that places some long-term affliction on a creature. Curses are always magical and are typically the result of a spell or trap. Effects with this trait can be removed only by effects that specifically target curses."
+                             },
+                   "cursebound":  {
+                                      "slug":  "cursebound",
+                                      "label":  "Cursebound",
+                                      "description":  "Spells with this trait increase the severity of your oracular curse when cast. Usually, only revelation spells have this trait. You can\u0027t cast a cursebound spell if you don\u0027t have an oracular curse. A cursebound ability that allows a defense uses your spell attack modifier or spell DC unless noted otherwise."
+                                  },
+                   "darkness":  {
+                                    "slug":  "darkness",
+                                    "label":  "Darkness",
+                                    "description":  "Darkness effects extinguish non-magical light in the area, and can counteract less powerful magical light. You must usually target light magic with your darkness magic directly to counteract the light, but some darkness spells automatically attempt to counteract light."
+                                },
+                   "death":  {
+                                 "slug":  "death",
+                                 "label":  "Death",
+                                 "description":  "An effect with the death trait kills you immediately if it reduces you to 0 HP. Some death effects can bring you closer to death or slay you outright without reducing you to 0 HP."
+                             },
+                   "detection":  {
+                                     "slug":  "detection",
+                                     "label":  "Detection",
+                                     "description":  "Effects with this trait attempt to determine the presence or location of a person, object, or aura."
+                                 },
+                   "disease":  {
+                                   "slug":  "disease",
+                                   "label":  "Disease",
+                                   "description":  "An effect with this trait applies one or more diseases. A disease is typically an affliction."
+                               },
+                   "dream":  {
+                                 "slug":  "dream",
+                                 "label":  "Dream",
+                                 "description":  "Creatures native to the Dimension of Dreams can possess a diverse array of abilities, although those associated with the nightmare realm of Leng are almost always unholy and immune to that realm\u0027s freezing temperatures."
+                             },
+                   "druid":  {
+                                 "slug":  "druid",
+                                 "label":  "Druid",
+                                 "description":  "This indicates abilities from the druid class."
+                             },
+                   "earth":  {
+                                 "slug":  "earth",
+                                 "label":  "Earth",
+                                 "description":  "Effects with the earth trait either manipulate or conjure earth. Those that manipulate earth have no effect in an area without earth. Creatures with this trait consist primarily of earth or have a connection to magical earth."
+                             },
+                   "eidolon":  {
+                                   "slug":  "eidolon",
+                                   "label":  "Eidolon",
+                                   "description":  "A creature with this trait is a summoner\u0027s eidolon. An item with this trait can be worn by an eidolon. An eidolon can have up to two items invested."
+                               },
+                   "electricity":  {
+                                       "slug":  "electricity",
+                                       "label":  "Electricity",
+                                       "description":  "Effects with this trait deal electricity damage. A creature with this trait has a magical connection to electricity."
+                                   },
+                   "emotion":  {
+                                   "slug":  "emotion",
+                                   "label":  "Emotion",
+                                   "description":  "This effect alters a creature\u0027s emotions. Effects with this trait always have the mental trait as well. Creatures with special training or that have mechanical or artificial intelligence are immune to emotion effects."
+                               },
+                   "exploration":  {
+                                       "slug":  "exploration",
+                                       "label":  "Exploration",
+                                       "description":  "An activity with this trait takes more than a turn to use, and can usually be used only during exploration mode."
+                                   },
+                   "extradimensional":  {
+                                            "slug":  "extradimensional",
+                                            "label":  "Extradimensional",
+                                            "description":  "This effect or item creates an extradimensional space. An extradimensional effect placed inside another extradimensional space ceases to function until it is removed."
+                                        },
+                   "fear":  {
+                                "slug":  "fear",
+                                "label":  "Fear",
+                                "description":  "Fear effects evoke the emotion of fear. Effects with this trait always have the mental and emotion traits as well."
+                            },
+                   "fire":  {
+                                "slug":  "fire",
+                                "label":  "Fire",
+                                "description":  "Effects with the fire trait deal fire damage, or either conjure or manipulate fire. Those that manipulate fire have no effect in an area without fire. Creatures with this trait consist primarily of fire or have a connection to magical fire."
+                            },
+                   "focus":  {
+                                 "slug":  "focus",
+                                 "label":  "Focus",
+                                 "description":  "Focus spells are a special type of spell attained directly from a branch of study, from a deity, or from another specific source. You can learn focus spells only through special class features or feats, rather than choosing them from a spell list. Furthermore, you cast focus spells using a special pool of Focus Points—you can\u0027t prepare a focus spell in a spell slot or use your spell slots to cast focus spells; similarly, you can\u0027t spend your Focus Points to cast spells that aren\u0027t focus spells."
+                             },
+                   "force":  {
+                                 "slug":  "force",
+                                 "label":  "Force",
+                                 "description":  "Effects with this trait deal force damage or create objects made of pure magical force."
+                             },
+                   "fortune":  {
+                                   "slug":  "fortune",
+                                   "label":  "Fortune",
+                                   "description":  "A fortune effect beneficially alters how you roll your dice. You can never have more than one fortune effect alter a single roll. If multiple fortune effects would apply, you have to pick which to use. If a fortune effect and a misfortune effect would apply to the same roll, the two cancel each other out, and you roll normally."
+                               },
+                   "fungus":  {
+                                  "slug":  "fungus",
+                                  "label":  "Fungus",
+                                  "description":  "Fungal creatures have the fungus trait. They are distinct from normal fungi."
+                              },
+                   "healing":  {
+                                   "slug":  "healing",
+                                   "label":  "Healing",
+                                   "description":  "A healing effect restores a creature\u0027s body, typically by restoring Hit Points, but sometimes by removing diseases or other debilitating effects."
+                               },
+                   "hex":  {
+                               "slug":  "hex",
+                               "label":  "Hex",
+                               "description":  "A hex is a spell caused by your patron\u0027s direct attention and intervention. Your patron does not take well to being disturbed repeatedly, so you can cast only one spell that has the hex trait each turn; attempts to use a second automatically fail and usually cause your familiar to hiss in displeasure as your patron rejects your call."
+                           },
+                   "holy":  {
+                                "slug":  "holy",
+                                "label":  "Holy",
+                                "description":  "Effects with the holy trait are tied to powerful magical forces of benevolence and virtue. They often have stronger effects on unholy creatures. Creatures with this trait are strongly devoted to holy causes and often have weakness to unholy. If a creature with weakness to holy uses a holy item or effect, it takes damage from its weakness."
+                            },
+                   "illusion":  {
+                                    "slug":  "illusion",
+                                    "label":  "Illusion",
+                                    "description":  "Effects and magic items with this trait involve false sensory stimuli."
+                                },
+                   "incapacitation":  {
+                                          "slug":  "incapacitation",
+                                          "label":  "Incapacitation",
+                                          "description":  "An ability with this trait can take a character completely out of the fight or even kill them, and it\u0027s harder to use on a more powerful character. If a spell has the incapacitation trait, any creature of more than twice the spell\u0027s rank treats the result of their check to prevent being incapacitated by the spell as one degree of success better, or the result of any check the spellcaster made to incapacitate them as one degree of success worse. If any other effect has the incapacitation trait, a creature of higher level than the item, creature, or hazard generating the effect gains the same benefits."
+                                      },
+                   "incarnate":  {
+                                     "slug":  "incarnate",
+                                     "label":  "Incarnate",
+                                     "description":  "A spell with the incarnate trait is similar in theme to spells that summon creatures, but it doesn\u0027t conjure a minion with the summoned trait. Instead, when summoned, the incarnate creature takes its Arrive action when you finish Casting the Spell. At the end of your next turn, the incarnate creature can either Step, Stride, or take the action for another movement type it has (such as Climb or Burrow), and then takes its Depart action. The spell then ends. The names of specific Arrive and Depart actions are listed in italics after the word “Arrive” or “Depart” respectively, along with any traits. A creature summoned by an incarnate spell acts in your interests, directs its effects away from you and your allies as much as possible, and might listen to your requests, but ultimately makes its own decisions. If the spell indicates that the incarnate makes a decision, the GM determines what the incarnate would do. It might even become more inclined to do precisely as you wish over multiple summonings. The incarnate is not fully a creature. It can\u0027t take any other actions, nor can it be targeted or harmed by Strikes, spells, or other effects unless they would be able to target or end a spell effect (such as dispel magic). It has a size for the purposes of determining its placement for effects, but it doesn\u0027t block movement. If applicable, its effects use your spell DCs and spell attack roll modifier."
+                                 },
+                   "incorporeal":  {
+                                       "slug":  "incorporeal",
+                                       "label":  "Incorporeal",
+                                       "description":  "An incorporeal creature or object has no physical form. It can pass through solid objects, including walls. When inside an object, an incorporeal creature can\u0027t perceive, attack, or interact with anything outside the object, and if it starts its turn in an object, it is slowed 1 until the end of its turn. A corporeal and an incorporeal creature can pass through one another, but they can\u0027t end their movement in each other\u0027s space. An incorporeal creature can\u0027t attempt Strength-based checks against physical creatures or objects—only against incorporeal ones—unless those objects have the ghost touch property rune. Likewise, a corporeal creature can\u0027t attempt Strength-based checks against incorporeal creatures or objects. Incorporeal creatures usually have immunity to effects or conditions that require a physical body, like disease, poison, and precision damage. They usually have resistance against all damage (except force damage, spirit damage, and damage from Strikes with the ghost touch property rune), with double the resistance against non-magical damage."
+                                   },
+                   "light":  {
+                                 "slug":  "light",
+                                 "label":  "Light",
+                                 "description":  "Light effects overcome non-magical darkness in the area, and can counteract magical darkness. You must usually target darkness magic with your light magic directly to counteract the darkness, but some light spells automatically attempt to counteract darkness."
+                             },
+                   "linguistic":  {
+                                      "slug":  "linguistic",
+                                      "label":  "Linguistic",
+                                      "description":  "An effect with this trait depends on language comprehension. A linguistic effect that targets a creature works only if the target understands the language you are using."
+                                  },
+                   "magus":  {
+                                 "slug":  "magus",
+                                 "label":  "Magus",
+                                 "description":  "This indicates abilities from the magus class."
+                             },
+                   "manipulate":  {
+                                      "slug":  "manipulate",
+                                      "label":  "Manipulate",
+                                      "description":  "You must physically manipulate an item or make gestures to use an action with this trait. Creatures without a suitable appendage can\u0027t perform actions with this trait. Manipulate actions often trigger reactions."
+                                  },
+                   "mental":  {
+                                  "slug":  "mental",
+                                  "label":  "Mental",
+                                  "description":  "A mental effect can alter the target\u0027s mind. It has no effect on an object or a mindless creature."
+                              },
+                   "metal":  {
+                                 "slug":  "metal",
+                                 "label":  "Metal",
+                                 "description":  "Effects with the metal trait conjure or manipulate metal. Those that manipulate metal have no effect in an area without metal. Creatures with this trait consist primarily of metal or have a connection to magical metal."
+                             },
+                   "misfortune":  {
+                                      "slug":  "misfortune",
+                                      "label":  "Misfortune",
+                                      "description":  "A misfortune effect detrimentally alters how you roll your dice. You can never have more than one misfortune effect alter a single roll. If multiple misfortune effects would apply, the GM decides which is worse and applies it. If a fortune effect and a misfortune effect would apply to the same roll, the two cancel each other out, and you roll normally."
+                                  },
+                   "monk":  {
+                                "slug":  "monk",
+                                "label":  "Monk",
+                                "description":  "Abilities with this trait are from the monk class. A weapon with this trait is primarily used by monks."
+                            },
+                   "morph":  {
+                                 "slug":  "morph",
+                                 "label":  "Morph",
+                                 "description":  "Effects that slightly alter a creature\u0027s form have the morph trait. Any Strikes specifically granted by a morph effect are magical. You can be affected by multiple morph spells at once, but if you morph the same body part more than once, the second morph effect attempts to counteract the first (in the same manner as two polymorph effects, described in that trait). Your morph effects might also end if you are polymorphed and the polymorph effect invalidates or overrides your morph effect. The GM determines which morph effects can be used together and which can\u0027t."
+                             },
+                   "move":  {
+                                "slug":  "move",
+                                "label":  "Move",
+                                "description":  "An action with this trait involves moving from one space to another."
+                            },
+                   "mythic":  {
+                                  "slug":  "mythic",
+                                  "label":  "Mythic",
+                                  "description":  "Options with this trait grant or utilize mythic power. Feats with the mythic trait can only be taken by mythic characters, who are typically characters with a mythic Calling.\nMonsters with the mythic trait have access to a pool of Mythic Points and are particularly strong for creatures of their level. Many mythic monsters are either resistant or entirely immune to attacks from non-mythic creatures and weapons.\nSpells with the mythic trait require the expenditure of a Mythic Point in order to be cast, and items with the mythic trait require the expenditure of a Mythic Point in order to use their activated abilities.\nWeapons with the mythic trait overcome the resistances and immunities of mythic monsters."
+                              },
+                   "nonlethal":  {
+                                     "slug":  "nonlethal",
+                                     "label":  "Nonlethal",
+                                     "description":  "Attacks with this weapon are nonlethal, and are used to knock creatures unconscious instead of kill them. You can use a nonlethal weapon to make a lethal attack with a -2 circumstance penalty."
+                                 },
+                   "olfactory":  {
+                                     "slug":  "olfactory",
+                                     "label":  "Olfactory",
+                                     "description":  "An olfactory effect can affect only creatures that can smell it. This applies only to olfactory parts of the effect, as determined by the GM."
+                                 },
+                   "oracle":  {
+                                  "slug":  "oracle",
+                                  "label":  "Oracle",
+                                  "description":  "This indicates abilities from the oracle class."
+                              },
+                   "plant":  {
+                                 "slug":  "plant",
+                                 "label":  "Plant",
+                                 "description":  "Vegetable creatures have the plant trait. They are distinct from normal plants. Magical effects with this trait manipulate or conjure plants or plant matter in some way. Those that manipulate plants have no effect in an area with no plants."
+                             },
+                   "poison":  {
+                                  "slug":  "poison",
+                                  "label":  "Poison",
+                                  "description":  "An effect with this trait delivers a poison or deals poison damage. An item with this trait is poisonous and might cause an affliction."
+                              },
+                   "polymorph":  {
+                                     "slug":  "polymorph",
+                                     "label":  "Polymorph",
+                                     "description":  "These effects completely transform the target into a new form. A target can\u0027t be under the effect of more than one polymorph at a time. If it comes under the effect of another, the second effect attempts to counteract the first. If it succeeds, it takes effect, and if it fails, the spell has no effect on that target. Any Strikes granted by a polymorph effect are magical. Unless otherwise stated, polymorph spells don\u0027t allow the target to take on the appearance of a specific individual creature. If you take on a battle form with a polymorph spell, the special statistics can be adjusted only by circumstance bonuses, status bonuses, and penalties. Unless otherwise noted, the battle form prevents you from casting spells, speaking, and using most manipulate actions that require hands. (If there\u0027s doubt about whether you can use an action, the GM decides.) Your gear is absorbed into you; the constant abilities of your gear still function, but you can\u0027t activate any items. You lose your Speeds and gain those of the battle form. If a polymorph effect causes you to increase in size, you must have space to expand into or the effect is disrupted."
+                                 },
+                   "possession":  {
+                                      "slug":  "possession",
+                                      "label":  "Possession",
+                                      "description":  "Effects with this trait allow a creature to project its mind and spirit into a target. A creature immune to mental effects can\u0027t use a possession effect. While possessing a target, a possessor\u0027s true body is unconscious (and can\u0027t wake up normally), unless the possession effect allows the creature to physically enter the target. Whenever the target takes damage, the possessor takes half that amount of damage as mental damage. A possessor loses the benefits of any of its active spells or abilities that affect its physical body, though it gains the benefits of the target\u0027s active spells and abilities that affect their body. A possessor can use any of the target\u0027s abilities that are purely physical, and it can\u0027t use any of its own abilities except spells and purely mental abilities. The GM decides whether an ability is purely physical or purely mental. A possessor uses the target\u0027s attack modifier, AC, Fortitude save, Reflex save, Perception, and physical skills, and its own Will save, mental skills, spell attack roll, and spell DC; benefits of invested items apply where relevant (the possessor\u0027s invested items apply when using its own values, and the target\u0027s invested items apply when using the target\u0027s values). A possessor gains no benefit from casting spells that normally affect only the caster, since it isn\u0027t in its own body. The possessor must use its own actions to make the possessed creature act. If a possessor reaches 0 Hit Points through any combination of damage to its true body and mental damage from the possession, it is knocked out as normal and the possession immediately ends. If the target reaches 0 Hit Points first, the possessor can either fall unconscious with the body and continue the possession or end the effect as a free action and return to its body. If the target dies, the possession ends immediately and the possessor is stunned for 1 minute."
+                                  },
+                   "prediction":  {
+                                      "slug":  "prediction",
+                                      "label":  "Prediction",
+                                      "description":  "Effects with this trait determine what is likely to happen in the near future. Most predictions are divinations."
+                                  },
+                   "psychic":  {
+                                   "slug":  "psychic",
+                                   "label":  "Psychic",
+                                   "description":  "This indicates abilities from the psychic class."
+                               },
+                   "ranger":  {
+                                  "slug":  "ranger",
+                                  "label":  "Ranger",
+                                  "description":  "This indicates abilities from the ranger class."
+                              },
+                   "revelation":  {
+                                      "slug":  "revelation",
+                                      "label":  "Revelation",
+                                      "description":  "Effects with this trait see things as they truly are."
+                                  },
+                   "sanctified":  {
+                                      "slug":  "sanctified",
+                                      "label":  "Sanctified",
+                                      "description":  "If you are holy or unholy, your sanctified actions and spells gain the same trait."
+                                  },
+                   "scrying":  {
+                                   "slug":  "scrying",
+                                   "label":  "Scrying",
+                                   "description":  "A scrying effect lets you see, hear, or otherwise get sensory information from a distance using a sensor or apparatus, rather than your own eyes and ears."
+                               },
+                   "shadow":  {
+                                  "slug":  "shadow",
+                                  "label":  "Shadow",
+                                  "description":  "This magic involves shadows or the energy of the Netherworld."
+                              },
+                   "sleep":  {
+                                 "slug":  "sleep",
+                                 "label":  "Sleep",
+                                 "description":  "This effect can cause a creature to fall asleep or get drowsy."
+                             },
+                   "sonic":  {
+                                 "slug":  "sonic",
+                                 "label":  "Sonic",
+                                 "description":  "An effect with the sonic trait functions only if it makes sound, meaning it has no effect in an area of silence or in a vacuum. This is different from an auditory spell, which is effective only if the target can hear it. A sonic effect might deal sonic damage."
+                             },
+                   "sorcerer":  {
+                                    "slug":  "sorcerer",
+                                    "label":  "Sorcerer",
+                                    "description":  "This indicates abilities from the sorcerer class."
+                                },
+                   "spellshape":  {
+                                      "slug":  "spellshape",
+                                      "label":  "Spellshape",
+                                      "description":  "Spellshape actions tweak the properties of your spells. You must use a spellshape action directly before casting the spell you want to alter. If you use any action (including free actions and reactions) other than casting a spell directly after, you waste the benefits of the spellshape action. The benefit is also lost if your turn ends before you cast the spell. Any additional effects added by a spellshape action are part of the spell\u0027s effect, not of the spellshape action itself."
+                                  },
+                   "spirit":  {
+                                  "slug":  "spirit",
+                                  "label":  "Spirit",
+                                  "description":  "Effects with this trait can affect creatures with spiritual essence and might deal spirit damage. A creature with this trait is defined by its spiritual essence. Spirit creatures often lack a material form."
+                              },
+                   "stance":  {
+                                  "slug":  "stance",
+                                  "label":  "Stance",
+                                  "description":  "A stance is a general combat strategy that you enter by using an action with the stance trait, and that you remain in for some time. A stance lasts until you get knocked out, until its requirements (if any) are violated, until the encounter ends, or until you enter a new stance, whichever comes first. After you use an action with the stance trait, you can\u0027t use another one for 1 round. You can enter or be in a stance only in encounter mode."
+                              },
+                   "structure":  {
+                                     "slug":  "structure",
+                                     "label":  "Structure",
+                                     "description":  "A spell, item activation, or ability with the structure trait creates a magical building or other structure. The structure must be created on a plot of land free of other structures. The structure adapts to the natural terrain, adopting the structural requirements for being built there. The structure adjusts around small features such as ponds or spires of rock, but it can\u0027t be created on water or other nonsolid surfaces. If created on snow, sand dunes, or other soft surfaces with a solid surface underneath, the structure\u0027s foundation (if any) reaches the solid ground. If the structure is on a solid but unstable surface, such as a swamp or an area plagued by tremors, roll a flat|dc:3 each day; on a failure, the structure begins to sink or collapse.\nThe structure doesn\u0027t harm creatures within the area when it appears, and it can\u0027t be created within a crowd or in a densely populated area. Any creature inadvertently caught inside the structure when it\u0027s created ends up unharmed inside the complete structure and always has a clear path of escape. A creature inside the structure when the effect ends isn\u0027t harmed, and it lands harmlessly on the ground if it was on an upper level of the structure"
+                                 },
+                   "subtle":  {
+                                  "slug":  "subtle",
+                                  "label":  "Subtle",
+                                  "description":  "A spell with the subtle trait can be cast without incantations and doesn\u0027t have obvious manifestations."
+                              },
+                   "summon":  {
+                                  "slug":  "summon",
+                                  "label":  "Summon",
+                                  "description":  "Spells with the summon trait can conjure creatures, typically ones with a particular trait. Such creatures can be found in Monster Core and similar books. Unless noted otherwise, the creature must be common, it gains the summoned trait, and it must appear in an unoccupied space in range large enough to contain it. The highest level of creature the spell can summon depends on the rank of the spell, as listed below. The spell can still summon a creature of a lower level if you so choose. These rules apply only to spells that have the summon trait; other spells that call or conjure items or beings but that don\u0027t have the trait, like summon instrument, work as explained in the spell."
+                              },
+                   "summoner":  {
+                                    "slug":  "summoner",
+                                    "label":  "Summoner",
+                                    "description":  "This indicates abilities from the Summoner class."
+                                },
+                   "teleportation":  {
+                                         "slug":  "teleportation",
+                                         "label":  "Teleportation",
+                                         "description":  "Teleportation effects allow you to instantaneously move from one point in space to another. Teleportation does not usually trigger reactions based on movement."
+                                     },
+                   "true-name":  {
+                                     "slug":  "true-name",
+                                     "label":  "True Name",
+                                     "description":  "Certain spells, feats, and items have the true name trait. This trait means they require you to know a creature\u0027s true name to use them."
+                                 },
+                   "unholy":  {
+                                  "slug":  "unholy",
+                                  "label":  "Unholy",
+                                  "description":  "Effects with the unholy trait are tied to powerful magical forces of cruelty and sin. They often have stronger effects on holy creatures. Creatures with this trait are strongly devoted to unholy causes, and often have weakness to holy. If a creature with weakness to unholy uses an unholy item or effect, it takes damage from its weakness."
+                              },
+                   "visual":  {
+                                  "slug":  "visual",
+                                  "label":  "Visual",
+                                  "description":  "A visual effect can affect only creatures that can see it. This applies only to visible parts of the effect, as determined by the GM."
+                              },
+                   "vitality":  {
+                                    "slug":  "vitality",
+                                    "label":  "Vitality",
+                                    "description":  "Effects with this trait heal living creatures with energy from the Forge of Creation, deal vitality energy damage to undead, or manipulate vitality energy."
+                                },
+                   "void":  {
+                                "slug":  "void",
+                                "label":  "Void",
+                                "description":  "Effects with this trait heal undead creatures with void energy, deal void damage to living creatures, or manipulate void energy."
+                            },
+                   "water":  {
+                                 "slug":  "water",
+                                 "label":  "Water",
+                                 "description":  "Effects with the water trait either manipulate or conjure water. Those that manipulate water have no effect in an area without water. Creatures with this trait consist primarily of water or have a connection to magical water."
+                             },
+                   "witch":  {
+                                 "slug":  "witch",
+                                 "label":  "Witch",
+                                 "description":  "This indicates abilities from the witch class."
+                             },
+                   "wizard":  {
+                                  "slug":  "wizard",
+                                  "label":  "Wizard",
+                                  "description":  "This indicates abilities from the wizard class."
+                              },
+                   "wood":  {
+                                "slug":  "wood",
+                                "label":  "Wood",
+                                "description":  "Effects with the wood trait conjure or manipulate wood. Those that manipulate wood have no effect in an area without wood. Creatures with this trait consist primarily of wood or have a connection to magical wood."
+                            }
+               },
+    "conditions":  {
+                       "blinded":  {
+                                       "slug":  "blinded",
+                                       "label":  "Blinded",
+                                       "description":  "You can\u0027t see. All normal terrain is difficult terrain to you. You can\u0027t detect anything using vision. You automatically critically fail Perception checks that require you to be able to see, and if vision is your only precise sense, you take a –4 status penalty to Perception checks. You are immune to visual effects. Blinded overrides Dazzled."
+                                   },
+                       "broken":  {
+                                      "slug":  "broken",
+                                      "label":  "Broken",
+                                      "description":  "Broken is a condition that affects only objects. An object is broken when damage has reduced its Hit Points to equal or less than its Broken Threshold. A broken object can\u0027t be used for its normal function, nor does it grant bonuses—with the exception of armor. Broken armor still grants its item bonus to AC, but it also imparts a status penalty to AC depending on its category: –1 for broken light armor, –2 for broken medium armor, or –3 for broken heavy armor.\n\nA broken item still imposes penalties and limitations normally incurred by carrying, holding, or wearing it. For example, broken armor would still impose its Dexterity modifier cap, check penalty, and so forth. If an effect makes an item broken automatically and the item has more HP than its Broken Threshold, that effect also reduces the item\u0027s current HP to the Broken Threshold."
+                                  },
+                       "clumsy":  {
+                                      "slug":  "clumsy",
+                                      "label":  "Clumsy",
+                                      "description":  "Your movements become clumsy and inexact. Clumsy always includes a value. You take a status penalty equal to the condition value to Dexterity-based rolls and DCs, including AC, Reflex saves, ranged attack rolls, and skill checks using Acrobatics, Stealth, and Thievery."
+                                  },
+                       "concealed":  {
+                                         "slug":  "concealed",
+                                         "label":  "Concealed",
+                                         "description":  "You are difficult for one or more creatures to see due to thick fog or some other obscuring feature. You can be concealed to some creatures but not others. While concealed, you can still be Observed, but you\u0027re tougher to target. A creature that you\u0027re concealed from must succeed at a flat|showDC:all|dc:5 when targeting you with an attack, spell, or other effect. If the check fails, you aren\u0027t affected. Area effects aren\u0027t subject to this flat check."
+                                     },
+                       "confused":  {
+                                        "slug":  "confused",
+                                        "label":  "Confused",
+                                        "description":  "You don\u0027t have your wits about you, and you attack wildly. You are Off-Guard, you don\u0027t treat anyone as your ally (though they might still treat you as theirs), and you can\u0027t Delay, Ready, or use reactions.\n\nYou use all your actions to Strike or cast offensive cantrips, though the GM can have you use other actions to facilitate attack, such as draw a weapon, move so target is in reach, and so forth. Your targets are determined randomly by the GM. If you have no other viable targets, you target yourself, automatically hitting but not scoring a critical hit. If it\u0027s impossible for you to attack or cast spells, you babble incoherently, wasting your actions.\n\nEach time you take damage from an attack or spell, you can attempt a flat|showDC:all|dc:11 to recover from your confusion and end the condition."
+                                    },
+                       "controlled":  {
+                                          "slug":  "controlled",
+                                          "label":  "Controlled",
+                                          "description":  "You have been commanded, magically dominated, or otherwise had your will subverted. The controller dictates how you act and can make you use any of your actions, including attacks, reactions, or even Delay. The controller usually doesn\u0027t have to spend their own actions when controlling you."
+                                      },
+                       "dazzled":  {
+                                       "slug":  "dazzled",
+                                       "label":  "Dazzled",
+                                       "description":  "Your eyes are overstimulated or your vision is swimming. If vision is your only precise sense, all creatures and objects are Concealed from you."
+                                   },
+                       "deafened":  {
+                                        "slug":  "deafened",
+                                        "label":  "Deafened",
+                                        "description":  "You can\u0027t hear. You automatically critically fail Perception checks that require you to be able to hear. You take a –2 status penalty to Perception checks for initiative and checks that involve sound but also rely on other senses. If you perform an action that has the auditory trait, you must succeed at a flat|showDC:all|dc:5 or the action is lost; attempt the check after spending the action but before any effects are applied. You are immune to auditory effects while deafened."
+                                    },
+                       "doomed":  {
+                                      "slug":  "doomed",
+                                      "label":  "Doomed",
+                                      "description":  "Your soul has been gripped by a powerful force that calls you closer to death. Doomed always includes a value. The Dying value at which you die is reduced by your doomed value. If your maximum dying value is reduced to 0, you instantly die. When you die, you\u0027re no longer doomed.\n\nYour doomed value decreases by 1 each time you get a full night\u0027s rest."
+                                  },
+                       "drained":  {
+                                       "slug":  "drained",
+                                       "label":  "Drained",
+                                       "description":  "Your health and vitality have been depleted as you\u0027ve lost blood, life force, or some other essence. Drained always includes a value. You take a status penalty equal to your drained value on Constitution-based rolls and DCs, such as Fortitude saves. You also lose a number of Hit Points equal to your level (minimum 1) times the drained value, and your maximum Hit Points are reduced by the same amount. For example, if you become drained 3 and you\u0027re a 3rd-level character, you lose 9 Hit Points and reduce your maximum Hit Points by 9. Losing these Hit Points doesn\u0027t count as taking damage.\n\nEach time you get a full night\u0027s rest, your drained value decreases by 1. This increases your maximum Hit Points, but you don\u0027t immediately recover the lost Hit Points."
+                                   },
+                       "dying":  {
+                                     "slug":  "dying",
+                                     "label":  "Dying",
+                                     "description":  "You are bleeding out or otherwise at death\u0027s door. While you have this condition, you are Unconscious. Dying always includes a value, and if it ever reaches dying 4, you die. When you\u0027re dying, you must attempt a recovery check at the start of your turn each round to determine whether you get better or worse. Your dying condition increases by 1 if you take damage while dying, or by 2 if you take damage from an enemy\u0027s critical hit or a critical failure on your save.\n\nIf you lose the dying condition by succeeding at a recovery check and are still at 0 Hit Points, you remain unconscious, but you can wake up as described in that condition. You lose the dying condition automatically and wake up if you ever have 1 Hit Point or more. Any time you lose the dying condition, you gain the Wounded 1 condition, or increase your wounded condition value by 1 if you already have that condition."
+                                 },
+                       "encumbered":  {
+                                          "slug":  "encumbered",
+                                          "label":  "Encumbered",
+                                          "description":  "You are carrying more weight than you can manage. While you\u0027re encumbered, you\u0027re Clumsy 1 and take a 10-foot penalty to all your Speeds. As with all penalties to your Speed, this can\u0027t reduce your Speed below 5 feet."
+                                      },
+                       "enfeebled":  {
+                                         "slug":  "enfeebled",
+                                         "label":  "Enfeebled",
+                                         "description":  "You\u0027re physically weakened. Enfeebled always includes a value. When you are enfeebled, you take a status penalty equal to the condition value to Strength-based rolls and DCs, including Strength-based melee attack rolls, Strength-based damage rolls, and Athletics checks."
+                                     },
+                       "fascinated":  {
+                                          "slug":  "fascinated",
+                                          "label":  "Fascinated",
+                                          "description":  "You\u0027re compelled to focus your attention on something, distracting you from whatever else is going on around you. You take a –2 status penalty to Perception and skill checks, and you can\u0027t use concentrate actions unless they (or their intended consequences) are related to the subject of your fascination, as determined by the GM. For instance, you might be able to Seek and Recall Knowledge about the subject, but you likely couldn\u0027t cast a spell targeting a different creature. This condition ends if a creature uses hostile actions against you or any of your allies."
+                                      },
+                       "fatigued":  {
+                                        "slug":  "fatigued",
+                                        "label":  "Fatigued",
+                                        "description":  "You\u0027re tired and can\u0027t summon much energy. You take a –1 status penalty to AC and saving throws. You can\u0027t use exploration activities performed while traveling.\n\nYou recover from fatigue after a full night\u0027s rest."
+                                    },
+                       "fleeing":  {
+                                       "slug":  "fleeing",
+                                       "label":  "Fleeing",
+                                       "description":  "You\u0027re forced to run away due to fear or some other compulsion. On your turn, you must spend each of your actions trying to escape the source of the fleeing condition as expediently as possible (such as by using move actions to flee, or opening doors barring your escape). The source is usually the effect or creature that gave you the condition, though some effects might define something else as the source. You can\u0027t Delay or Ready while fleeing."
+                                   },
+                       "friendly":  {
+                                        "slug":  "friendly",
+                                        "label":  "Friendly",
+                                        "description":  "This condition reflects a creature\u0027s disposition toward a particular character, and only supernatural effects (like a spell) can impose this condition on a PC. A creature that is friendly to a character likes that character. It is likely to agree to Requests from that character as long as they are simple, safe, and don\u0027t cost too much to fulfill. If the character (or one of their allies) uses hostile actions against the creature, the creature gains a worse attitude condition depending on the severity of the hostile action, as determined by the GM."
+                                    },
+                       "frightened":  {
+                                          "slug":  "frightened",
+                                          "label":  "Frightened",
+                                          "description":  "You\u0027re gripped by fear and struggle to control your nerves. The frightened condition always includes a value. You take a status penalty equal to this value to all your checks and DCs. Unless specified otherwise, at the end of each of your turns, the value of your frightened condition decreases by 1."
+                                      },
+                       "grabbed":  {
+                                       "slug":  "grabbed",
+                                       "label":  "Grabbed",
+                                       "description":  "You\u0027re held in place by another creature, giving you the Off-Guard and Immobilized conditions. If you attempt a manipulate action while grabbed, you must succeed at a flat|showDC:all|dc:5 or it is lost; roll the check after spending the action, but before any effects are applied."
+                                   },
+                       "helpful":  {
+                                       "slug":  "helpful",
+                                       "label":  "Helpful",
+                                       "description":  "This condition reflects a creature\u0027s disposition toward a particular character, and only supernatural effects (like a spell) can impose this condition on a PC. A creature that is helpful to a character wishes to actively aid that character. It will accept reasonable Requests from that character, as long as such requests aren\u0027t at the expense of the helpful creature\u0027s goals or quality of life. If the character (or one of their allies) uses a hostile action against the creature, the creature gains a worse attitude condition depending on the severity of the hostile action, as determined by the GM."
+                                   },
+                       "hidden":  {
+                                      "slug":  "hidden",
+                                      "label":  "Hidden",
+                                      "description":  "While you\u0027re hidden from a creature, that creature knows the space you\u0027re in but can\u0027t tell precisely where you are. You typically become hidden by using Stealth to Hide. When Seeking a creature using only imprecise senses, it remains hidden, rather than Observed. A creature you\u0027re hidden from is Off-Guard to you, and it must succeed at a flat|showDC:all|dc:11 when targeting you with an attack, spell, or other effect or it fails to affect you. Area effects aren\u0027t subject to this flat check.\n\nA creature might be able to use the seek action to try to observe you."
+                                  },
+                       "immobilized":  {
+                                           "slug":  "immobilized",
+                                           "label":  "Immobilized",
+                                           "description":  "You are incapable of movement. You can\u0027t use any actions that have the move trait. If you\u0027re immobilized by something holding you in place and an external force would move you out of your space, the force must succeed at a check against either the DC of the effect holding you in place or the relevant defense (usually Fortitude DC) of the monster holding you in place."
+                                       },
+                       "indifferent":  {
+                                           "slug":  "indifferent",
+                                           "label":  "Indifferent",
+                                           "description":  "This condition reflects a creature\u0027s disposition toward a particular character, and only supernatural effects (like a spell) can impose this condition on a PC. A creature that is indifferent to a character doesn\u0027t really care one way or the other about that character. Assume a creature\u0027s attitude to a given character is indifferent unless specified otherwise."
+                                       },
+                       "invisible":  {
+                                         "slug":  "invisible",
+                                         "label":  "Invisible",
+                                         "description":  "You can\u0027t be seen. You\u0027re Undetected to everyone. Creatures can Seek to detect you; if a creature succeeds at its Perception check against your Stealth DC, you become Hidden to that creature until you Sneak to become undetected again. If you become invisible while someone can already see you, you start out hidden to them (instead of undetected) until you successfully Sneak. You can\u0027t become Observed while invisible except via special abilities or magic."
+                                     },
+                       "observed":  {
+                                        "slug":  "observed",
+                                        "label":  "Observed",
+                                        "description":  "Anything in plain view is observed by you. If a creature takes measures to avoid detection, such as by using Stealth to Hide, it can become Hidden or Undetected instead of observed. If you have another precise sense besides sight, you might be able to observe a creature or object using that sense instead. You can observe a creature with only your precise senses. When Seeking a creature using only imprecise senses, it remains hidden, rather than observed."
+                                    },
+                       "off-guard":  {
+                                         "slug":  "off-guard",
+                                         "label":  "Off-Guard",
+                                         "description":  "You\u0027re distracted or otherwise unable to focus your full attention on defense. You take a –2 circumstance penalty to AC. Some effects give you the off-guard condition only to certain creatures or against certain attacks. Others—especially conditions—can make you off-guard against everything. If a rule doesn\u0027t specify that the condition applies only to certain circumstances, it applies to all of them, such as \"The target is off-guard.\""
+                                     },
+                       "paralyzed":  {
+                                         "slug":  "paralyzed",
+                                         "label":  "Paralyzed",
+                                         "description":  "You\u0027re frozen in place. You have the Off-Guard condition and can\u0027t act except to Recall Knowledge and use actions that require only your mind (as determined by the GM). Your senses still function, but only in the areas you can perceive without moving, so you can\u0027t Seek."
+                                     },
+                       "persistent-damage":  {
+                                                 "slug":  "persistent-damage",
+                                                 "label":  "Persistent Damage",
+                                                 "description":  "You are taking damage from an ongoing effect, such as from being lit on fire. This appears as \"X persistent [type] damage,\" where \"X\" is the amount of damage dealt and \"[type]\" is the damage type. Like normal damage, it can be doubled or halved based on the results of an attack roll or saving throw. Instead of taking persistent damage immediately, you take it at the end of each of your turns as long as you have the condition, rolling any damage dice anew each time. After you take persistent damage, roll a flat|showDC:all|dc:15 to see if you recover from the persistent damage. If you succeed, the condition ends."
+                                             },
+                       "petrified":  {
+                                         "slug":  "petrified",
+                                         "label":  "Petrified",
+                                         "description":  "You have been turned to stone. You can\u0027t act, nor can you sense anything. You become an object with a Bulk double your normal Bulk (typically 12 for a petrified Medium creature or 6 for a petrified Small creature), AC 9, Hardness 8, and the same current Hit Points you had when alive. You don\u0027t have a Broken Threshold. When the petrified condition ends, you have the same number of Hit Points you had as a statue. If the statue is destroyed, you immediately die. While petrified, your mind and body are in stasis, so you don\u0027t age or notice the passing of time."
+                                     },
+                       "prone":  {
+                                     "slug":  "prone",
+                                     "label":  "Prone",
+                                     "description":  "You\u0027re lying on the ground. You are Off-Guard and take a –2 circumstance penalty to attack rolls. The only move actions you can use while you\u0027re prone are Crawl and Stand. Standing up ends the prone condition. You can Take Cover while prone to hunker down and gain greater cover against ranged attacks, even if you don\u0027t have an object to get behind, which grants you a +4 circumstance bonus to AC against ranged attacks (but you remain off-guard).\n\nIf you would be knocked prone while you\u0027re Climbing or Flying, you fall. You can\u0027t be knocked prone when Swimming."
+                                 },
+                       "quickened":  {
+                                         "slug":  "quickened",
+                                         "label":  "Quickened",
+                                         "description":  "You\u0027re able to act more quickly. You gain 1 additional action at the start of your turn each round. Many effects that make you quickened require you use this extra action only in certain ways. If you become quickened from multiple sources, you can use the extra action you\u0027ve been granted for any single action allowed by any of the effects that made you quickened. Because quickened has its effect at the start of your turn, you don\u0027t immediately gain actions if you become quickened during your turn."
+                                     },
+                       "restrained":  {
+                                          "slug":  "restrained",
+                                          "label":  "Restrained",
+                                          "description":  "You\u0027re tied up and can barely move, or a creature has you pinned. You have the Off-Guard and Immobilized conditions, and you can\u0027t use any attack or manipulate actions except to attempt to Escape or Force Open your bonds. Restrained overrides Grabbed."
+                                      },
+                       "sickened":  {
+                                        "slug":  "sickened",
+                                        "label":  "Sickened",
+                                        "description":  "PF2E.condition.sickened.rules"
+                                    },
+                       "slowed":  {
+                                      "slug":  "slowed",
+                                      "label":  "Slowed",
+                                      "description":  "You have fewer actions. Slowed always includes a value. When you regain your actions, reduce the number of actions regained by your slowed value. Because you regain actions at the start of your turn, you don\u0027t immediately lose actions if you become slowed during your turn."
+                                  },
+                       "stunned":  {
+                                       "slug":  "stunned",
+                                       "label":  "Stunned",
+                                       "description":  "You\u0027ve become senseless. You can\u0027t act. Stunned usually includes a value, which indicates how many total actions you lose, possibly over multiple turns, from being stunned. Each time you regain actions, reduce the number you regain by your stunned value, then reduce your stunned value by the number of actions you lost. For example, if you were stunned 4, you would lose all 3 of your actions on your turn, reducing you to stunned 1; on your next turn, you would lose 1 more action, and then be able to use your remaining 2 actions normally. Stunned might also have a duration instead, such as \"stunned for 1 minute,\" causing you to lose all your actions for the duration.\n\nStunned overrides Slowed. If the duration of your stunned condition ends while you are slowed, you count the actions lost to the stunned condition toward those lost to being slowed. So, if you were stunned 1 and slowed 2 at the beginning of your turn, you would lose 1 action from stunned, and then lose only 1 additional action by being slowed, so you would still have 1 action remaining to use that turn."
+                                   },
+                       "stupefied":  {
+                                         "slug":  "stupefied",
+                                         "label":  "Stupefied",
+                                         "description":  "Your thoughts and instincts are clouded. Stupefied always includes a value. You take a status penalty equal to this value on Intelligence-, Wisdom-, and Charisma-based rolls and DCs, including Will saving throws, spell attack modifiers, spell DCs, and skill checks that use these attribute modifiers. Any time you attempt to Cast a Spell while stupefied, the spell is disrupted unless you succeed at a flat|showDC:all|dc:resolve(5+@item.badge.value) with a DC equal to 5 + your stupefied value."
+                                     },
+                       "unconscious":  {
+                                           "slug":  "unconscious",
+                                           "label":  "Unconscious",
+                                           "description":  "You\u0027re sleeping or have been knocked out. You can\u0027t act. You take a –4 status penalty to AC, Perception, and Reflex saves, and you have the Blinded and Off-Guard conditions. When you gain this condition, you fall Prone and drop items you\u0027re holding unless the effect states otherwise or the GM determines you\u0027re positioned so you wouldn\u0027t.\n\nIf you\u0027re unconscious because you\u0027re Dying, you can\u0027t wake up while you have 0 Hit Points. If you are restored to 1 Hit Point or more, you lose the dying and unconscious conditions and can act normally on your next turn.\n\nIf you are unconscious and at 0 Hit Points, but not dying, you return to 1 Hit Point and awaken after sufficient time passes. The GM determines how long you remain unconscious, from a minimum of 10 minutes to several hours. If you are healed, you lose the unconscious condition and can act normally on your next turn.\n\nIf you\u0027re unconscious and have more than 1 Hit Point (typically because you are asleep or unconscious due to an effect), you wake up in one of the following ways.\n\n- You take damage, though if the damage reduces you to 0 Hit Points, you remain unconscious and gain the dying condition as normal.\n\n- You receive healing, other than the natural healing you get from resting.\n\n- Someone shakes you awake with an Interact action.\n\n- Loud noise around you might wake you. At the start of your turn, you automatically attempt a Perception check against the noise\u0027s DC (or the lowest DC if there is more than one noise), waking up if you succeed. If creatures are attempting to stay quiet around you, this Perception check uses their Stealth DCs. Some effects make you sleep so deeply that they don\u0027t allow you this Perception check.\n\n- If you are simply asleep, the GM decides you wake up either because you have had a restful night\u0027s sleep or something disrupted that rest."
+                                       },
+                       "undetected":  {
+                                          "slug":  "undetected",
+                                          "label":  "Undetected",
+                                          "description":  "When you are undetected by a creature, that creature can\u0027t see you at all, has no idea what space you occupy, and can\u0027t target you, though you still can be affected by abilities that target an area. When you\u0027re undetected by a creature, that creature is Off-Guard to you.\n\nA creature you\u0027re undetected by can guess which square you\u0027re in to try targeting you. It must pick a square and attempt an attack. This works like targeting a Hidden creature (requiring a flat|showDC:all|dc:11|traits:secret), but the flat check and attack roll are rolled in secret by the GM, who doesn\u0027t reveal whether the attack missed due to failing the flat check, failing the attack roll, or choosing the wrong square. They can Seek to try to find you."
+                                      },
+                       "unfriendly":  {
+                                          "slug":  "unfriendly",
+                                          "label":  "Unfriendly",
+                                          "description":  "This condition reflects a creature\u0027s disposition toward a particular character, and only supernatural effects (like a spell) can impose this condition on a PC. A creature that is unfriendly to a character dislikes and distrusts that character. The unfriendly creature won\u0027t accept Requests from the character."
+                                      },
+                       "wounded":  {
+                                       "slug":  "wounded",
+                                       "label":  "Wounded",
+                                       "description":  "You have been seriously injured. If you lose the Dying condition and do not already have the wounded condition, you become wounded 1. If you already have the wounded condition when you lose the dying condition, your wounded condition value increases by 1. If you gain the dying condition while wounded, increase your dying condition value by your wounded value.\n\nThe wounded condition ends if someone successfully restores Hit Points to you using Treat Wounds, or if you are restored to full Hit Points by any means and rest for 10 minutes."
+                                   }
+                   }
+}

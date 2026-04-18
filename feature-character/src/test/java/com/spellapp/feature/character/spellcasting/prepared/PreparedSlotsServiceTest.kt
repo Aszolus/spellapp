@@ -1,4 +1,4 @@
-package com.spellapp.feature.character
+package com.spellapp.feature.character.spellcasting.prepared
 
 import com.spellapp.core.data.CastingTrackRepository
 import com.spellapp.core.data.CharacterBuildRepository
@@ -24,6 +24,7 @@ import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEvent
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
+import com.spellapp.feature.character.spellcasting.SpellcastingSupportService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -307,16 +308,26 @@ class PreparedSlotsServiceTest {
         val characterCrudRepository = FakeCharacterCrudRepository(
             character = characterProfile(characterClass = CharacterClass.WIZARD),
         )
+        val focusStateRepository = FakeFocusStateRepository()
+        val sessionEventRepository = FakeSessionEventRepository()
+        val characterBuildRepository = FakeCharacterBuildRepository()
         val service = PreparedSlotsService(
             preparedSlotRepository = preparedSlotRepository,
             castingTrackRepository = FakeCastingTrackRepository(tracks),
             preparedSlotSyncRepository = FakePreparedSlotSyncRepository(),
-            sessionEventRepository = FakeSessionEventRepository(),
-            focusStateRepository = FakeFocusStateRepository(),
+            focusStateRepository = focusStateRepository,
+            sessionEventRepository = sessionEventRepository,
             knownSpellRepository = knownSpellRepository,
             spellRepository = spellRepository,
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = FakeCharacterBuildRepository(),
+            spellcastingSupportService = SpellcastingSupportService(
+                castingTrackRepository = FakeCastingTrackRepository(tracks),
+                sessionEventRepository = sessionEventRepository,
+                focusStateRepository = focusStateRepository,
+                knownSpellRepository = knownSpellRepository,
+                spellRepository = spellRepository,
+                characterCrudRepository = characterCrudRepository,
+                characterBuildRepository = characterBuildRepository,
+            ),
         )
         return TestFixture(
             service = service,
