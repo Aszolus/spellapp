@@ -265,6 +265,8 @@ private fun NavGraphBuilder.spellListDestination(
                 }
             },
             onKnownSpellToggle = spellListViewModel::toggleKnownSpell,
+            onLearnAllKnownSpells = spellListViewModel::learnAllVisibleSpells,
+            onUnlearnAllKnownSpells = spellListViewModel::unlearnAllVisibleSpells,
             onBack = {
                 if (navController.popBackStackIfResumed()) {
                     navigationViewModel.clearSpellBrowserMode()
@@ -311,8 +313,8 @@ private fun NavGraphBuilder.spellDetailDestination(
             spell = spellDetailUiState.spell,
             isLoading = spellDetailUiState.isLoading,
             traitLookups = spellDetailUiState.traitLookups,
-            rulesText = spellDetailUiState.rulesText,
-            rulesTextReferences = spellDetailUiState.rulesTextReferences,
+            rulesDocument = spellDetailUiState.rulesDocument,
+            referenceLookups = spellDetailUiState.referenceLookups,
             heightenedAt = spellDetailUiState.heightenedAt,
             onBack = { navController.popBackStackIfResumed() },
         )

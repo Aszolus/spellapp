@@ -138,6 +138,25 @@ class PreparedSlotsServiceTest {
     }
 
     @Test
+    fun prepareRandom_blocksLowerRank_whenAbsoluteHeightenedWasReachedBeforeTargetRank() = runTest {
+        val fixture = fixture(
+            slots = listOf(emptySlot(rank = 5)),
+            spells = listOf(spell(id = "spell-absolute-4", rank = 2)),
+            details = mapOf(
+                "spell-absolute-4" to detail(
+                    id = "spell-absolute-4",
+                    rank = 2,
+                    heightenedEntries = listOf(absoluteEntry(4)),
+                ),
+            ),
+        )
+
+        fixture.service.prepareRandom(characterId = CHARACTER_ID, trackKey = PreparedSlot.PRIMARY_TRACK_KEY)
+
+        assertNull(fixture.preparedSlotRepository.preparedSpellIdFor(rank = 5, slotIndex = 0))
+    }
+
+    @Test
     fun prepareRandom_blocksLowerRank_whenAbsoluteHeightenedAlreadyAtOrBelowBaseRank() = runTest {
         val fixture = fixture(
             slots = listOf(emptySlot(rank = 5)),
@@ -210,6 +229,32 @@ class PreparedSlotsServiceTest {
         fixture.service.prepareRandom(characterId = CHARACTER_ID, trackKey = PreparedSlot.PRIMARY_TRACK_KEY)
 
         assertEquals("spell-plus-2", fixture.preparedSlotRepository.preparedSpellIdFor(rank = 3, slotIndex = 0))
+    }
+
+    @Test
+    fun prepareRandom_mixedHeightening_requiresTargetRankToBeOwnTrigger() = runTest {
+        val fixture = fixture(
+            slots = listOf(
+                emptySlot(rank = 5, slotIndex = 0),
+                emptySlot(rank = 6, slotIndex = 0),
+            ),
+            spells = listOf(spell(id = "spell-mixed-heighten", rank = 2)),
+            details = mapOf(
+                "spell-mixed-heighten" to detail(
+                    id = "spell-mixed-heighten",
+                    rank = 2,
+                    heightenedEntries = listOf(
+                        absoluteEntry(4),
+                        stepEntry(2),
+                    ),
+                ),
+            ),
+        )
+
+        fixture.service.prepareRandom(characterId = CHARACTER_ID, trackKey = PreparedSlot.PRIMARY_TRACK_KEY)
+
+        assertNull(fixture.preparedSlotRepository.preparedSpellIdFor(rank = 5, slotIndex = 0))
+        assertEquals("spell-mixed-heighten", fixture.preparedSlotRepository.preparedSpellIdFor(rank = 6, slotIndex = 0))
     }
 
     @Test

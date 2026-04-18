@@ -6,10 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.spellapp.core.data.RulesReferenceRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.data.SpellRulesTextRepository
+import com.spellapp.core.model.CompendiumReferenceKey
 import com.spellapp.core.model.RulesReferenceCategory
 import com.spellapp.core.model.RulesReferenceKey
+import com.spellapp.core.model.RulesTextDocument
 import com.spellapp.core.model.SpellDetail
-import com.spellapp.core.model.SpellRulesText
+import com.spellapp.core.model.TraitReferenceKey
+import com.spellapp.core.model.referenceKeys
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,20 +24,20 @@ data class SpellDetailUiState(
     val isLoading: Boolean = true,
     val heightenedAt: Int? = null,
     val traitLookups: List<SpellTraitLookupUiState> = emptyList(),
-    val rulesText: String = "",
-    val rulesTextReferences: List<SpellRulesReferenceUiState> = emptyList(),
+    val rulesDocument: RulesTextDocument = RulesTextDocument(),
+    val referenceLookups: Map<RulesReferenceKey, SpellReferenceLookupUiState> = emptyMap(),
 )
 
 data class SpellTraitLookupUiState(
     val label: String,
-    val description: String? = null,
+    val document: RulesTextDocument? = null,
 )
 
-data class SpellRulesReferenceUiState(
+data class SpellReferenceLookupUiState(
+    val key: RulesReferenceKey,
+    val category: RulesReferenceCategory,
     val label: String,
-    val description: String? = null,
-    val start: Int,
-    val end: Int,
+    val document: RulesTextDocument? = null,
 )
 
 class SpellDetailViewModel(
@@ -62,30 +65,29 @@ class SpellDetailViewModel(
                     spell = null,
                     isLoading = true,
                     traitLookups = emptyList(),
-                    rulesText = "",
-                    rulesTextReferences = emptyList(),
+                    rulesDocument = RulesTextDocument(),
+                    referenceLookups = emptyMap(),
                 )
             }
             val spell = spellRepository.getSpellDetail(spellId)
+            val spellRank = spell?.let { detail ->
+                _uiState.value.heightenedAt ?: detail.rank.takeIf { it > 0 } ?: 1
+            }
             val parsedRulesText = if (spell != null) {
-                spellRulesTextRepository.getSpellRulesText(spellId)
-                    ?: SpellRulesText(text = spell.description)
+                spellRulesTextRepository.getSpellRulesText(
+                    spellId = spellId,
+                    spellRank = spellRank,
+                )
+                    ?: RulesTextDocument.fromPlainText(spell.description)
             } else {
-                SpellRulesText(text = "")
+                RulesTextDocument()
             }
             val lookupEntries = if (spell != null) {
                 val keys = buildSet {
                     spell.traits.forEach { trait ->
-                        add(
-                            RulesReferenceKey(
-                                category = RulesReferenceCategory.TRAIT,
-                                slug = trait,
-                            ),
-                        )
+                        add(TraitReferenceKey.fromSlug(trait))
                     }
-                    parsedRulesText.references.forEach { reference ->
-                        add(reference.key)
-                    }
+                    addAll(parsedRulesText.referenceKeys())
                 }
                 rulesReferenceRepository.getEntries(keys)
             } else {
@@ -96,25 +98,24 @@ class SpellDetailViewModel(
                     spell = spell,
                     isLoading = false,
                     traitLookups = spell?.traits.orEmpty().map { trait ->
-                        val key = RulesReferenceKey(
-                            category = RulesReferenceCategory.TRAIT,
-                            slug = trait,
-                        )
+                        val key = TraitReferenceKey.fromSlug(trait)
                         val entry = lookupEntries[key]
                         SpellTraitLookupUiState(
                             label = entry?.label ?: trait.toDisplayLabel(),
-                            description = entry?.description,
+                            document = entry?.document,
                         )
                     },
-                    rulesText = parsedRulesText.text,
-                    rulesTextReferences = parsedRulesText.references.map { reference ->
-                        SpellRulesReferenceUiState(
-                            label = reference.label,
-                            description = lookupEntries[reference.key]?.description,
-                            start = reference.start,
-                            end = reference.end,
-                        )
-                    },
+                    rulesDocument = parsedRulesText,
+                    referenceLookups = lookupEntries
+                        .filterKeys { it is CompendiumReferenceKey }
+                        .mapValues { (key, entry) ->
+                            SpellReferenceLookupUiState(
+                                key = key,
+                                category = entry.key.category,
+                                label = entry.label,
+                                document = entry.document,
+                            )
+                        },
                 )
             }
         }

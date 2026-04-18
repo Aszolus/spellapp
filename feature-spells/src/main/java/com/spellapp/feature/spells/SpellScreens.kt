@@ -1,4 +1,4 @@
-package com.spellapp.feature.spells
+﻿package com.spellapp.feature.spells
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -47,16 +46,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.spellapp.core.model.HeightenTrigger
 import com.spellapp.core.model.HeightenedEntry
+import com.spellapp.core.model.RulesReferenceKey
+import com.spellapp.core.model.RulesTextDocument
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
 import com.spellapp.core.model.heightenBonusDice
@@ -97,6 +94,8 @@ fun SpellListRoute(
     onClearFilters: () -> Unit,
     onSpellClick: (String) -> Unit,
     onKnownSpellToggle: (String) -> Unit,
+    onLearnAllKnownSpells: () -> Unit,
+    onUnlearnAllKnownSpells: () -> Unit,
     onBack: (() -> Unit)? = null,
 ) {
     var showFiltersDialog by rememberSaveable { mutableStateOf(false) }
@@ -144,6 +143,16 @@ fun SpellListRoute(
     val activeFilterCount = activeFilters.size
     val hasActiveSearch = query.isNotBlank()
     val hasActiveFilters = activeFilterCount > 0
+    val addableSpellCount = if (isManageKnownSpells) {
+        spells.count { it.id !in knownSpellIds }
+    } else {
+        0
+    }
+    val removableSpellCount = if (isManageKnownSpells) {
+        spells.count { it.id in knownSpellIds }
+    } else {
+        0
+    }
 
     Scaffold(
         topBar = {
@@ -218,11 +227,29 @@ fun SpellListRoute(
                         .fillMaxWidth()
                         .padding(top = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = if (hasActiveSearch || hasActiveFilters) "Filtered: ${spells.size}" else "Spells: ${spells.size}",
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                    if (isManageKnownSpells && (addableSpellCount > 0 || removableSpellCount > 0)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (addableSpellCount > 0) {
+                                TextButton(onClick = onLearnAllKnownSpells) {
+                                    Text("Learn All ($addableSpellCount)")
+                                }
+                            }
+                            if (removableSpellCount > 0) {
+                                TextButton(onClick = onUnlearnAllKnownSpells) {
+                                    Text("Unlearn All ($removableSpellCount)")
+                                }
+                            }
+                        }
+                    }
                 }
             }
             if (isManageKnownSpells || isAssignPreparedSlot) {
@@ -544,8 +571,8 @@ fun SpellDetailRoute(
     spell: SpellDetail?,
     isLoading: Boolean,
     traitLookups: List<SpellTraitLookupUiState>,
-    rulesText: String,
-    rulesTextReferences: List<SpellRulesReferenceUiState>,
+    rulesDocument: RulesTextDocument,
+    referenceLookups: Map<RulesReferenceKey, SpellReferenceLookupUiState>,
     heightenedAt: Int? = null,
     onBack: () -> Unit,
 ) {
@@ -611,10 +638,12 @@ fun SpellDetailRoute(
                     TraitLookupField(
                         traitLookups = traitLookups,
                         onLookupClick = { lookup ->
-                            activeLookup = SpellLookupDialogState(
-                                title = lookup.label,
-                                description = lookup.description.orEmpty(),
-                            )
+                            lookup.document?.let { document ->
+                                activeLookup = SpellLookupDialogState(
+                                    title = lookup.label,
+                                    document = document,
+                                )
+                            }
                         },
                     )
                 }
@@ -625,75 +654,10 @@ fun SpellDetailRoute(
                         .padding(top = 4.dp)
                         .semantics { heading() },
                 )
-                val displayFamily = MaterialTheme.typography.titleLarge.fontFamily
-                val primaryColor = MaterialTheme.colorScheme.primary
-                val dropCapSize = MaterialTheme.typography.headlineMedium.fontSize
-                val description = remember(
-                    rulesText,
-                    rulesTextReferences,
-                    displayFamily,
-                    primaryColor,
-                    dropCapSize,
-                ) {
-                    val clickableReferences = rulesTextReferences.withIndex()
-                        .filter { it.value.description != null }
-                    buildAnnotatedString {
-                        val text = rulesText
-                        if (text.isEmpty()) return@buildAnnotatedString
-                        withStyle(
-                            SpanStyle(
-                                fontFamily = displayFamily,
-                                fontSize = dropCapSize,
-                                fontWeight = FontWeight.SemiBold,
-                                color = primaryColor,
-                            ),
-                        ) {
-                            append(text.first())
-                        }
-                        append(text.drop(1))
-                        clickableReferences.forEach { indexedReference ->
-                            addStyle(
-                                style = SpanStyle(
-                                    color = primaryColor,
-                                    fontWeight = FontWeight.Medium,
-                                    textDecoration = TextDecoration.Underline,
-                                ),
-                                start = indexedReference.value.start,
-                                end = indexedReference.value.end,
-                            )
-                            addStringAnnotation(
-                                tag = SPELL_LOOKUP_ANNOTATION_TAG,
-                                annotation = indexedReference.index.toString(),
-                                start = indexedReference.value.start,
-                                end = indexedReference.value.end,
-                            )
-                        }
-                    }
-                }
-                ClickableText(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    onClick = { offset ->
-                        description
-                            .getStringAnnotations(
-                                tag = SPELL_LOOKUP_ANNOTATION_TAG,
-                                start = offset,
-                                end = offset,
-                            )
-                            .firstOrNull()
-                            ?.item
-                            ?.toIntOrNull()
-                            ?.let { index ->
-                                val reference = rulesTextReferences.getOrNull(index)
-                                val descriptionText = reference?.description
-                                if (reference != null && descriptionText != null) {
-                                    activeLookup = SpellLookupDialogState(
-                                        title = reference.label,
-                                        description = descriptionText,
-                                    )
-                                }
-                            }
-                    },
+                RulesTextDocumentText(
+                    document = rulesDocument,
+                    referenceLookups = referenceLookups,
+                    onLookupClick = { lookup -> activeLookup = lookup },
                 )
                 if (spell.heightenedEntries.isNotEmpty()) {
                     HeightenSection(
@@ -783,7 +747,7 @@ private fun TraitLookupField(
                     shape = MaterialTheme.shapes.small,
                     tonalElevation = 1.dp,
                     modifier = Modifier.then(
-                        if (lookup.description != null) {
+                        if (lookup.document != null) {
                             Modifier.clickable { onLookupClick(lookup) }
                         } else {
                             Modifier
@@ -793,7 +757,7 @@ private fun TraitLookupField(
                     Text(
                         text = lookup.label,
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (lookup.description != null) {
+                        color = if (lookup.document != null) {
                             MaterialTheme.colorScheme.primary
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -821,9 +785,10 @@ private fun SpellLookupDialog(
                     .heightIn(max = 360.dp)
                     .verticalScroll(rememberScrollState()),
             ) {
-                Text(
-                    text = lookup.description,
-                    style = MaterialTheme.typography.bodyMedium,
+                RulesTextDocumentText(
+                    document = lookup.document,
+                    referenceLookups = emptyMap(),
+                    enableLookups = false,
                 )
             }
         },
@@ -844,7 +809,7 @@ private fun MarginNote(
         return
     }
     Text(
-        text = "$label — $value",
+        text = "$label - $value",
         style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
@@ -956,9 +921,11 @@ private fun formatSpellSubtitle(rank: Int, tradition: String): String {
     return if (traditions.isEmpty()) rankLabel else "$rankLabel | $traditions"
 }
 
-private data class SpellLookupDialogState(
+internal data class SpellLookupDialogState(
     val title: String,
-    val description: String,
+    val document: RulesTextDocument,
 )
 
-private const val SPELL_LOOKUP_ANNOTATION_TAG = "spell-lookup"
+internal const val SPELL_LOOKUP_ANNOTATION_TAG = "spell-lookup"
+
+

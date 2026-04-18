@@ -303,11 +303,41 @@ class SpellListViewModel(
         }
     }
 
+    fun learnAllVisibleSpells() {
+        val mode = browserMode.value as? SpellBrowserMode.ManageKnownSpells ?: return
+        val spellIds = spells.value
+            .asSequence()
+            .map { it.id }
+            .filterNot { it in knownSpellIds.value }
+            .toList()
+        if (spellIds.isEmpty()) return
+        viewModelScope.launch {
+            val warning = toggleKnownSpellUseCase.addAll(mode, spellIds)
+            if (warning != null) {
+                pendingKnownSpellWarning.update { warning }
+            }
+        }
+    }
+
+    fun unlearnAllVisibleSpells() {
+        val mode = browserMode.value as? SpellBrowserMode.ManageKnownSpells ?: return
+        val spellIds = spells.value
+            .asSequence()
+            .map { it.id }
+            .filter { it in knownSpellIds.value }
+            .toList()
+        if (spellIds.isEmpty()) return
+        viewModelScope.launch {
+            toggleKnownSpellUseCase.removeAll(mode, spellIds)
+            pendingKnownSpellWarning.update { null }
+        }
+    }
+
     fun confirmKnownSpellWarning() {
         val mode = browserMode.value as? SpellBrowserMode.ManageKnownSpells ?: return
         val warning = pendingKnownSpellWarning.value ?: return
         viewModelScope.launch {
-            toggleKnownSpellUseCase.confirmAdd(mode, warning.spellId)
+            toggleKnownSpellUseCase.confirmAdd(mode, warning.spellIds)
             pendingKnownSpellWarning.update { null }
         }
     }

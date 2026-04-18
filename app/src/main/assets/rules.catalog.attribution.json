@@ -1,10 +1,10 @@
 ﻿{
-    "datasetVersion":  "20260214-091234",
-    "sourceCommit":  "local-unknown",
+    "datasetVersion":  "20260418-133707",
+    "sourceCommit":  "cd1f3cac4b960b726b846e4b280151de13f43fd5",
     "entries":  [
                     {
                         "license":  "OGL",
-                        "count":  214,
+                        "count":  212,
                         "sourceTypes":  [
                                             "background",
                                             "class",
@@ -50,7 +50,7 @@
                     },
                     {
                         "license":  "ORC",
-                        "count":  455,
+                        "count":  463,
                         "sourceTypes":  [
                                             "background",
                                             "class",
@@ -70,6 +70,7 @@
                                         "Pathfinder Howl of the Wild",
                                         "Pathfinder Lost Omens Divine Mysteries",
                                         "Pathfinder Lost Omens Draconic Codex",
+                                        "Pathfinder Lost Omens Hellfire Dispatches",
                                         "Pathfinder Lost Omens Rival Academies",
                                         "Pathfinder Lost Omens Shining Kingdoms",
                                         "Pathfinder Lost Omens Tian Xia Character Guide",

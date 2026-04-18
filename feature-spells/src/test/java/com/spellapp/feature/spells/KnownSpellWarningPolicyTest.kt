@@ -20,7 +20,7 @@ class KnownSpellWarningPolicyTest {
         )
 
         assertNotNull(warning)
-        assertEquals("Add Off-Tradition Spell?", warning?.title)
+        assertEquals("Learn Off-Tradition Spell?", warning?.title)
     }
 
     @Test
@@ -36,7 +36,7 @@ class KnownSpellWarningPolicyTest {
         )
 
         assertNotNull(warning)
-        assertEquals("Add Class-Specific Spell?", warning?.title)
+        assertEquals("Learn Class-Specific Spell?", warning?.title)
     }
 
     @Test
@@ -52,7 +52,7 @@ class KnownSpellWarningPolicyTest {
         )
 
         assertNotNull(warning)
-        assertEquals("Add Spell Without Tradition?", warning?.title)
+        assertEquals("Learn Spell Without Tradition?", warning?.title)
     }
 
     @Test

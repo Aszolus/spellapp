@@ -388,11 +388,15 @@ function Get-LocalizationValueByKey {
         }
 
         $keys = @($current.Keys)
-        if ($keys -notcontains $segment) {
+        $resolvedKey = $keys | Where-Object { $_ -ceq $segment } | Select-Object -First 1
+        if ($null -eq $resolvedKey) {
+            $resolvedKey = $keys | Where-Object { "$_" -ieq $segment } | Select-Object -First 1
+        }
+        if ($null -eq $resolvedKey) {
             return $null
         }
 
-        $current = $current[$segment]
+        $current = $current[$resolvedKey]
     }
 
     if ($current -is [string]) {
@@ -423,10 +427,206 @@ function Get-TraitLabelLocalizationKey {
     return $null
 }
 
-function Get-SpellLookupDataset {
+function Resolve-LocalizedMarkup {
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$InputText,
+
+        [Parameter(Mandatory = $true)]
+        [object]$LocalizationRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($InputText)) {
+        return $InputText
+    }
+
+    return [regex]::Replace(
+        $InputText,
+        '@Localize\[(?<key>[^\]]+)\]',
+        {
+            param($match)
+            $key = $match.Groups['key'].Value
+            $localized = Get-LocalizationValueByKey -Root $LocalizationRoot -Key $key
+            if ([string]::IsNullOrWhiteSpace($localized)) {
+                return $key
+            }
+            return $localized
+        }
+    )
+}
+
+function Resolve-Pf2eRepoPath {
     param(
         [Parameter(Mandatory = $true)]
-        [string]$PacksDir,
+        [string]$Pf2eRepoRoot,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RelativePath
+    )
+
+    $normalizedRelativePath = $RelativePath.Replace('/', '\').TrimStart('\')
+    $candidates = @(
+        (Join-Path $Pf2eRepoRoot $normalizedRelativePath),
+        (Join-Path $Pf2eRepoRoot ($normalizedRelativePath -replace '^packs\\', 'packs\pf2e\')),
+        (Join-Path $Pf2eRepoRoot (Join-Path "static" $normalizedRelativePath)),
+        (Join-Path $Pf2eRepoRoot ($normalizedRelativePath -replace '^lang\\', 'static\lang\'))
+    ) | Select-Object -Unique
+
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate) {
+            return (Resolve-Path $candidate).Path
+        }
+    }
+
+    throw "Unable to resolve PF2e repo path '$RelativePath' under '$Pf2eRepoRoot'."
+}
+
+function Get-Pf2ePackRegistry {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Pf2eRepoRoot
+    )
+
+    $manifestPath = Join-Path $Pf2eRepoRoot "system.pf2e.json"
+    if (-not (Test-Path -LiteralPath $manifestPath)) {
+        throw "PF2e system manifest not found: $manifestPath"
+    }
+
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $packsByName = @{}
+    foreach ($pack in @($manifest.packs)) {
+        $packName = "$($pack.name)".Trim()
+        $packPath = "$($pack.path)".Trim()
+        if ([string]::IsNullOrWhiteSpace($packName) -or [string]::IsNullOrWhiteSpace($packPath)) {
+            continue
+        }
+        $resolvedPackPath = $null
+        try {
+            $resolvedPackPath = Resolve-Pf2eRepoPath -Pf2eRepoRoot $Pf2eRepoRoot -RelativePath $packPath
+        } catch {
+            $resolvedPackPath = $null
+        }
+        $packsByName[$packName] = [PSCustomObject]@{
+            name = $packName
+            path = $resolvedPackPath
+            relativePath = $packPath
+            type = "$($pack.type)"
+            label = "$($pack.label)"
+        }
+    }
+
+    return [PSCustomObject]@{
+        manifest = $manifest
+        packsByName = $packsByName
+    }
+}
+
+function Add-FlatLocalizationEntries {
+    param(
+        [Parameter(Mandatory = $false)]
+        [object]$Value,
+
+        [Parameter(Mandatory = $false)]
+        [string]$Prefix,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Target
+    )
+
+    if ($null -eq $Value) {
+        return
+    }
+
+    if ($Value -is [string]) {
+        if (-not [string]::IsNullOrWhiteSpace($Prefix)) {
+            $Target[$Prefix.ToLowerInvariant()] = "$Value"
+        }
+        return
+    }
+
+    if ($Value -is [System.Collections.IDictionary]) {
+        foreach ($key in @($Value.Keys) | Sort-Object) {
+            $nextPrefix = if ([string]::IsNullOrWhiteSpace($Prefix)) {
+                "$key"
+            } else {
+                "$Prefix.$key"
+            }
+            Add-FlatLocalizationEntries -Value $Value[$key] -Prefix $nextPrefix -Target $Target
+        }
+        return
+    }
+
+    if (
+        ($Value -is [System.Collections.IEnumerable]) -and
+        ($Value -isnot [string])
+    ) {
+        foreach ($entry in @($Value)) {
+            Add-FlatLocalizationEntries -Value $entry -Prefix $Prefix -Target $Target
+        }
+    }
+}
+
+function Get-FlatLocalizationValueByKey {
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Entries,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Key
+    )
+
+    $normalizedKey = $Key.Trim().ToLowerInvariant()
+    if ($Entries.ContainsKey($normalizedKey)) {
+        return "$($Entries[$normalizedKey])"
+    }
+    return $null
+}
+
+function Resolve-LocalizedMarkupFromEntries {
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$InputText,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$LocalizationEntries
+    )
+
+    if ([string]::IsNullOrWhiteSpace($InputText)) {
+        return $InputText
+    }
+
+    $current = "$InputText"
+    for ($iteration = 0; $iteration -lt 8; $iteration++) {
+        $replaced = $false
+        $next = [regex]::Replace(
+            $current,
+            '@Localize\[(?<key>[^\]]+)\]',
+            {
+                param($match)
+                $key = $match.Groups['key'].Value
+                $localized = Get-FlatLocalizationValueByKey -Entries $LocalizationEntries -Key $key
+                if ([string]::IsNullOrWhiteSpace($localized)) {
+                    return $key
+                }
+                $replaced = $true
+                return $localized
+            }
+        )
+        $current = $next
+        if (-not $replaced) {
+            break
+        }
+    }
+    return $current
+}
+
+function Get-EnglishLocalizationDataset {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Pf2eRepoRoot,
+
+        [Parameter(Mandatory = $true)]
+        [object]$Manifest,
 
         [Parameter(Mandatory = $true)]
         [string]$SourceCommit,
@@ -435,56 +635,70 @@ function Get-SpellLookupDataset {
         [string]$DatasetVersion
     )
 
-    $spellAppRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-    $spellsAssetPath = Join-Path $spellAppRepoRoot "app/src/main/assets/spells.normalized.json"
-    if (-not (Test-Path -LiteralPath $spellsAssetPath)) {
-        throw "Spell asset not found for lookup generation: $spellsAssetPath"
+    $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+    $serializer.MaxJsonLength = 100MB
+    $entries = @{}
+    foreach ($language in @($Manifest.languages) | Where-Object { "$($_.lang)".Trim().ToLowerInvariant() -eq "en" }) {
+        $relativePath = "$($language.path)".Trim()
+        if ([string]::IsNullOrWhiteSpace($relativePath)) {
+            continue
+        }
+        $languagePath = Resolve-Pf2eRepoPath -Pf2eRepoRoot $Pf2eRepoRoot -RelativePath $relativePath
+        $languageRoot = $serializer.DeserializeObject(
+            (Get-Content -LiteralPath $languagePath -Raw -Encoding UTF8)
+        )
+        Add-FlatLocalizationEntries -Value $languageRoot -Prefix "" -Target $entries
     }
 
-    $packsFullPath = (Resolve-Path $PacksDir).Path
-    $pf2eRepoRoot = (Resolve-Path (Join-Path $packsFullPath "..\..")).Path
-    $traitsConfigPath = Join-Path $pf2eRepoRoot "src/scripts/config/traits.ts"
-    $localizationPath = Join-Path $pf2eRepoRoot "static/lang/en.json"
-    $conditionsDir = Join-Path $packsFullPath "conditions"
-
-    foreach ($requiredPath in @($traitsConfigPath, $localizationPath, $conditionsDir)) {
-        if (-not (Test-Path -LiteralPath $requiredPath)) {
-            throw "Required rules lookup input not found: $requiredPath"
-        }
+    $orderedEntries = [ordered]@{}
+    foreach ($key in @($entries.Keys) | Sort-Object) {
+        $orderedEntries[$key] = $entries[$key]
     }
 
-    $spellDataset = Get-Content -LiteralPath $spellsAssetPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    $spells = @($spellDataset.spells)
-    $spellTraitSlugs = @(
-        $spells |
-            ForEach-Object { @($_.traits) } |
-            ForEach-Object { Normalize-RulesLookupSlug -Value "$_" } |
-            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-            Sort-Object -Unique
-    )
-
-    $conditionUuidPattern = [regex]'@UUID\[Compendium\.pf2e\.conditionitems\.Item\.([^\]]+)\](?:\{([^}]+)\})?'
-    $spellConditionSlugs = @(
-        foreach ($spell in $spells) {
-            $descriptionRaw = "$($spell.descriptionRaw)"
-            if ([string]::IsNullOrWhiteSpace($descriptionRaw)) {
-                continue
-            }
-
-            foreach ($match in $conditionUuidPattern.Matches($descriptionRaw)) {
-                $slug = Normalize-RulesLookupSlug -Value $match.Groups[1].Value
-                if (-not [string]::IsNullOrWhiteSpace($slug)) {
-                    $slug
-                }
-            }
+    return [PSCustomObject]@{
+        datasetVersion = $DatasetVersion
+        sourceCommit = $SourceCommit
+        generatedAtUtc = (Get-Date).ToUniversalTime().ToString("o")
+        counts = [PSCustomObject]@{
+            entries = $orderedEntries.Count
+            sourceFiles = @($Manifest.languages | Where-Object { "$($_.lang)".Trim().ToLowerInvariant() -eq "en" }).Count
         }
-    ) | Sort-Object -Unique
+        entries = [PSCustomObject]$orderedEntries
+    }
+}
 
-    $jsonSerializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
-    $jsonSerializer.MaxJsonLength = 100MB
-    $localizationRoot = $jsonSerializer.DeserializeObject(
-        (Get-Content -LiteralPath $localizationPath -Raw -Encoding UTF8)
+function Get-FoundryReferenceIndexDataset {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Pf2eRepoRoot,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$PackRegistry,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$LocalizationEntries,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SourceCommit,
+
+        [Parameter(Mandatory = $true)]
+        [string]$DatasetVersion
     )
+
+    $traitsConfigPath = Join-Path $Pf2eRepoRoot "src/scripts/config/traits.ts"
+    if (-not (Test-Path -LiteralPath $traitsConfigPath)) {
+        throw "Trait config not found: $traitsConfigPath"
+    }
+
+    $targetPacks = @(
+        [PSCustomObject]@{ packName = "actionspf2e"; category = "ACTION" },
+        [PSCustomObject]@{ packName = "conditionitems"; category = "CONDITION" },
+        [PSCustomObject]@{ packName = "spell-effects"; category = "SPELL_EFFECT" },
+        [PSCustomObject]@{ packName = "feats-srd"; category = "FEAT" },
+        [PSCustomObject]@{ packName = "spells-srd"; category = "SPELL" },
+        [PSCustomObject]@{ packName = "equipment-srd"; category = "ITEM" }
+    )
+
     $traitDescriptionKeyBySlug = @{}
     $inTraitDescriptions = $false
     foreach ($line in Get-Content -LiteralPath $traitsConfigPath -Encoding UTF8) {
@@ -510,22 +724,18 @@ function Get-SpellLookupDataset {
     }
 
     $traitsSection = [ordered]@{}
-    foreach ($traitSlug in $spellTraitSlugs) {
+    foreach ($traitSlug in @($traitDescriptionKeyBySlug.Keys) | Sort-Object) {
         $descriptionKey = $traitDescriptionKeyBySlug[$traitSlug]
-        if ([string]::IsNullOrWhiteSpace($descriptionKey)) {
-            continue
-        }
-
-        $descriptionRaw = Get-LocalizationValueByKey -Root $localizationRoot -Key $descriptionKey
-        $description = Convert-FoundryMarkupToPlainText -InputText $descriptionRaw
-        if ([string]::IsNullOrWhiteSpace($description)) {
+        $descriptionRaw = Get-FlatLocalizationValueByKey -Entries $LocalizationEntries -Key $descriptionKey
+        $descriptionRaw = Resolve-LocalizedMarkupFromEntries -InputText $descriptionRaw -LocalizationEntries $LocalizationEntries
+        if ([string]::IsNullOrWhiteSpace($descriptionRaw)) {
             continue
         }
 
         $label = $null
         $labelKey = Get-TraitLabelLocalizationKey -DescriptionKey $descriptionKey
         if (-not [string]::IsNullOrWhiteSpace($labelKey)) {
-            $label = Get-LocalizationValueByKey -Root $localizationRoot -Key $labelKey
+            $label = Get-FlatLocalizationValueByKey -Entries $LocalizationEntries -Key $labelKey
         }
         if ([string]::IsNullOrWhiteSpace($label)) {
             $label = Format-RulesLookupLabel -Slug $traitSlug
@@ -534,65 +744,218 @@ function Get-SpellLookupDataset {
         $traitsSection[$traitSlug] = [ordered]@{
             slug = $traitSlug
             label = "$label"
-            description = "$description"
+            descriptionRaw = "$descriptionRaw"
         }
     }
 
-    $conditionByAlias = @{}
-    $conditionFiles = @(Get-ChildItem -LiteralPath $conditionsDir -Filter *.json -File -Recurse | Sort-Object -Property Name)
-    foreach ($file in $conditionFiles) {
-        $json = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ((Get-NestedValue -Object $json -Path @("type")) -ne "condition") {
-            continue
+    $referenceEntries = @()
+    foreach ($spec in $targetPacks) {
+        $pack = $PackRegistry[$spec.packName]
+        if ($null -eq $pack) {
+            throw "Required PF2e pack '$($spec.packName)' was not found in system.pf2e.json."
+        }
+        if ([string]::IsNullOrWhiteSpace($pack.path) -or -not (Test-Path -LiteralPath $pack.path)) {
+            throw "Required PF2e pack '$($spec.packName)' could not be resolved from system.pf2e.json path '$($pack.relativePath)'."
         }
 
-        $name = Get-NestedValue -Object $json -Path @("name")
-        $description = Convert-FoundryMarkupToPlainText -InputText (Get-NestedValue -Object $json -Path @("system", "description", "value"))
-        if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($description)) {
-            continue
-        }
+        $files = @(
+            Get-ChildItem -LiteralPath $pack.path -Filter *.json -File -Recurse |
+                Where-Object { $_.Name -ne "_folders.json" } |
+                Sort-Object -Property FullName
+        )
+        foreach ($file in $files) {
+            $json = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+            $name = "$((Get-NestedValue -Object $json -Path @("name")))"
+            $type = "$((Get-NestedValue -Object $json -Path @("type")))"
+            $id = "$((Get-NestedValue -Object $json -Path @("_id")))"
+            if ([string]::IsNullOrWhiteSpace($name)) {
+                continue
+            }
 
-        $aliases = @(
-            Normalize-RulesLookupSlug -Value ([System.IO.Path]::GetFileNameWithoutExtension($file.Name))
-            Normalize-RulesLookupSlug -Value "$name"
-        ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+            $descriptionRaw = Get-NestedValue -Object $json -Path @("system", "description", "value")
+            $actionType = Get-NestedValue -Object $json -Path @("system", "actionType", "value")
+            $actions = Get-NestedValue -Object $json -Path @("system", "actions", "value")
+            $traits = Normalize-StringList -RawValue (Get-NestedValue -Object $json -Path @("system", "traits", "value"))
+            $aliases = @()
+            if (-not [string]::IsNullOrWhiteSpace($id)) {
+                $aliases += "Compendium.pf2e.$($spec.packName).Item.$id"
+            }
+            $aliases += "Compendium.pf2e.$($spec.packName).Item.$name"
+            $aliases = @($aliases | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
 
-        foreach ($alias in $aliases) {
-            if (-not $conditionByAlias.ContainsKey($alias)) {
-                $conditionByAlias[$alias] = [ordered]@{
-                    label = "$name"
-                    description = "$description"
-                }
+            $canonicalUuid = $aliases | Select-Object -First 1
+            $referenceEntries += [PSCustomObject]@{
+                uuid = "$canonicalUuid"
+                packName = "$($spec.packName)"
+                category = "$($spec.category)"
+                name = "$name"
+                type = if ([string]::IsNullOrWhiteSpace($type)) { $null } else { "$type" }
+                descriptionRaw = if ($null -eq $descriptionRaw) { "" } else { "$descriptionRaw" }
+                traits = $traits
+                actionType = if ([string]::IsNullOrWhiteSpace($actionType)) { $null } else { "$actionType" }
+                actions = $actions
+                aliases = $aliases
             }
         }
     }
 
-    $conditionsSection = [ordered]@{}
-    foreach ($conditionSlug in $spellConditionSlugs) {
-        $record = $conditionByAlias[$conditionSlug]
-        if ($null -eq $record) {
-            continue
-        }
-
-        $conditionsSection[$conditionSlug] = [ordered]@{
-            slug = $conditionSlug
-            label = "$($record.label)"
-            description = "$($record.description)"
-        }
-    }
+    $referenceEntries = @(
+        $referenceEntries |
+            Sort-Object -Property category, name, uuid
+    )
+    $aliasCount = @($referenceEntries | ForEach-Object { @($_.aliases).Count } | Measure-Object -Sum).Sum
 
     return [PSCustomObject]@{
         datasetVersion = $DatasetVersion
         sourceCommit = $SourceCommit
         generatedAtUtc = (Get-Date).ToUniversalTime().ToString("o")
         counts = [PSCustomObject]@{
-            spellTraitsRequested = $spellTraitSlugs.Count
-            traitsResolved = $traitsSection.Count
-            spellConditionReferencesRequested = $spellConditionSlugs.Count
-            conditionsResolved = $conditionsSection.Count
+            traitDefinitions = $traitsSection.Count
+            referenceEntries = $referenceEntries.Count
+            aliases = $aliasCount
         }
         traits = [PSCustomObject]$traitsSection
-        conditions = [PSCustomObject]$conditionsSection
+        references = $referenceEntries
+    }
+}
+
+function Get-RulesReferenceShardKeyForCategory {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Category
+    )
+
+    switch ($Category.Trim().ToUpperInvariant()) {
+        "CONDITION" { return "conditions" }
+        "ACTION" { return "actions" }
+        "SPELL_EFFECT" { return "spell-effects" }
+        "FEAT" { return "feats" }
+        "SPELL" { return "spells" }
+        "ITEM" { return "items" }
+        default { return $null }
+    }
+}
+
+function Get-RulesReferenceShardFileName {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ShardKey
+    )
+
+    return "rules.reference.$($ShardKey).json.gz"
+}
+
+function Write-GzipJsonFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Data,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [int]$Depth = 30
+    )
+
+    $json = $Data | ConvertTo-Json -Depth $Depth -Compress
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+    $fileStream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+    try {
+        $gzipStream = New-Object System.IO.Compression.GZipStream($fileStream, [System.IO.Compression.CompressionLevel]::Optimal)
+        try {
+            $gzipStream.Write($bytes, 0, $bytes.Length)
+        }
+        finally {
+            $gzipStream.Dispose()
+        }
+    }
+    finally {
+        $fileStream.Dispose()
+    }
+}
+
+function Write-FoundryReferenceIndexAssets {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Dataset,
+
+        [Parameter(Mandatory = $true)]
+        [string]$OutputDir,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ManifestPath
+    )
+
+    $traitShardKey = "traits"
+    $traitShardFileName = Get-RulesReferenceShardFileName -ShardKey $traitShardKey
+    $traitRecords = [ordered]@{}
+    foreach ($property in $Dataset.traits.PSObject.Properties) {
+        $value = $property.Value
+        $traitRecords[$property.Name] = [ordered]@{
+            label = "$($value.label)"
+            descriptionRaw = "$($value.descriptionRaw)"
+        }
+    }
+
+    $referenceEntriesByShard = @{}
+    foreach ($entry in @($Dataset.references)) {
+        $shardKey = Get-RulesReferenceShardKeyForCategory -Category "$($entry.category)"
+        if ([string]::IsNullOrWhiteSpace($shardKey)) {
+            continue
+        }
+        if (-not $referenceEntriesByShard.ContainsKey($shardKey)) {
+            $referenceEntriesByShard[$shardKey] = New-Object System.Collections.ArrayList
+        }
+        $aliases = @(
+            @($entry.aliases) |
+                Where-Object { -not [string]::IsNullOrWhiteSpace("$_") } |
+                ForEach-Object { "$_" }
+        )
+        $null = $referenceEntriesByShard[$shardKey].Add(
+            [ordered]@{
+                uuid = "$($entry.uuid)"
+                name = "$($entry.name)"
+                type = if ([string]::IsNullOrWhiteSpace("$($entry.type)")) { $null } else { "$($entry.type)" }
+                descriptionRaw = if ($null -eq $entry.descriptionRaw) { "" } else { "$($entry.descriptionRaw)" }
+                aliases = $aliases
+            }
+        )
+    }
+
+    $shards = [ordered]@{}
+    $shards[$traitShardKey] = [ordered]@{
+        file = $traitShardFileName
+        count = $traitRecords.Count
+    }
+
+    Write-GzipJsonFile -Data ([PSCustomObject]$traitRecords) -Path (Join-Path $OutputDir $traitShardFileName) -Depth 20
+
+    foreach ($shardKey in @($referenceEntriesByShard.Keys) | Sort-Object) {
+        $entries = @($referenceEntriesByShard[$shardKey])
+        $shardFileName = Get-RulesReferenceShardFileName -ShardKey $shardKey
+        Write-GzipJsonFile -Data $entries -Path (Join-Path $OutputDir $shardFileName) -Depth 20
+        $aliasCount = @($entries | ForEach-Object { @($_.aliases).Count } | Measure-Object -Sum).Sum
+        if ($null -eq $aliasCount) {
+            $aliasCount = 0
+        }
+        $shards[$shardKey] = [ordered]@{
+            file = $shardFileName
+            count = $entries.Count
+            aliases = [int]$aliasCount
+        }
+    }
+
+    $manifest = [ordered]@{
+        datasetVersion = $Dataset.datasetVersion
+        sourceCommit = $Dataset.sourceCommit
+        generatedAtUtc = $Dataset.generatedAtUtc
+        counts = $Dataset.counts
+        shards = [PSCustomObject]$shards
+    }
+    $manifest | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $ManifestPath -Encoding UTF8
+
+    return [PSCustomObject]@{
+        manifestPath = $ManifestPath
+        shardPaths = @($shards.Values | ForEach-Object { Join-Path $OutputDir $_.file })
     }
 }
 
@@ -789,7 +1152,8 @@ $datasetVersion = Get-Date -Format "yyyyMMdd-HHmmss"
 $normalizedPath = Join-Path $OutputDir "rules.catalog.normalized.json"
 $attributionPath = Join-Path $OutputDir "rules.catalog.attribution.json"
 $changelogPath = Join-Path $OutputDir "rules.catalog.changelog.json"
-$lookupPath = Join-Path $OutputDir "rules.lookup.normalized.json"
+$referenceIndexPath = Join-Path $OutputDir "rules.reference.index.json"
+$localizationPath = Join-Path $OutputDir "foundry.localization.en.flat.json"
 
 $normalized = [PSCustomObject]@{
     datasetVersion = $datasetVersion
@@ -833,18 +1197,40 @@ $changelog = [PSCustomObject]@{
     changed = 0
     removed = 0
 }
-$lookupDataset = Get-SpellLookupDataset `
-    -PacksDir $PacksDir `
+
+$pf2eRepoRoot = (Resolve-Path (Join-Path ((Resolve-Path $PacksDir).Path) "..\..")).Path
+$packRegistry = Get-Pf2ePackRegistry -Pf2eRepoRoot $pf2eRepoRoot
+$localizationDataset = Get-EnglishLocalizationDataset `
+    -Pf2eRepoRoot $pf2eRepoRoot `
+    -Manifest $packRegistry.manifest `
+    -SourceCommit $SourceCommit `
+    -DatasetVersion $datasetVersion
+$localizationEntries = @{}
+foreach ($property in $localizationDataset.entries.PSObject.Properties) {
+    $localizationEntries[$property.Name] = $property.Value
+}
+$referenceIndexDataset = Get-FoundryReferenceIndexDataset `
+    -Pf2eRepoRoot $pf2eRepoRoot `
+    -PackRegistry $packRegistry.packsByName `
+    -LocalizationEntries $localizationEntries `
     -SourceCommit $SourceCommit `
     -DatasetVersion $datasetVersion
 
 $normalized | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $normalizedPath -Encoding UTF8
 $attribution | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $attributionPath -Encoding UTF8
 $changelog | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $changelogPath -Encoding UTF8
-$lookupDataset | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $lookupPath -Encoding UTF8
+$referenceAssets = Write-FoundryReferenceIndexAssets `
+    -Dataset $referenceIndexDataset `
+    -OutputDir $OutputDir `
+    -ManifestPath $referenceIndexPath
+$localizationDataset | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $localizationPath -Encoding UTF8
 
 Write-Host "Generated rules catalog dataset:"
 Write-Host "  - $normalizedPath"
 Write-Host "  - $attributionPath"
 Write-Host "  - $changelogPath"
-Write-Host "  - $lookupPath"
+Write-Host "  - $($referenceAssets.manifestPath)"
+foreach ($shardPath in $referenceAssets.shardPaths) {
+    Write-Host "  - $shardPath"
+}
+Write-Host "  - $localizationPath"

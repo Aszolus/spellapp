@@ -192,7 +192,7 @@ class PreparedSlotsService(
             spellId = spellId,
             heightenProgressionBySpellId = heightenProgressionBySpellId,
         )
-        return progression.grantsBenefitForTargetRank(
+        return progression.grantsBenefitAtTargetRank(
             baseRank = spellRank,
             targetRank = slotRank,
         )
@@ -226,7 +226,7 @@ class PreparedSlotsService(
         val incrementSteps: Set<Int>,
         val absoluteRanks: Set<Int>,
     ) {
-        fun grantsBenefitForTargetRank(
+        fun grantsBenefitAtTargetRank(
             baseRank: Int,
             targetRank: Int,
         ): Boolean {
@@ -237,9 +237,7 @@ class PreparedSlotsService(
             if (incrementSteps.any { step -> rankIncrease % step == 0 }) {
                 return true
             }
-            return absoluteRanks.any { absoluteRank ->
-                absoluteRank in (baseRank + 1)..targetRank
-            }
+            return targetRank in absoluteRanks
         }
 
         companion object {

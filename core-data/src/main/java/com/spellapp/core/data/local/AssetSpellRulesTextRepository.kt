@@ -2,7 +2,9 @@ package com.spellapp.core.data.local
 
 import android.content.Context
 import com.spellapp.core.data.SpellRulesTextRepository
-import com.spellapp.core.model.SpellRulesText
+import com.spellapp.core.data.local.foundry.AssetFoundryLocalizationResolver
+import com.spellapp.core.data.local.foundry.FoundryMarkupParser
+import com.spellapp.core.model.RulesTextDocument
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -10,15 +12,22 @@ class AssetSpellRulesTextRepository(
     context: Context,
 ) : SpellRulesTextRepository {
     private val appContext = context.applicationContext
+    private val localizationResolver = AssetFoundryLocalizationResolver(appContext)
 
     @Volatile
     private var cachedSpellDescriptions: Map<String, SpellRulesSource>? = null
 
-    override suspend fun getSpellRulesText(spellId: String): SpellRulesText? {
+    override suspend fun getSpellRulesText(
+        spellId: String,
+        spellRank: Int?,
+    ): RulesTextDocument? {
         val source = loadSpellDescriptions()[spellId] ?: return null
-        return SpellRulesTextParser.parse(
+        return FoundryMarkupParser.parse(
             descriptionRaw = source.descriptionRaw,
             description = source.description,
+            localizationResolver = localizationResolver,
+            itemLevel = spellRank,
+            itemRank = spellRank,
         )
     }
 
