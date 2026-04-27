@@ -14,6 +14,7 @@ import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.data.SpellRulesTextRepository
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
+import com.spellapp.feature.character.CharacterBuilderViewModelFactory
 import com.spellapp.feature.character.CharacterClassDefinitionSource
 import com.spellapp.feature.character.CharacterListViewModelFactory
 import com.spellapp.feature.character.spellcasting.DefaultKnownSpellsSeeder
@@ -26,6 +27,7 @@ import com.spellapp.feature.spells.ToggleKnownSpellUseCase
 
 interface CharacterFeatureFactoryProvider {
     fun characterListFactory(): ViewModelProvider.Factory
+    fun characterBuilderFactory(characterId: Long): ViewModelProvider.Factory
 }
 
 interface SpellCatalogFeatureFactoryProvider {
@@ -54,6 +56,14 @@ class AppCharacterFeatureFactoryProvider(
 ) : CharacterFeatureFactoryProvider {
     override fun characterListFactory(): ViewModelProvider.Factory {
         return CharacterListViewModelFactory(
+            characterCrudRepository = characterCrudRepository,
+            classDefinitionSource = classDefinitionSource,
+        )
+    }
+
+    override fun characterBuilderFactory(characterId: Long): ViewModelProvider.Factory {
+        return CharacterBuilderViewModelFactory(
+            characterId = characterId,
             characterCrudRepository = characterCrudRepository,
             characterBuildRepository = characterBuildRepository,
             acceptedSpellSourceRepository = acceptedSpellSourceRepository,

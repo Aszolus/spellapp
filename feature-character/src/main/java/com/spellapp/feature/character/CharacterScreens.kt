@@ -95,7 +95,7 @@ fun CharacterListRoute(
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    text = "Add a caster to prepare slots.",
+                    text = "Create a caster to manage spells.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -934,7 +934,7 @@ private fun SectionLabel(text: String) {
     )
 }
 
-internal enum class ArchetypeTier { DEDICATION, BASIC, EXPERT, MASTER }
+enum class ArchetypeTier { DEDICATION, BASIC, EXPERT, MASTER }
 
 private fun ArchetypeSpellcastingPackage.optionIdFor(tier: ArchetypeTier): String? = when (tier) {
     ArchetypeTier.DEDICATION -> dedicationOptionId

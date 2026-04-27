@@ -5,6 +5,14 @@ import android.net.Uri
 sealed class AppDestinations(val route: String) {
     data object CharacterList : AppDestinations("character_list")
 
+    data object CharacterBuilder : AppDestinations("character_builder/{characterId}") {
+        const val argCharacterId = "characterId"
+
+        fun routeFor(characterId: Long): String {
+            return "character_builder/$characterId"
+        }
+    }
+
     data object SpellList : AppDestinations("spell_list")
 
     data object PreparedSlots : AppDestinations("prepared_slots/{characterId}") {

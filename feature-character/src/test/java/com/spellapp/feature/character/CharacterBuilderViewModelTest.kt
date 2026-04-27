@@ -20,6 +20,7 @@ import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.ClassSpellcastingCatalog
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.KnownSpell
+import com.spellapp.core.model.KnownSpellOrigin
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
 import com.spellapp.feature.character.spellcasting.DefaultKnownSpellsSeeder
@@ -28,7 +29,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
@@ -49,7 +49,7 @@ import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-class CharacterListViewModelTest {
+class CharacterBuilderViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -59,18 +59,94 @@ class CharacterListViewModelTest {
         }
 
     @Test
-    fun saveCharacter_createsArchetypeTracksFromSelectedDedications_and_preservesNonManagedOptions() = runTest {
+    fun newCharacter_defaultsToFirstSupportedClass_andAllSources() = runTest {
+        val viewModel = createViewModel(
+            characterId = 0L,
+            spellRepository = FakeSpellRepository(
+                availableSources = listOf("Player Core", "GM Core"),
+                spells = emptyList(),
+            ),
+        )
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isLoading)
+        assertTrue(state.isNewCharacter)
+        assertEquals(setOf("Player Core", "GM Core"), state.acceptedSourceBooks)
+        assertEquals(CharacterBuilderSectionId.IDENTITY, state.expandedSection)
+        assertTrue(state.classPreviewLines.isNotEmpty())
+        assertEquals(
+            CharacterBuilderSectionStatus.NEEDS_REVIEW,
+            state.sections.first { it.id == CharacterBuilderSectionId.IDENTITY }.status,
+        )
+    }
+
+    @Test
+    fun saveInvalidDraft_marksValidationAndDoesNotPersist() = runTest {
+        val characterCrudRepository = FakeCharacterCrudRepository()
+        val viewModel = createViewModel(
+            characterId = 0L,
+            characterCrudRepository = characterCrudRepository,
+        )
+        advanceUntilIdle()
+
+        viewModel.save()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.saveAttempted)
+        assertFalse(state.canSave)
+        assertTrue(characterCrudRepository.characters().isEmpty())
+        assertEquals(
+            CharacterBuilderSectionStatus.NEEDS_REVIEW,
+            state.sections.first { it.id == CharacterBuilderSectionId.IDENTITY }.status,
+        )
+    }
+
+    @Test
+    fun editExisting_loadsOnlyManagedOptions_andAcceptedSources() = runTest {
+        val characterCrudRepository = FakeCharacterCrudRepository()
+        val characterBuildRepository = FakeCharacterBuildRepository()
+        val acceptedSpellSourceRepository = FakeAcceptedSpellSourceRepository()
+        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 10L))
+        characterBuildRepository.replaceBuildOptions(
+            characterId = existingCharacterId,
+            options = listOf(
+                CharacterBuildOption(
+                    characterId = existingCharacterId,
+                    optionType = CharacterBuildOptionType.ARCHETYPE,
+                    optionId = "archetype/wizard/wizard-dedication",
+                ),
+                CharacterBuildOption(
+                    characterId = existingCharacterId,
+                    optionType = CharacterBuildOptionType.OTHER,
+                    optionId = "custom/non-managed",
+                ),
+            ),
+        )
+        acceptedSpellSourceRepository.replaceAcceptedSources(existingCharacterId, setOf("Player Core"))
+
+        val viewModel = createViewModel(
+            characterId = existingCharacterId,
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
+            acceptedSpellSourceRepository = acceptedSpellSourceRepository,
+        )
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(setOf("archetype/wizard/wizard-dedication"), state.selectedBuildOptionIds)
+        assertEquals(setOf("Player Core"), state.acceptedSourceBooks)
+        assertFalse(state.isDirty)
+    }
+
+    @Test
+    fun saveExisting_replacesManagedOptions_preservesCustomOptions_andReconcilesArchetypes() = runTest {
         val characterCrudRepository = FakeCharacterCrudRepository()
         val characterBuildRepository = FakeCharacterBuildRepository()
         val castingTrackRepository = FakeCastingTrackRepository()
         val preparedSlotSyncRepository = FakePreparedSlotSyncRepository()
-        val viewModel = createViewModel(
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = characterBuildRepository,
-            castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
-        )
-        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 10L))
+        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 33L))
         characterBuildRepository.replaceBuildOptions(
             characterId = existingCharacterId,
             options = listOf(
@@ -95,17 +171,24 @@ class CharacterListViewModelTest {
                 progressionType = CastingProgressionType.ARCHETYPE_PREPARED,
             ),
         )
-
-        viewModel.saveCharacter(
-            character = sampleCharacter(id = existingCharacterId),
-            selectedBuildOptionIds = setOf(
-                "archetype/wizard/wizard-dedication",
-                "archetype/wizard/basic-wizard-spellcasting",
-                "archetype/cleric/cleric-dedication",
-                "not/managed-by/catalog",
-            ),
-            acceptedSourceBooks = DEFAULT_ACCEPTED_SOURCES,
+        val viewModel = createViewModel(
+            characterId = existingCharacterId,
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
+            castingTrackRepository = castingTrackRepository,
+            preparedSlotSyncRepository = preparedSlotSyncRepository,
         )
+        advanceUntilIdle()
+        selectRequiredClassChoices(viewModel)
+        val wizard = viewModel.uiState.value.archetypeSpellcastingPackages.first { it.archetypeId == "wizard" }
+        val cleric = viewModel.uiState.value.archetypeSpellcastingPackages.first { it.archetypeId == "cleric" }
+        val druid = viewModel.uiState.value.archetypeSpellcastingPackages.first { it.archetypeId == "druid" }
+        viewModel.toggleArchetypeTier(druid, ArchetypeTier.DEDICATION, false)
+        viewModel.toggleArchetypeTier(wizard, ArchetypeTier.DEDICATION, true)
+        viewModel.toggleArchetypeTier(wizard, ArchetypeTier.BASIC, true)
+        viewModel.toggleArchetypeTier(cleric, ArchetypeTier.DEDICATION, true)
+
+        viewModel.save()
         advanceUntilIdle()
 
         val savedOptions = characterBuildRepository.getBuildOptions(existingCharacterId)
@@ -115,250 +198,16 @@ class CharacterListViewModelTest {
         assertTrue("archetype/wizard/basic-wizard-spellcasting" in savedOptionIds)
         assertTrue("archetype/cleric/cleric-dedication" in savedOptionIds)
         assertFalse("archetype/druid/druid-dedication" in savedOptionIds)
-        assertFalse("not/managed-by/catalog" in savedOptionIds)
-
-        val byOptionId = savedOptions.associateBy { it.optionId }
-        assertEquals(
-            CharacterBuildOptionType.ARCHETYPE,
-            byOptionId["archetype/wizard/wizard-dedication"]?.optionType,
-        )
-        assertEquals(
-            CharacterBuildOptionType.FEAT,
-            byOptionId["archetype/wizard/basic-wizard-spellcasting"]?.optionType,
-        )
-        assertEquals(
-            CharacterBuildOptionType.ARCHETYPE,
-            byOptionId["archetype/cleric/cleric-dedication"]?.optionType,
-        )
 
         val archetypeTracks = castingTrackRepository.getCastingTracks(existingCharacterId)
             .filter { it.sourceType == CastingTrackSourceType.ARCHETYPE }
-        val archetypeLabels = archetypeTracks
-            .map { it.displayName }
-            .toSet()
-        assertEquals(setOf("Wizard", "Cleric"), archetypeLabels)
-        assertEquals(setOf("wizard", "cleric"), archetypeTracks.map { it.sourceId }.toSet())
-        assertTrue(archetypeTracks.all { it.progressionType == CastingProgressionType.ARCHETYPE_PREPARED })
-        assertEquals(2, archetypeTracks.size)
+        assertEquals(setOf("Wizard", "Cleric"), archetypeTracks.map { it.displayName }.toSet())
         assertEquals(listOf(existingCharacterId), preparedSlotSyncRepository.syncedCharacterIds)
     }
 
     @Test
-    fun saveCharacter_withManagedStateAndNoSelections_clearsManagedOptions_and_removesArchetypeTracks() = runTest {
+    fun saveNewCleric_persistsAcceptedSources_andSeedsCommonKnownSpells() = runTest {
         val characterCrudRepository = FakeCharacterCrudRepository()
-        val characterBuildRepository = FakeCharacterBuildRepository()
-        val castingTrackRepository = FakeCastingTrackRepository()
-        val preparedSlotSyncRepository = FakePreparedSlotSyncRepository()
-        val viewModel = createViewModel(
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = characterBuildRepository,
-            castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
-        )
-        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 33L))
-        characterBuildRepository.replaceBuildOptions(
-            characterId = existingCharacterId,
-            options = listOf(
-                CharacterBuildOption(
-                    characterId = existingCharacterId,
-                    optionType = CharacterBuildOptionType.OTHER,
-                    optionId = "custom/non-managed",
-                ),
-                CharacterBuildOption(
-                    characterId = existingCharacterId,
-                    optionType = CharacterBuildOptionType.ARCHETYPE,
-                    optionId = "archetype/wizard/wizard-dedication",
-                ),
-            ),
-        )
-        castingTrackRepository.upsertCastingTrack(
-            CastingTrack(
-                characterId = existingCharacterId,
-                trackKey = "primary",
-                sourceType = CastingTrackSourceType.PRIMARY_CLASS,
-                sourceId = "Wizard",
-                progressionType = CastingProgressionType.FULL_PREPARED,
-            ),
-        )
-        castingTrackRepository.upsertCastingTrack(
-            CastingTrack(
-                characterId = existingCharacterId,
-                trackKey = "archetype-wizard",
-                sourceType = CastingTrackSourceType.ARCHETYPE,
-                sourceId = "Wizard",
-                progressionType = CastingProgressionType.ARCHETYPE_PREPARED,
-            ),
-        )
-
-        viewModel.saveCharacter(
-            character = sampleCharacter(id = existingCharacterId),
-            selectedBuildOptionIds = emptySet(),
-            acceptedSourceBooks = DEFAULT_ACCEPTED_SOURCES,
-        )
-        advanceUntilIdle()
-
-        val remainingOptions = characterBuildRepository.getBuildOptions(existingCharacterId)
-        assertEquals(setOf("custom/non-managed"), remainingOptions.map { it.optionId }.toSet())
-
-        val remainingTracks = castingTrackRepository.getCastingTracks(existingCharacterId)
-        val remainingTrackTypes = remainingTracks
-            .map { it.sourceType }
-            .toSet()
-        assertEquals(setOf(CastingTrackSourceType.PRIMARY_CLASS), remainingTrackTypes)
-        assertEquals(listOf(existingCharacterId), preparedSlotSyncRepository.syncedCharacterIds)
-    }
-
-    @Test
-    fun saveCharacter_withNoManagedState_doesNotMutateLegacyArchetypeTracks() = runTest {
-        val characterCrudRepository = FakeCharacterCrudRepository()
-        val characterBuildRepository = FakeCharacterBuildRepository()
-        val castingTrackRepository = FakeCastingTrackRepository()
-        val preparedSlotSyncRepository = FakePreparedSlotSyncRepository()
-        val viewModel = createViewModel(
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = characterBuildRepository,
-            castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
-        )
-        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 42L))
-        val originalTrack = CastingTrack(
-            characterId = existingCharacterId,
-            trackKey = "archetype-legacy",
-            sourceType = CastingTrackSourceType.ARCHETYPE,
-            sourceId = "Legacy Archetype",
-            progressionType = CastingProgressionType.ARCHETYPE_PREPARED,
-        )
-        castingTrackRepository.upsertCastingTrack(originalTrack)
-
-        viewModel.saveCharacter(
-            character = sampleCharacter(id = existingCharacterId),
-            selectedBuildOptionIds = emptySet(),
-            acceptedSourceBooks = DEFAULT_ACCEPTED_SOURCES,
-        )
-        advanceUntilIdle()
-
-        val tracksAfterSave = castingTrackRepository.getCastingTracks(existingCharacterId)
-        assertEquals(1, tracksAfterSave.size)
-        assertEquals("Legacy Archetype", tracksAfterSave.first().sourceId)
-        assertEquals(CastingTrackSourceType.ARCHETYPE, tracksAfterSave.first().sourceType)
-        assertTrue(characterBuildRepository.getBuildOptions(existingCharacterId).isEmpty())
-        assertEquals(listOf(existingCharacterId), preparedSlotSyncRepository.syncedCharacterIds)
-    }
-
-    @Test
-    fun saveCharacter_sameSelection_isIdempotent() = runTest {
-        val characterCrudRepository = FakeCharacterCrudRepository()
-        val characterBuildRepository = FakeCharacterBuildRepository()
-        val castingTrackRepository = FakeCastingTrackRepository()
-        val preparedSlotSyncRepository = FakePreparedSlotSyncRepository()
-        val viewModel = createViewModel(
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = characterBuildRepository,
-            castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
-        )
-        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 43L))
-        val selection = setOf(
-            "archetype/wizard/wizard-dedication",
-            "archetype/wizard/basic-wizard-spellcasting",
-        )
-
-        viewModel.saveCharacter(sampleCharacter(id = existingCharacterId), selection, DEFAULT_ACCEPTED_SOURCES)
-        advanceUntilIdle()
-        viewModel.saveCharacter(sampleCharacter(id = existingCharacterId), selection, DEFAULT_ACCEPTED_SOURCES)
-        advanceUntilIdle()
-
-        val savedOptionIds = characterBuildRepository.getBuildOptions(existingCharacterId)
-            .map { it.optionId }
-        assertEquals(2, savedOptionIds.size)
-        assertEquals(selection, savedOptionIds.toSet())
-
-        val tracks = castingTrackRepository.getCastingTracks(existingCharacterId)
-            .filter { it.sourceType == CastingTrackSourceType.ARCHETYPE }
-        assertEquals(1, tracks.size)
-        assertEquals("wizard", tracks.first().sourceId)
-        assertEquals("Wizard", tracks.first().displayName)
-        assertEquals(
-            listOf(existingCharacterId, existingCharacterId),
-            preparedSlotSyncRepository.syncedCharacterIds,
-        )
-    }
-
-    @Test
-    fun onEditCharacterRequest_exposesOnlyManagedBuildOptionIds() = runTest {
-        val characterCrudRepository = FakeCharacterCrudRepository()
-        val characterBuildRepository = FakeCharacterBuildRepository()
-        val castingTrackRepository = FakeCastingTrackRepository()
-        val preparedSlotSyncRepository = FakePreparedSlotSyncRepository()
-        val viewModel = createViewModel(
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = characterBuildRepository,
-            castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
-        )
-        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 44L))
-        characterBuildRepository.replaceBuildOptions(
-            characterId = existingCharacterId,
-            options = listOf(
-                CharacterBuildOption(
-                    characterId = existingCharacterId,
-                    optionType = CharacterBuildOptionType.ARCHETYPE,
-                    optionId = "archetype/wizard/wizard-dedication",
-                ),
-                CharacterBuildOption(
-                    characterId = existingCharacterId,
-                    optionType = CharacterBuildOptionType.OTHER,
-                    optionId = "custom/non-managed",
-                ),
-            ),
-        )
-
-        viewModel.onEditCharacterRequest(sampleCharacter(id = existingCharacterId))
-        advanceUntilIdle()
-
-        val selectedIds = viewModel.uiState
-            .map { it.editingSelectedBuildOptionIds }
-            .first { it == setOf("archetype/wizard/wizard-dedication") }
-        assertEquals(setOf("archetype/wizard/wizard-dedication"), selectedIds)
-    }
-
-    @Test
-    fun saveCharacter_withBlessedOneDedication_persistsOption_withoutCreatingPreparedArchetypeTrack() = runTest {
-        val characterCrudRepository = FakeCharacterCrudRepository()
-        val characterBuildRepository = FakeCharacterBuildRepository()
-        val castingTrackRepository = FakeCastingTrackRepository()
-        val preparedSlotSyncRepository = FakePreparedSlotSyncRepository()
-        val viewModel = createViewModel(
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = characterBuildRepository,
-            castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
-        )
-        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 45L))
-
-        viewModel.saveCharacter(
-            character = sampleCharacter(id = existingCharacterId),
-            selectedBuildOptionIds = setOf("archetype/blessed-one/blessed-one-dedication"),
-            acceptedSourceBooks = DEFAULT_ACCEPTED_SOURCES,
-        )
-        advanceUntilIdle()
-
-        val savedOptions = characterBuildRepository.getBuildOptions(existingCharacterId)
-        assertEquals(setOf("archetype/blessed-one/blessed-one-dedication"), savedOptions.map { it.optionId }.toSet())
-        assertEquals(CharacterBuildOptionType.ARCHETYPE, savedOptions.single().optionType)
-
-        val archetypeTracks = castingTrackRepository.getCastingTracks(existingCharacterId)
-            .filter { it.sourceType == CastingTrackSourceType.ARCHETYPE }
-        assertTrue(archetypeTracks.isEmpty())
-        assertEquals(listOf(existingCharacterId), preparedSlotSyncRepository.syncedCharacterIds)
-    }
-
-    @Test
-    fun saveCharacter_persistsAcceptedSources_and_seedsCommonKnownSpells_forCleric() = runTest {
-        val characterCrudRepository = FakeCharacterCrudRepository()
-        val characterBuildRepository = FakeCharacterBuildRepository()
-        val castingTrackRepository = FakeCastingTrackRepository()
-        val preparedSlotSyncRepository = FakePreparedSlotSyncRepository()
         val acceptedSpellSourceRepository = FakeAcceptedSpellSourceRepository()
         val knownSpellRepository = FakeKnownSpellRepository()
         val spellRepository = FakeSpellRepository(
@@ -370,120 +219,74 @@ class CharacterListViewModelTest {
             ),
         )
         val viewModel = createViewModel(
+            characterId = 0L,
             characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = characterBuildRepository,
-            castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
             acceptedSpellSourceRepository = acceptedSpellSourceRepository,
             knownSpellRepository = knownSpellRepository,
             spellRepository = spellRepository,
         )
+        advanceUntilIdle()
+        viewModel.updateName("Mira")
+        viewModel.selectClass(CharacterClass.CLERIC)
+        selectRequiredClassChoices(viewModel)
+        viewModel.setAcceptedSourceBooks(setOf("Player Core"))
 
-        viewModel.saveCharacter(
-            character = sampleCharacter(id = 0L, characterClass = CharacterClass.CLERIC),
-            selectedBuildOptionIds = emptySet(),
-            acceptedSourceBooks = setOf("Player Core"),
-        )
+        viewModel.save()
         advanceUntilIdle()
 
-        val savedCharacterId = characterCrudRepository.observeCharacters().first().single().id
+        val savedCharacterId = characterCrudRepository.characters().single().id
         assertEquals(setOf("Player Core"), acceptedSpellSourceRepository.getAcceptedSources(savedCharacterId))
         assertEquals(setOf("heal"), knownSpellRepository.getKnownSpellIds(savedCharacterId))
     }
 
     @Test
-    fun saveCharacter_addingPreparedArchetype_seedsKnownSpellsForArchetypeTrack() = runTest {
-        val characterCrudRepository = FakeCharacterCrudRepository()
-        val knownSpellRepository = FakeKnownSpellRepository()
-        val spellRepository = FakeSpellRepository(
-            availableSources = listOf("Player Core", "Gods & Magic"),
-            spells = listOf(
-                spell(id = "force-barrage", tradition = "arcane", rarity = "common", sourceBook = "Player Core"),
-                spell(id = "private-sanctum", tradition = "arcane", rarity = "common", sourceBook = "Gods & Magic"),
-                spell(id = "heal", tradition = "divine", rarity = "common", sourceBook = "Player Core"),
-            ),
-        )
-        val viewModel = createViewModel(
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = FakeCharacterBuildRepository(),
-            castingTrackRepository = FakeCastingTrackRepository(),
-            preparedSlotSyncRepository = FakePreparedSlotSyncRepository(),
-            knownSpellRepository = knownSpellRepository,
-            spellRepository = spellRepository,
-        )
-        val existingId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 51L))
-
-        viewModel.saveCharacter(
-            character = sampleCharacter(id = existingId),
-            selectedBuildOptionIds = setOf(
-                "archetype/wizard/wizard-dedication",
-                "archetype/wizard/basic-wizard-spellcasting",
-            ),
-            acceptedSourceBooks = setOf("Player Core"),
-        )
+    fun sectionStatuses_updateAsDraftBecomesComplete() = runTest {
+        val viewModel = createViewModel(characterId = 0L)
         advanceUntilIdle()
 
+        viewModel.updateName("Sera")
+        selectRequiredClassChoices(viewModel)
+        advanceUntilIdle()
+
+        val sectionsById = viewModel.uiState.value.sections.associateBy { it.id }
+        assertEquals(CharacterBuilderSectionStatus.COMPLETE, sectionsById[CharacterBuilderSectionId.IDENTITY]?.status)
         assertEquals(
-            setOf("force-barrage"),
-            knownSpellRepository.getKnownSpellIds(
-                characterId = existingId,
-                trackKey = "archetype-wizard",
-            ),
+            CharacterBuilderSectionStatus.COMPLETE,
+            sectionsById[CharacterBuilderSectionId.CLASS_SPELLCASTING]?.status,
         )
         assertEquals(
-            emptySet<String>(),
-            knownSpellRepository.getKnownSpellIds(
-                characterId = existingId,
-                trackKey = "primary",
-            ),
+            CharacterBuilderSectionStatus.OPTIONAL,
+            sectionsById[CharacterBuilderSectionId.SPELL_SOURCES]?.status,
+        )
+        assertEquals(
+            CharacterBuilderSectionStatus.OPTIONAL,
+            sectionsById[CharacterBuilderSectionId.PREFERENCES]?.status,
         )
     }
 
-    @Test
-    fun saveCharacter_doesNotReseedKnownSpells_whenCharacterIsExisting() = runTest {
-        val characterCrudRepository = FakeCharacterCrudRepository()
-        val knownSpellRepository = FakeKnownSpellRepository()
-        val spellRepository = FakeSpellRepository(
-            availableSources = listOf("Player Core"),
-            spells = listOf(
-                spell(id = "heal", tradition = "divine", rarity = "common", sourceBook = "Player Core"),
-            ),
-        )
-        val viewModel = createViewModel(
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = FakeCharacterBuildRepository(),
-            castingTrackRepository = FakeCastingTrackRepository(),
-            preparedSlotSyncRepository = FakePreparedSlotSyncRepository(),
-            knownSpellRepository = knownSpellRepository,
-            spellRepository = spellRepository,
-        )
-        val existingId = characterCrudRepository.upsertCharacter(
-            sampleCharacter(id = 50L, characterClass = CharacterClass.CLERIC),
-        )
-
-        viewModel.saveCharacter(
-            character = sampleCharacter(id = existingId, characterClass = CharacterClass.CLERIC),
-            selectedBuildOptionIds = emptySet(),
-            acceptedSourceBooks = setOf("Player Core"),
-        )
-        advanceUntilIdle()
-
-        assertEquals(emptySet<String>(), knownSpellRepository.getKnownSpellIds(existingId))
+    private fun selectRequiredClassChoices(viewModel: CharacterBuilderViewModel) {
+        viewModel.uiState.value.classChoiceGroups
+            .filter { it.required }
+            .forEach { group ->
+                viewModel.selectClassChoice(group, group.choices.first())
+            }
     }
 
     private fun createViewModel(
-        characterCrudRepository: CharacterCrudRepository,
-        characterBuildRepository: CharacterBuildRepository,
-        castingTrackRepository: CastingTrackRepository,
-        preparedSlotSyncRepository: PreparedSlotSyncRepository,
+        characterId: Long,
+        characterCrudRepository: CharacterCrudRepository = FakeCharacterCrudRepository(),
+        characterBuildRepository: CharacterBuildRepository = FakeCharacterBuildRepository(),
         acceptedSpellSourceRepository: AcceptedSpellSourceRepository = FakeAcceptedSpellSourceRepository(),
+        castingTrackRepository: CastingTrackRepository = FakeCastingTrackRepository(),
+        preparedSlotSyncRepository: PreparedSlotSyncRepository = FakePreparedSlotSyncRepository(),
         knownSpellRepository: KnownSpellRepository = FakeKnownSpellRepository(),
         spellRepository: SpellRepository = FakeSpellRepository(
             availableSources = DEFAULT_ACCEPTED_SOURCES.toList(),
             spells = emptyList(),
         ),
-    ): CharacterListViewModel {
-        return CharacterListViewModel(
+    ): CharacterBuilderViewModel {
+        return CharacterBuilderViewModel(
+            characterId = characterId,
             characterCrudRepository = characterCrudRepository,
             characterBuildRepository = characterBuildRepository,
             acceptedSpellSourceRepository = acceptedSpellSourceRepository,
@@ -591,6 +394,8 @@ private class FakeCharacterCrudRepository : CharacterCrudRepository {
     override suspend fun deleteCharacter(characterId: Long) {
         charactersFlow.value = charactersFlow.value.filterNot { it.id == characterId }
     }
+
+    fun characters(): List<CharacterProfile> = charactersFlow.value
 }
 
 private class FakeCharacterBuildRepository : CharacterBuildRepository {
@@ -755,7 +560,7 @@ private class FakeKnownSpellRepository : KnownSpellRepository {
         trackKey: String,
         spellId: String,
         knownRank: Int?,
-        origin: com.spellapp.core.model.KnownSpellOrigin,
+        origin: KnownSpellOrigin,
         isLocked: Boolean,
         isSignature: Boolean,
     ): Long {
@@ -803,15 +608,6 @@ private class FakeKnownSpellRepository : KnownSpellRepository {
 
     fun getKnownSpellIds(characterId: Long): Set<String> {
         return knownSpellsByCharacter[characterId]?.value?.map { it.spellId }?.toSet().orEmpty()
-    }
-
-    fun getKnownSpellIds(characterId: Long, trackKey: String): Set<String> {
-        return knownSpellsByCharacter[characterId]
-            ?.value
-            ?.filter { it.trackKey == trackKey }
-            ?.map { it.spellId }
-            ?.toSet()
-            .orEmpty()
     }
 }
 

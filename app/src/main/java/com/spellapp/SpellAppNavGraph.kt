@@ -14,7 +14,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.spellapp.core.model.CharacterProfile
-import com.spellapp.feature.character.CharacterEditorDialog
+import com.spellapp.feature.character.CharacterBuilderRoute
+import com.spellapp.feature.character.CharacterBuilderViewModel
 import com.spellapp.feature.character.CharacterListRoute
 import com.spellapp.feature.character.CharacterListViewModel
 import com.spellapp.feature.character.spellcasting.prepared.PreparedSlotsRoute
@@ -43,6 +44,10 @@ fun SpellAppNavGraph(
             navController = navController,
             characterFeatureFactoryProvider = characterFeatureFactoryProvider,
             navigationViewModel = navigationViewModel,
+        )
+        characterBuilderDestination(
+            navController = navController,
+            characterFeatureFactoryProvider = characterFeatureFactoryProvider,
         )
         preparedSlotsDestination(
             navController = navController,
@@ -80,8 +85,12 @@ private fun NavGraphBuilder.characterListDestination(
         CharacterListRoute(
             characters = characterListUiState.characters,
             classDefinitionsByClass = characterListUiState.classDefinitionsByClass,
-            onAddCharacter = characterListViewModel::onAddCharacterRequest,
-            onEditCharacter = characterListViewModel::onEditCharacterRequest,
+            onAddCharacter = {
+                navController.navigate(AppDestinations.CharacterBuilder.routeFor(0L))
+            },
+            onEditCharacter = { character ->
+                navController.navigate(AppDestinations.CharacterBuilder.routeFor(character.id))
+            },
             onDeleteCharacter = { character -> characterListViewModel.deleteCharacter(character.id) },
             onOpenPreparedSlots = { character ->
                 navigationViewModel.openPreparedSlots(character.id)
@@ -92,25 +101,51 @@ private fun NavGraphBuilder.characterListDestination(
                 navController.navigate(AppDestinations.SpellList.route)
             },
         )
-        if (characterListUiState.isEditorVisible) {
-            CharacterEditorDialog(
-                initialCharacter = characterListUiState.editingCharacter,
-                initialSelectedBuildOptionIds = characterListUiState.editingSelectedBuildOptionIds,
-                initialAcceptedSourceBooks = characterListUiState.editingAcceptedSourceBooks,
-                availableSpellSources = characterListUiState.availableSpellSources,
-                availableClasses = characterListUiState.availableClasses,
-                classDefinitionsByClass = characterListUiState.classDefinitionsByClass,
-                archetypeSpellcastingPackages = characterListUiState.archetypeSpellcastingPackages,
-                onDismiss = characterListViewModel::dismissEditor,
-                onSave = { character, selectedBuildOptionIds, acceptedSourceBooks ->
-                    characterListViewModel.saveCharacter(
-                        character = character,
-                        selectedBuildOptionIds = selectedBuildOptionIds,
-                        acceptedSourceBooks = acceptedSourceBooks,
-                    )
-                },
-            )
+    }
+}
+
+private fun NavGraphBuilder.characterBuilderDestination(
+    navController: NavHostController,
+    characterFeatureFactoryProvider: CharacterFeatureFactoryProvider,
+) {
+    composable(
+        route = AppDestinations.CharacterBuilder.route,
+        arguments = listOf(navArgument(AppDestinations.CharacterBuilder.argCharacterId) {
+            type = NavType.LongType
+        }),
+    ) { backStackEntry ->
+        val characterId = backStackEntry.arguments
+            ?.getLong(AppDestinations.CharacterBuilder.argCharacterId)
+            ?: 0L
+        val characterBuilderViewModel: CharacterBuilderViewModel = viewModel(
+            key = "character-builder-$characterId",
+            factory = remember(characterId, characterFeatureFactoryProvider) {
+                characterFeatureFactoryProvider.characterBuilderFactory(characterId)
+            },
+        )
+        val uiState by characterBuilderViewModel.uiState.collectAsState()
+        LaunchedEffect(characterBuilderViewModel) {
+            characterBuilderViewModel.saveEvents.collect {
+                navController.popBackStackIfResumed()
+            }
         }
+        CharacterBuilderRoute(
+            uiState = uiState,
+            onNameChange = characterBuilderViewModel::updateName,
+            onLevelChange = characterBuilderViewModel::updateLevel,
+            onClassSelected = characterBuilderViewModel::selectClass,
+            onClassChoiceSelected = characterBuilderViewModel::selectClassChoice,
+            onKeyAbilitySelected = characterBuilderViewModel::selectKeyAbility,
+            onSpellDcChange = characterBuilderViewModel::updateSpellDc,
+            onSpellAttackChange = characterBuilderViewModel::updateSpellAttack,
+            onAcceptedSourcesChange = characterBuilderViewModel::setAcceptedSourceBooks,
+            onSourceBookToggle = characterBuilderViewModel::toggleSourceBook,
+            onArchetypeTierToggle = characterBuilderViewModel::toggleArchetypeTier,
+            onLegacyTerminologyChange = characterBuilderViewModel::setLegacyTerminologyEnabled,
+            onSectionToggle = characterBuilderViewModel::toggleSection,
+            onSave = characterBuilderViewModel::save,
+            onBack = { navController.popBackStackIfResumed() },
+        )
     }
 }
 
