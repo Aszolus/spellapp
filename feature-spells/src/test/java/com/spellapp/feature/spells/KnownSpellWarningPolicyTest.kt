@@ -1,15 +1,25 @@
 package com.spellapp.feature.spells
 
+import com.spellapp.core.data.local.ClassSpellcastingCatalogJsonParser
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.SpellDetail
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import java.io.File
 
+@RunWith(RobolectricTestRunner::class)
 class KnownSpellWarningPolicyTest {
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource =
+        ClassSpellcastingCatalogJsonParser.parse(readClassSpellcastingAsset())
+    private val policy = DefaultKnownSpellWarningPolicy(classSpellcastingCatalogSource)
+
     @Test
     fun returns_off_tradition_warning_when_explicit_tradition_mismatches_track() {
-        val warning = knownSpellWarningFor(
+        val warning = policy.warningFor(
             detail = spellDetail(
                 name = "Heal",
                 tradition = "divine",
@@ -20,12 +30,12 @@ class KnownSpellWarningPolicyTest {
         )
 
         assertNotNull(warning)
-        assertEquals("Add Off-Tradition Spell?", warning?.title)
+        assertEquals("Learn Off-Tradition Spell?", warning?.title)
     }
 
     @Test
     fun returns_class_specific_warning_when_no_tradition_and_class_trait_mismatches_track() {
-        val warning = knownSpellWarningFor(
+        val warning = policy.warningFor(
             detail = spellDetail(
                 name = "Discern Secrets",
                 tradition = "",
@@ -36,12 +46,12 @@ class KnownSpellWarningPolicyTest {
         )
 
         assertNotNull(warning)
-        assertEquals("Add Class-Specific Spell?", warning?.title)
+        assertEquals("Learn Class-Specific Spell?", warning?.title)
     }
 
     @Test
     fun returns_generic_warning_when_no_tradition_and_no_class_trait_exists() {
-        val warning = knownSpellWarningFor(
+        val warning = policy.warningFor(
             detail = spellDetail(
                 name = "Mysterious Spell",
                 tradition = "",
@@ -52,12 +62,12 @@ class KnownSpellWarningPolicyTest {
         )
 
         assertNotNull(warning)
-        assertEquals("Add Spell Without Tradition?", warning?.title)
+        assertEquals("Learn Spell Without Tradition?", warning?.title)
     }
 
     @Test
     fun returns_no_warning_when_no_tradition_and_class_trait_matches_track() {
-        val warning = knownSpellWarningFor(
+        val warning = policy.warningFor(
             detail = spellDetail(
                 name = "Discern Secrets",
                 tradition = "",
@@ -91,5 +101,15 @@ class KnownSpellWarningPolicyTest {
             sourceBook = "Player Core",
             sourcePage = null,
         )
+    }
+
+    private fun readClassSpellcastingAsset(): String {
+        val candidates = listOf(
+            File("app/src/main/assets/class-spellcasting.normalized.json"),
+            File("../app/src/main/assets/class-spellcasting.normalized.json"),
+            File("../../app/src/main/assets/class-spellcasting.normalized.json"),
+        )
+        return candidates.firstOrNull { it.isFile }?.readText()
+            ?: error("class-spellcasting.normalized.json not found from ${File(".").absolutePath}")
     }
 }

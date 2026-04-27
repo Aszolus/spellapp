@@ -10,8 +10,10 @@ sealed interface SpellBrowserMode {
     data class ManageKnownSpells(
         val characterId: Long,
         val trackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
+        val characterLevel: Int = 1,
         val preferredTradition: String? = null,
         val trackSourceId: String? = null,
+        val initialRank: Int? = null,
     ) : SpellBrowserMode
 
     data class AssignPreparedSlot(

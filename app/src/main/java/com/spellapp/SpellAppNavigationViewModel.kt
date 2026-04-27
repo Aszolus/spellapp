@@ -8,8 +8,8 @@ import com.spellapp.feature.spells.SpellBrowserMode
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -50,8 +50,10 @@ class SpellAppNavigationViewModel(
     fun manageKnownSpells(
         characterId: Long,
         trackKey: String,
+        characterLevel: Int,
         preferredTradition: String?,
         trackSourceId: String?,
+        initialRank: Int? = null,
     ) {
         _uiState.update { current ->
             current.copy(
@@ -59,8 +61,10 @@ class SpellAppNavigationViewModel(
                 spellBrowserMode = SpellBrowserMode.ManageKnownSpells(
                     characterId = characterId,
                     trackKey = trackKey,
+                    characterLevel = characterLevel,
                     preferredTradition = preferredTradition,
                     trackSourceId = trackSourceId,
+                    initialRank = initialRank,
                 ),
                 spellBrowserSessionId = current.spellBrowserSessionId + 1L,
             )

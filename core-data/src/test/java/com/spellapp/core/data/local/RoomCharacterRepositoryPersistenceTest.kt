@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -75,6 +76,56 @@ class RoomCharacterRepositoryPersistenceTest {
                 trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
             ).first().isNotEmpty(),
         )
+    }
+
+    @Test
+    fun setSignatureSpell_updatesKnownSpellSignatureFlag() = runBlocking {
+        val characterId = characterRepository.upsertCharacter(sampleCharacter())
+        knownSpellRepository.addKnownSpell(
+            characterId = characterId,
+            trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+            spellId = "heal",
+            knownRank = 1,
+        )
+        knownSpellRepository.addKnownSpell(
+            characterId = characterId,
+            trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+            spellId = "heal",
+            knownRank = 2,
+        )
+
+        assertTrue(
+            knownSpellRepository.setSignatureSpell(
+                characterId = characterId,
+                trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+                spellId = "heal",
+                isSignature = true,
+            ),
+        )
+
+        val allRanksMarked = knownSpellRepository.observeKnownSpells(
+            characterId = characterId,
+            trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+        ).first()
+        assertTrue(allRanksMarked.all { knownSpell -> knownSpell.isSignature })
+
+        assertTrue(
+            knownSpellRepository.setSignatureSpell(
+                characterId = characterId,
+                trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+                spellId = "heal",
+                isSignature = false,
+                knownRank = 1,
+            ),
+        )
+
+        val signaturesByRank = knownSpellRepository.observeKnownSpells(
+            characterId = characterId,
+            trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+        ).first().associateBy { knownSpell -> knownSpell.knownRank }
+
+        assertFalse(signaturesByRank[1]?.isSignature ?: true)
+        assertTrue(signaturesByRank[2]?.isSignature ?: false)
     }
 
     private fun sampleCharacter(

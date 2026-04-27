@@ -124,12 +124,30 @@ class AssignPreparedSpellUseCaseTest {
             return knownSpells.map { spells -> spells.map { it.spellId }.toSet() }
         }
 
-        override suspend fun addKnownSpell(characterId: Long, trackKey: String, spellId: String): Long = 0L
+        override suspend fun addKnownSpell(
+            characterId: Long,
+            trackKey: String,
+            spellId: String,
+            knownRank: Int?,
+            origin: com.spellapp.core.model.KnownSpellOrigin,
+            isLocked: Boolean,
+            isSignature: Boolean,
+        ): Long = 0L
 
-        override suspend fun removeKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean = false
+        override suspend fun removeKnownSpell(
+            characterId: Long,
+            trackKey: String,
+            spellId: String,
+            knownRank: Int?,
+        ): Boolean = false
 
-        override suspend fun isKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean {
-            return knownSpells.value.any { it.spellId == spellId }
+        override suspend fun isKnownSpell(
+            characterId: Long,
+            trackKey: String,
+            spellId: String,
+            knownRank: Int?,
+        ): Boolean {
+            return knownSpells.value.any { it.spellId == spellId && (knownRank == null || it.knownRank == knownRank) }
         }
     }
 

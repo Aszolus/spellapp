@@ -44,6 +44,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
+import com.spellapp.core.model.ClassChoice
+import com.spellapp.core.model.ClassChoiceGroup
+import com.spellapp.core.model.ClassSpellcastingCatalog
 
 private val coreSpellSourceBooks = setOf(
     "Pathfinder Core Rulebook",
@@ -255,12 +258,34 @@ internal class CharacterEditorState(
     val levelInvalid: Boolean get() = level == null
     val spellDcInvalid: Boolean get() = spellDc == null
     val spellAttackInvalid: Boolean get() = spellAttack == null
+    val classChoiceGroups: List<ClassChoiceGroup>
+        get() = ClassSpellcastingCatalog.definitionFor(selectedClass)?.choiceGroups.orEmpty()
+    val missingRequiredClassChoices: List<ClassChoiceGroup>
+        get() = classChoiceGroups.filter { group ->
+            group.required && group.choices.none { choice -> choice.optionId in selectedBuildOptionIds }
+        }
     val canSave: Boolean
-        get() = !nameInvalid && !levelInvalid && !spellDcInvalid && !spellAttackInvalid
+        get() = !nameInvalid &&
+            !levelInvalid &&
+            !spellDcInvalid &&
+            !spellAttackInvalid &&
+            missingRequiredClassChoices.isEmpty()
 
     fun selectClass(klass: CharacterClass) {
         selectedClass = klass
+        selectedBuildOptionIds = selectedBuildOptionIds - ClassSpellcastingCatalog.managedOptionIds()
         keyAbility = defaultKeyAbility(klass, classDefinitionsByClass)
+    }
+
+    fun selectClassChoice(
+        group: ClassChoiceGroup,
+        choice: ClassChoice,
+    ) {
+        val groupOptionIds = group.choices.map { it.optionId }.toSet()
+        selectedBuildOptionIds = (selectedBuildOptionIds - groupOptionIds) + choice.optionId
+        choice.keyAbility?.let { selectedKeyAbility ->
+            keyAbility = selectedKeyAbility
+        }
     }
 
     fun toggleBuildOption(
@@ -359,6 +384,7 @@ fun CharacterEditorDialog(
             ) {
                 IdentityFields(state)
                 ClassSelector(state, availableClasses)
+                ClassChoiceSection(state)
                 KeyAbilitySelector(state, classDefinitionsByClass)
                 SpellStatFields(state)
                 AcceptedSourcesRow(state, availableSpellSources) { showSourcePicker = true }
@@ -469,6 +495,41 @@ private fun KeyAbilitySelector(
                 onClick = { state.keyAbility = ability },
                 label = { Text(ability.label()) },
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ClassChoiceSection(state: CharacterEditorState) {
+    val groups = state.classChoiceGroups
+    if (groups.isEmpty()) {
+        return
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        groups.forEach { group ->
+            SectionLabel(if (group.required) "${group.label} (Required)" else group.label)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                group.choices.forEach { choice ->
+                    FilterChip(
+                        selected = choice.optionId in state.selectedBuildOptionIds,
+                        onClick = { state.selectClassChoice(group, choice) },
+                        label = { Text(choice.label) },
+                    )
+                }
+            }
+            if (state.saveAttempted && group in state.missingRequiredClassChoices) {
+                Text(
+                    text = "Choose a ${group.label.lowercase()} before saving.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }

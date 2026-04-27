@@ -1,0 +1,46 @@
+{
+    "datasetVersion":  "20260418-133707",
+    "sourceCommit":  "cd1f3cac4b960b726b846e4b280151de13f43fd5",
+    "generatedAtUtc":  "2026-04-18T17:37:24.9177617Z",
+    "counts":  {
+                   "traitDefinitions":  591,
+                   "referenceEntries":  14505,
+                   "aliases":  29010
+               },
+    "shards":  {
+                   "traits":  {
+                                  "file":  "rules.reference.traits.json.gz",
+                                  "count":  591
+                              },
+                   "actions":  {
+                                   "file":  "rules.reference.actions.json.gz",
+                                   "count":  551,
+                                   "aliases":  1102
+                               },
+                   "conditions":  {
+                                      "file":  "rules.reference.conditions.json.gz",
+                                      "count":  43,
+                                      "aliases":  86
+                                  },
+                   "feats":  {
+                                 "file":  "rules.reference.feats.json.gz",
+                                 "count":  5976,
+                                 "aliases":  11952
+                             },
+                   "items":  {
+                                 "file":  "rules.reference.items.json.gz",
+                                 "count":  5622,
+                                 "aliases":  11244
+                             },
+                   "spell-effects":  {
+                                         "file":  "rules.reference.spell-effects.json.gz",
+                                         "count":  517,
+                                         "aliases":  1034
+                                     },
+                   "spells":  {
+                                  "file":  "rules.reference.spells.json.gz",
+                                  "count":  1796,
+                                  "aliases":  3592
+                              }
+               }
+}

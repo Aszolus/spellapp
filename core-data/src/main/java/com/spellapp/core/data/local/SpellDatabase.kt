@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.spellapp.core.model.SlotProgressionKeys
 
 @Database(
     entities = [
@@ -20,7 +21,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         FocusStateEntity::class,
         SessionEventEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = false,
 )
 abstract class SpellDatabase : RoomDatabase() {
@@ -293,6 +294,65 @@ abstract class SpellDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `casting_tracks` ADD COLUMN `displayName` TEXT NOT NULL DEFAULT ''",
+                )
+                db.execSQL(
+                    "ALTER TABLE `casting_tracks` ADD COLUMN `castingStyle` TEXT NOT NULL DEFAULT 'PREPARED'",
+                )
+                db.execSQL(
+                    "ALTER TABLE `casting_tracks` ADD COLUMN `tradition` TEXT DEFAULT NULL",
+                )
+                db.execSQL(
+                    "ALTER TABLE `casting_tracks` ADD COLUMN `slotProgressionKey` TEXT NOT NULL DEFAULT ''",
+                )
+                db.execSQL(
+                    """
+                    UPDATE `casting_tracks`
+                    SET `displayName` = CASE
+                        WHEN `sourceType` = 'PRIMARY_CLASS' THEN 'Primary'
+                        ELSE `sourceId`
+                    END,
+                    `castingStyle` = 'PREPARED',
+                    `tradition` = CASE LOWER(`sourceId`)
+                        WHEN 'wizard' THEN 'ARCANE'
+                        WHEN 'cleric' THEN 'DIVINE'
+                        WHEN 'druid' THEN 'PRIMAL'
+                        ELSE NULL
+                    END,
+                    `slotProgressionKey` = CASE
+                        WHEN `progressionType` = 'ARCHETYPE_PREPARED' THEN '${SlotProgressionKeys.ARCHETYPE_PREPARED}'
+                        ELSE '${SlotProgressionKeys.FULL_PREPARED_STANDARD}'
+                    END
+                    """.trimIndent(),
+                )
+
+                db.execSQL(
+                    "ALTER TABLE `known_spells` ADD COLUMN `knownRank` INTEGER NOT NULL DEFAULT -1",
+                )
+                db.execSQL(
+                    "ALTER TABLE `known_spells` ADD COLUMN `origin` TEXT NOT NULL DEFAULT 'MANUAL'",
+                )
+                db.execSQL(
+                    "ALTER TABLE `known_spells` ADD COLUMN `isLocked` INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL(
+                    "ALTER TABLE `known_spells` ADD COLUMN `isSignature` INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL(
+                    "DROP INDEX IF EXISTS `index_known_spells_characterId_trackKey_spellId`",
+                )
+                db.execSQL(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS `index_known_spells_characterId_trackKey_spellId_knownRank`
+                    ON `known_spells` (`characterId`, `trackKey`, `spellId`, `knownRank`)
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun create(context: Context): SpellDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -307,6 +367,7 @@ abstract class SpellDatabase : RoomDatabase() {
                     .addMigrations(MIGRATION_6_7)
                     .addMigrations(MIGRATION_7_8)
                     .addMigrations(MIGRATION_8_9)
+                    .addMigrations(MIGRATION_9_10)
                     .build()
                     .also { INSTANCE = it }
             }

@@ -1,5 +1,7 @@
 package com.spellapp.feature.spells
 
+import com.spellapp.core.model.ClassSpellcastingCatalog
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.spellSupportsTradition
 
@@ -11,7 +13,9 @@ interface KnownSpellWarningPolicy {
     ): PendingKnownSpellWarning?
 }
 
-class DefaultKnownSpellWarningPolicy : KnownSpellWarningPolicy {
+class DefaultKnownSpellWarningPolicy(
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource = ClassSpellcastingCatalog,
+) : KnownSpellWarningPolicy {
     override fun warningFor(
         detail: SpellDetail,
         preferredTradition: String?,
@@ -20,20 +24,37 @@ class DefaultKnownSpellWarningPolicy : KnownSpellWarningPolicy {
         detail = detail,
         preferredTradition = preferredTradition,
         trackSourceId = trackSourceId,
+        classTraitMarkers = classSpellcastingCatalogSource.spellcastingClassTraitMarkers(),
     )
 }
 
 data class PendingKnownSpellWarning(
-    val spellId: String,
+    val spellIds: List<String>,
     val title: String,
     val message: String,
-    val confirmLabel: String = "Add Anyway",
-)
+    val confirmLabel: String = "Learn Anyway",
+) {
+    constructor(
+        spellId: String,
+        title: String,
+        message: String,
+        confirmLabel: String = "Learn Anyway",
+    ) : this(
+        spellIds = listOf(spellId),
+        title = title,
+        message = message,
+        confirmLabel = confirmLabel,
+    )
+
+    val spellId: String
+        get() = spellIds.first()
+}
 
 internal fun knownSpellWarningFor(
     detail: SpellDetail,
     preferredTradition: String?,
     trackSourceId: String?,
+    classTraitMarkers: Set<String>,
 ): PendingKnownSpellWarning? {
     val normalizedPreferredTradition = preferredTradition?.trim()?.lowercase().orEmpty()
     val explicitTraditions = detail.tradition.split(',')
@@ -48,10 +69,10 @@ internal fun knownSpellWarningFor(
         if (!isPreferredTraditionMatch) {
             return PendingKnownSpellWarning(
                 spellId = detail.id,
-                title = "Add Off-Tradition Spell?",
+                title = "Learn Off-Tradition Spell?",
                 message = "${detail.name} is not part of the default ${
                     normalizedPreferredTradition.replaceFirstChar { it.uppercase() }
-                } tradition for this track. Add it to known spells anyway?",
+                } tradition for this track. Learn it anyway?",
             )
         }
         return null
@@ -78,8 +99,8 @@ internal fun knownSpellWarningFor(
                 ?: "this track"
             return PendingKnownSpellWarning(
                 spellId = detail.id,
-                title = "Add Class-Specific Spell?",
-                message = "${detail.name} has no listed tradition and is marked $markerLabel, not $sourceLabel. Add it to known spells anyway?",
+                title = "Learn Class-Specific Spell?",
+                message = "${detail.name} has no listed tradition and is marked $markerLabel, not $sourceLabel. Learn it anyway?",
             )
         }
         return null
@@ -87,38 +108,14 @@ internal fun knownSpellWarningFor(
 
     return PendingKnownSpellWarning(
         spellId = detail.id,
-        title = "Add Spell Without Tradition?",
-        message = "${detail.name} has no listed tradition. Add it to known spells anyway?",
+        title = "Learn Spell Without Tradition?",
+        message = "${detail.name} has no listed tradition. Learn it anyway?",
     )
 }
 
-// Derived from the dev-time PF2e class pack filenames under D:\pf2e\packs\pf2e\classes.
-private val classTraitMarkers = setOf(
-    "alchemist",
-    "animist",
-    "barbarian",
-    "bard",
-    "champion",
-    "cleric",
-    "commander",
-    "druid",
-    "exemplar",
-    "fighter",
-    "guardian",
-    "gunslinger",
-    "inventor",
-    "investigator",
-    "kineticist",
-    "magus",
-    "monk",
-    "oracle",
-    "psychic",
-    "ranger",
-    "rogue",
-    "sorcerer",
-    "summoner",
-    "swashbuckler",
-    "thaumaturge",
-    "witch",
-    "wizard",
-)
+private fun ClassSpellcastingCatalogSource.spellcastingClassTraitMarkers(): Set<String> {
+    return allDefinitions()
+        .map { definition -> definition.classId.trim().lowercase() }
+        .filter { classId -> classId.isNotBlank() }
+        .toSet()
+}

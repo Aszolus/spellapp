@@ -1,17 +1,27 @@
 package com.spellapp.feature.spells
 
+import com.spellapp.core.data.local.ClassSpellcastingCatalogJsonParser
 import com.spellapp.core.model.CharacterClass
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SpellListItem
-import com.spellapp.core.rules.SpellTradition
-import com.spellapp.core.rules.TrackSpellExceptionPolicy
-import com.spellapp.core.rules.TrackSpellLegalityProfile
+import com.spellapp.core.rules.spellcasting.SpellTradition
+import com.spellapp.core.rules.spellcasting.TrackSpellExceptionPolicy
+import com.spellapp.core.rules.spellcasting.TrackSpellLegalityProfile
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import java.io.File
 
+@RunWith(RobolectricTestRunner::class)
 class DefaultPreparedSpellAssignmentPolicyTest {
-    private val policy = DefaultPreparedSpellAssignmentPolicy()
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource =
+        ClassSpellcastingCatalogJsonParser.parse(readClassSpellcastingAsset())
+    private val policy = DefaultPreparedSpellAssignmentPolicy(
+        DefaultPreparedTrackLegalityProfileSource(classSpellcastingCatalogSource),
+    )
 
     @Test
     fun clericPrimaryTrack_allowsDivineSpell_and_rejectsArcaneSpell() {
@@ -216,5 +226,15 @@ class DefaultPreparedSpellAssignmentPolicyTest {
             rank = rank,
             tradition = tradition,
         )
+    }
+
+    private fun readClassSpellcastingAsset(): String {
+        val candidates = listOf(
+            File("app/src/main/assets/class-spellcasting.normalized.json"),
+            File("../app/src/main/assets/class-spellcasting.normalized.json"),
+            File("../../app/src/main/assets/class-spellcasting.normalized.json"),
+        )
+        return candidates.firstOrNull { it.isFile }?.readText()
+            ?: error("class-spellcasting.normalized.json not found from ${File(".").absolutePath}")
     }
 }

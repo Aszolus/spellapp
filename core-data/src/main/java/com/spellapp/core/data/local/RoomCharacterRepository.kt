@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.spellapp.core.data.CharacterRepository
 import com.spellapp.core.model.AbilityScore
 import com.spellapp.core.model.CastingProgressionType
+import com.spellapp.core.model.CastingStyle
 import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.CharacterBuildIdentity
@@ -11,10 +12,15 @@ import com.spellapp.core.model.CharacterBuildOption
 import com.spellapp.core.model.CharacterBuildOptionType
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
+import com.spellapp.core.model.EmptyClassSpellcastingCatalogSource
 import com.spellapp.core.model.FocusState
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEvent
 import com.spellapp.core.model.SessionEventType
+import com.spellapp.core.model.SlotProgressionKeys
+import com.spellapp.core.model.SpellcastingTradition
+import com.spellapp.core.model.traditionFor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -28,6 +34,7 @@ class RoomCharacterRepository private constructor(
     private val focusStateDao: FocusStateDao,
     private val sessionEventDao: SessionEventDao,
     private val slotProgressionEngine: SlotProgressionEngine,
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource,
 ) : CharacterRepository {
     constructor(
         database: SpellDatabase,
@@ -38,6 +45,8 @@ class RoomCharacterRepository private constructor(
         castingTrackDao: CastingTrackDao,
         focusStateDao: FocusStateDao,
         sessionEventDao: SessionEventDao,
+        classSpellcastingCatalogSource: ClassSpellcastingCatalogSource =
+            EmptyClassSpellcastingCatalogSource,
     ) : this(
         database = database,
         characterDao = characterDao,
@@ -47,7 +56,8 @@ class RoomCharacterRepository private constructor(
         castingTrackDao = castingTrackDao,
         focusStateDao = focusStateDao,
         sessionEventDao = sessionEventDao,
-        slotProgressionEngine = DefaultSlotProgressionEngine(),
+        slotProgressionEngine = DefaultSlotProgressionEngine(classSpellcastingCatalogSource),
+        classSpellcastingCatalogSource = classSpellcastingCatalogSource,
     )
 
     override fun observeCharacters(): Flow<List<CharacterProfile>> {
@@ -64,7 +74,7 @@ class RoomCharacterRepository private constructor(
         return database.withTransaction {
             val characterId = characterDao.insertOrUpdate(character.toEntity())
             val persistedCharacter = character.copy(id = characterId)
-            ensurePrimaryTrack(persistedCharacter)
+            ensurePrimaryTracks(persistedCharacter)
             syncPreparedSlotsForCharacterInternal(persistedCharacter)
             characterId
         }
@@ -161,7 +171,7 @@ class RoomCharacterRepository private constructor(
         database.withTransaction {
             val character = characterDao.getCharacterById(characterId)?.toDomain()
                 ?: return@withTransaction
-            ensurePrimaryTrack(character)
+            ensurePrimaryTracks(character)
             syncPreparedSlotsForCharacterInternal(character)
         }
     }
@@ -323,6 +333,56 @@ class RoomCharacterRepository private constructor(
         }
     }
 
+    override suspend fun castKnownSpellSlot(
+        characterId: Long,
+        rank: Int,
+        slotIndex: Int,
+        spellId: String,
+        trackKey: String,
+    ): Boolean {
+        return database.withTransaction {
+            val targetSlot = preparedSlotDao.getByCharacterRankAndIndex(
+                characterId = characterId,
+                trackKey = trackKey,
+                rank = rank,
+                slotIndex = slotIndex,
+            ) ?: return@withTransaction false
+
+            val isCantrip = rank == 0
+            if (!isCantrip && targetSlot.isExpended) {
+                return@withTransaction false
+            }
+
+            if (!isCantrip) {
+                val updateCount = preparedSlotDao.setExpendedState(
+                    characterId = characterId,
+                    trackKey = trackKey,
+                    rank = rank,
+                    slotIndex = slotIndex,
+                    isExpended = true,
+                )
+                if (updateCount <= 0) {
+                    return@withTransaction false
+                }
+            }
+
+            sessionEventDao.insert(
+                SessionEventEntity(
+                    characterId = characterId,
+                    type = SessionEventType.CAST_SPELL.name,
+                    spellId = spellId,
+                    spellRank = rank,
+                    createdAtEpochMillis = System.currentTimeMillis(),
+                    metadataJson = SessionEventMetadata.castSpell(
+                        slotIndex = slotIndex,
+                        trackKey = trackKey,
+                    ),
+                ),
+            )
+            true
+        }
+    }
+
     override suspend fun uncastSlot(
         characterId: Long,
         rank: Int,
@@ -435,20 +495,64 @@ class RoomCharacterRepository private constructor(
         return sessionEventDao.insert(event.toEntity())
     }
 
-    private suspend fun ensurePrimaryTrack(character: CharacterProfile) {
-        val existingPrimary = castingTrackDao.getByCharacterAndTrack(
-            characterId = character.id,
-            trackKey = CastingTrack.PRIMARY_TRACK_KEY,
+    private suspend fun ensurePrimaryTracks(character: CharacterProfile) {
+        val selectedBuildOptionIds = characterBuildOptionDao.getByCharacter(character.id)
+            .map { entity -> entity.optionId }
+            .toSet()
+        val definition = classSpellcastingCatalogSource.definitionFor(character.characterClass)
+        val traditionOverride = classSpellcastingCatalogSource.traditionFor(
+            characterClass = character.characterClass,
+            selectedOptionIds = selectedBuildOptionIds,
         )
-        val primaryTrack = CastingTrackEntity(
-            id = existingPrimary?.id ?: 0L,
-            characterId = character.id,
-            trackKey = CastingTrack.PRIMARY_TRACK_KEY,
-            sourceType = CastingTrackSourceType.PRIMARY_CLASS.name,
-            sourceId = character.characterClass.name,
-            progressionType = primaryProgressionForClass(character.characterClass).name,
-        )
-        castingTrackDao.upsert(primaryTrack)
+        val desiredTracks = if (definition == null) {
+            listOf(
+                CastingTrack(
+                    characterId = character.id,
+                    trackKey = CastingTrack.PRIMARY_TRACK_KEY,
+                    sourceType = CastingTrackSourceType.PRIMARY_CLASS,
+                    sourceId = character.characterClass.name.lowercase(),
+                    progressionType = CastingProgressionType.FULL_PREPARED,
+                    displayName = "Primary",
+                    castingStyle = CastingStyle.PREPARED,
+                    tradition = null,
+                    slotProgressionKey = SlotProgressionKeys.FULL_PREPARED_STANDARD,
+                ),
+            )
+        } else {
+            definition.primaryTracks.map { template ->
+                CastingTrack(
+                    characterId = character.id,
+                    trackKey = template.trackKey,
+                    sourceType = CastingTrackSourceType.PRIMARY_CLASS,
+                    sourceId = definition.classId,
+                    progressionType = template.progressionType,
+                    displayName = template.displayName,
+                    castingStyle = template.castingStyle,
+                    tradition = traditionOverride ?: template.tradition,
+                    slotProgressionKey = template.slotProgressionKey,
+                )
+            }
+        }
+
+        val desiredKeys = desiredTracks.map { it.trackKey }.toSet()
+        castingTrackDao.getByCharacter(character.id)
+            .map { it.toDomain() }
+            .filter { it.sourceType == CastingTrackSourceType.PRIMARY_CLASS }
+            .filterNot { it.trackKey in desiredKeys }
+            .forEach { track ->
+                castingTrackDao.deleteByCharacterAndTrack(
+                    characterId = character.id,
+                    trackKey = track.trackKey,
+                )
+            }
+
+        desiredTracks.forEach { desired ->
+            val existing = castingTrackDao.getByCharacterAndTrack(
+                characterId = character.id,
+                trackKey = desired.trackKey,
+            )
+            castingTrackDao.upsert(desired.copy(id = existing?.id ?: 0L).toEntity())
+        }
     }
 
     private suspend fun syncPreparedSlotsForCharacterInternal(character: CharacterProfile) {
@@ -552,15 +656,6 @@ class RoomCharacterRepository private constructor(
         }
     }
 
-    private fun primaryProgressionForClass(characterClass: CharacterClass): CastingProgressionType {
-        return when (characterClass) {
-            CharacterClass.WIZARD,
-            CharacterClass.CLERIC,
-            CharacterClass.DRUID,
-            CharacterClass.OTHER -> CastingProgressionType.FULL_PREPARED
-        }
-    }
-
     private fun CharacterEntity.toDomain(): CharacterProfile {
         return CharacterProfile(
             id = id,
@@ -647,6 +742,10 @@ class RoomCharacterRepository private constructor(
             sourceType = enumValueOrDefault(sourceType, CastingTrackSourceType.PRIMARY_CLASS),
             sourceId = sourceId,
             progressionType = enumValueOrDefault(progressionType, CastingProgressionType.FULL_PREPARED),
+            displayName = displayName,
+            castingStyle = enumValueOrDefault(castingStyle, CastingStyle.PREPARED),
+            tradition = tradition?.let { enumValueOrDefault(it, SpellcastingTradition.OTHER) },
+            slotProgressionKey = slotProgressionKey,
         )
     }
 
@@ -658,6 +757,10 @@ class RoomCharacterRepository private constructor(
             sourceType = sourceType.name,
             sourceId = sourceId,
             progressionType = progressionType.name,
+            displayName = displayName,
+            castingStyle = castingStyle.name,
+            tradition = tradition?.name,
+            slotProgressionKey = slotProgressionKey,
         )
     }
 

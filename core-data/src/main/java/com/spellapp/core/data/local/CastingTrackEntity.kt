@@ -28,4 +28,8 @@ data class CastingTrackEntity(
     val sourceType: String,
     val sourceId: String,
     val progressionType: String,
+    val displayName: String,
+    val castingStyle: String,
+    val tradition: String?,
+    val slotProgressionKey: String,
 )

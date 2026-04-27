@@ -38,6 +38,13 @@ interface PreparedSlotRepository {
         slotIndex: Int,
         trackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
     ): Boolean
+    suspend fun castKnownSpellSlot(
+        characterId: Long,
+        rank: Int,
+        slotIndex: Int,
+        spellId: String,
+        trackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
+    ): Boolean = false
     suspend fun uncastSlot(
         characterId: Long,
         rank: Int,

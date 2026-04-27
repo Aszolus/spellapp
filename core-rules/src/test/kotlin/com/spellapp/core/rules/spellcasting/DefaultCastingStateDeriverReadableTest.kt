@@ -1,4 +1,4 @@
-package com.spellapp.core.rules
+package com.spellapp.core.rules.spellcasting
 
 import com.spellapp.core.model.CastingProgressionType
 import com.spellapp.core.model.SpellListItem

@@ -5,4 +5,17 @@ data class KnownSpell(
     val characterId: Long,
     val trackKey: String,
     val spellId: String,
+    val knownRank: Int? = null,
+    val origin: KnownSpellOrigin = KnownSpellOrigin.MANUAL,
+    val isLocked: Boolean = false,
+    val isSignature: Boolean = false,
 )
+
+enum class KnownSpellOrigin {
+    MANUAL,
+    CLASS,
+    SUBCLASS,
+    ARCHETYPE,
+    GM_GRANT,
+    CUSTOM,
+}
