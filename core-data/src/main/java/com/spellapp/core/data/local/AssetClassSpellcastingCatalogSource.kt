@@ -7,7 +7,6 @@ import com.spellapp.core.model.CastingStyle
 import com.spellapp.core.model.CharacterBuildOptionType
 import com.spellapp.core.model.ClassChoice
 import com.spellapp.core.model.ClassChoiceGroup
-import com.spellapp.core.model.ClassSpellcastingCatalog
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.ClassSpellcastingDefinition
 import com.spellapp.core.model.EmptyClassSpellcastingCatalogSource
@@ -18,6 +17,7 @@ import com.spellapp.core.model.SpellAllowanceKind
 import com.spellapp.core.model.SpellAllowancePolicy
 import com.spellapp.core.model.SpellAllowanceRule
 import com.spellapp.core.model.SpellcastingTradition
+import com.spellapp.core.model.normalizeClassId
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -39,8 +39,8 @@ class AssetClassSpellcastingCatalogSource(
     override fun allDefinitions(): List<ClassSpellcastingDefinition> =
         delegate.allDefinitions()
 
-    override fun definitionFor(characterClass: com.spellapp.core.model.CharacterClass): ClassSpellcastingDefinition? =
-        delegate.definitionFor(characterClass)
+    override fun definitionFor(classId: String): ClassSpellcastingDefinition? =
+        delegate.definitionFor(classId)
 
     private companion object {
         private const val ASSET_FILE_NAME = "class-spellcasting.normalized.json"
@@ -54,14 +54,12 @@ object ClassSpellcastingCatalogJsonParser {
         val definitions = mutableListOf<ClassSpellcastingDefinition>()
         for (index in 0 until entries.length()) {
             val entry = entries.optJSONObject(index) ?: continue
-            val classId = entry.optString("id").trim().lowercase()
-            val characterClass = ClassSpellcastingCatalog.classFromId(classId) ?: continue
+            val classId = normalizeClassId(entry.optString("id"))
             val keyAbilityOptions = parseEnumArray<AbilityScore>(entry.optJSONArray("keyAbilityOptions"))
             val defaultKeyAbility = parseEnum<AbilityScore>(entry.optString("defaultKeyAbility"))
                 ?: keyAbilityOptions.firstOrNull()
                 ?: AbilityScore.INTELLIGENCE
             definitions += ClassSpellcastingDefinition(
-                characterClass = characterClass,
                 classId = classId,
                 label = entry.optString("name").ifBlank { classId },
                 defaultKeyAbility = defaultKeyAbility,

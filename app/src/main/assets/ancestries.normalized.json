@@ -1,0 +1,4732 @@
+{
+  "ancestries": [
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "draconic",
+          "elven",
+          "fey",
+          "iruxi",
+          "kholo",
+          "orcish"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Anadi people are reclusive, sapient spiders who hail from the jungles of southern Garund. Though they act in many ways like natural-born shapeshifters, their twin forms actually stem from carefully developed magic.\n\nAnadi",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Fangs"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "dzt52-fangs",
+          "level": 0,
+          "name": "Fangs",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Fangs"
+        },
+        {
+          "grantId": "rule-3-compendium-pf2e-actionspf2e-item-change-shape",
+          "level": null,
+          "name": null,
+          "source": "system.rules[3]",
+          "uuid": "Compendium.pf2e.actionspf2e.Item.Change Shape"
+        }
+      ],
+      "hp": 8,
+      "id": "anadi",
+      "languages": {
+        "custom": "",
+        "value": [
+          "anadi",
+          "mwangi"
+        ]
+      },
+      "name": "Anadi",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens The Mwangi Expanse"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "anadi",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Anadi",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "chthonian",
+          "draconic",
+          "dwarven",
+          "empyrean",
+          "sakvroth",
+          "utopian"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Technological wonders from another world, androids have synthetic bodies and living souls. Their dual nature makes them quick-thinking and calm under pressure, but comfortable in stillness and solitude.\n\nAndroid",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Emotionally Unaware",
+        "Compendium.pf2e.ancestryfeatures.Item.Constructed"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "xxwgm-emotionally-unaware",
+          "level": 1,
+          "name": "Emotionally Unaware",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Emotionally Unaware"
+        },
+        {
+          "grantId": "ghuok-constructed",
+          "level": 1,
+          "name": "Constructed",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Constructed"
+        }
+      ],
+      "hp": 8,
+      "id": "android",
+      "languages": {
+        "custom": "",
+        "value": [
+          "androffan",
+          "common"
+        ]
+      },
+      "name": "Android",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Ancestry Guide"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "android",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Android",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "alghollthu",
+          "azlanti",
+          "fey",
+          "tien"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Athamarus are fish-like humanoids who form tight-knit undersea communities. In small settlements, they engage in the subsistence farming of seaweed, train eels to serve as mounts, and create elaborate works of coral art. Their interactions with other aquatic ancestries are strained, as athamarus have suffered mistreatment at their hands. However, they remain curious about potential connections and what new opportunities may offer.\n\nAthamaru",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 8,
+      "id": "athamaru",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "thalassic"
+        ]
+      },
+      "name": "Athamaru",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Howl of the Wild"
+      },
+      "speed": 20,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "amphibious",
+          "athamaru",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Athamaru",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "chthonian",
+          "diabolic",
+          "dwarven",
+          "elven",
+          "empyrean",
+          "jistkan",
+          "petran",
+          "pyric",
+          "sussuran",
+          "thalassic"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [
+        {
+          "choiceConfig": [
+            {
+              "label": "PF2E.ActorSizeMedium",
+              "value": "medium"
+            },
+            {
+              "label": "PF2E.ActorSizeSmall",
+              "value": "small"
+            }
+          ],
+          "label": "PF2E.SpecificRule.Prompt.CreatureSize",
+          "promptId": "size",
+          "required": true,
+          "sourceRulePath": "system.rules[0]"
+        }
+      ],
+      "description": "These intelligent constructs house actual souls and represent what remains of a dying empire's last attempt at greatness. Automatons combine technological ingenuity with magical power, creating a blended being wholly unique to Golarion.\n\nAutomaton",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Automaton Core",
+        "Compendium.pf2e.ancestryfeatures.Item.Constructed Body"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "djbf5-automaton-core",
+          "level": 1,
+          "name": "Automaton Core",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Automaton Core"
+        },
+        {
+          "grantId": "jeu1n-constructed-body",
+          "level": 1,
+          "name": "Constructed Body",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Constructed Body"
+        }
+      ],
+      "hp": 8,
+      "id": "automaton",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "utopian"
+        ]
+      },
+      "name": "Automaton",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Guns & Gears"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "automaton",
+          "construct"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Automaton",
+      "warnings": [
+        {
+          "message": "ChoiceSet rule is preserved as metadata and is not fully evaluated yet.",
+          "originalText": "{\"adjustName\":false,\"choices\":[{\"label\":\"PF2E.ActorSizeMedium\",\"value\":\"medium\"},{\"label\":\"PF2E.ActorSizeSmall\",\"value\":\"small\"}],\"flag\":\"size\",\"key\":\"ChoiceSet\",\"prompt\":\"PF2E.SpecificRule.Prompt.CreatureSize\"}",
+          "recordId": "automaton",
+          "recordType": "ancestry",
+          "ruleType": "ChoiceSet",
+          "severity": "INFO",
+          "sourceRulePath": "system.rules[0]",
+          "warningId": "ancestry-automaton-0-choiceset"
+        },
+        {
+          "message": "ActiveEffectLike rule is preserved as metadata and is not fully evaluated yet.",
+          "originalText": "{\"key\":\"ActiveEffectLike\",\"mode\":\"override\",\"path\":\"flags.system.automaton.enhancements\",\"priority\":10,\"value\":{\"greater\":[],\"lesser\":[]}}",
+          "recordId": "automaton",
+          "recordType": "ancestry",
+          "ruleType": "ActiveEffectLike",
+          "severity": "WARNING",
+          "sourceRulePath": "system.rules[2]",
+          "warningId": "ancestry-automaton-2-activeeffectlike"
+        }
+      ]
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": []
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [
+        {
+          "choiceConfig": [
+            {
+              "label": "PF2E.ActorSizeLarge",
+              "value": {
+                "hitPoints": 10,
+                "size": "large"
+              }
+            },
+            {
+              "label": "PF2E.ActorSizeMedium",
+              "value": {
+                "hitPoints": 8,
+                "size": "medium"
+              }
+            },
+            {
+              "label": "PF2E.ActorSizeSmall",
+              "value": {
+                "hitPoints": 6,
+                "size": "small"
+              }
+            },
+            {
+              "label": "PF2E.ActorSizeTiny",
+              "value": {
+                "hitPoints": 6,
+                "size": "tiny"
+              }
+            }
+          ],
+          "label": "PF2E.SpecificRule.Prompt.CreatureSize",
+          "promptId": "choice",
+          "required": true,
+          "sourceRulePath": "system.rules[0]"
+        }
+      ],
+      "description": "You once enjoyed the simple and boundless pleasures of nature with an innocent, uncluttered mind. You lived from moment to moment, never questioning what comes next or pondering the ramifications of what happened before. You were at one with the wild. Then came the event that changed everything. You drank from a glowing lake, someone pulled a magical prank, a druid sought to elevate your mind. You were pulled out of the present moment of the wild and into a land of thought.\n\nAwakened Animal",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Awakened Mind",
+        "Compendium.pf2e.ancestryfeatures.Item.Awakened Form"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "9kymo-awakened-mind",
+          "level": 1,
+          "name": "Awakened Mind",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Awakened Mind"
+        },
+        {
+          "grantId": "tq7e5-awakened-form",
+          "level": 1,
+          "name": "Awakened Form",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Awakened Form"
+        }
+      ],
+      "hp": 6,
+      "id": "awakened-animal",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common"
+        ]
+      },
+      "name": "Awakened Animal",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Howl of the Wild"
+      },
+      "speed": 5,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "awakened-animal",
+          "beast"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Awakened Animal",
+      "warnings": [
+        {
+          "message": "ChoiceSet rule is preserved as metadata and is not fully evaluated yet.",
+          "originalText": "{\"adjustName\":false,\"choices\":[{\"label\":\"PF2E.ActorSizeLarge\",\"value\":{\"hitPoints\":10,\"size\":\"large\"}},{\"label\":\"PF2E.ActorSizeMedium\",\"value\":{\"hitPoints\":8,\"size\":\"medium\"}},{\"label\":\"PF2E.ActorSizeSmall\",\"value\":{\"hitPoints\":6,\"size\":\"small\"}},{\"label\":\"PF2E.ActorSizeTiny\",\"value\":{\"hitPoints\":6,\"size\":\"tiny\"}}],\"flag\":\"choice\",\"key\":\"ChoiceSet\",\"prompt\":\"PF2E.SpecificRule.Prompt.CreatureSize\"}",
+          "recordId": "awakened-animal",
+          "recordType": "ancestry",
+          "ruleType": "ChoiceSet",
+          "severity": "INFO",
+          "sourceRulePath": "system.rules[0]",
+          "warningId": "ancestry-awakened-animal-0-choiceset"
+        },
+        {
+          "message": "ActiveEffectLike rule is preserved as metadata and is not fully evaluated yet.",
+          "originalText": "{\"key\":\"ActiveEffectLike\",\"mode\":\"upgrade\",\"path\":\"system.attributes.ancestryhp\",\"priority\":51,\"value\":\"{item|flags.system.rulesSelections.choice.hitPoints}\"}",
+          "recordId": "awakened-animal",
+          "recordType": "ancestry",
+          "ruleType": "ActiveEffectLike",
+          "severity": "WARNING",
+          "sourceRulePath": "system.rules[2]",
+          "warningId": "ancestry-awakened-animal-2-activeeffectlike"
+        }
+      ]
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "aklo",
+          "azlanti",
+          "draconic",
+          "elven",
+          "thalassic",
+          "sakvroth"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Azarketis, inheritors of a shattered empire's legacy, hold their proud traditions close but still surface to interact with the rest of the world.\n\nThe aquatic humanoids of the Inner Sea share a somber and burdened history. Most refer to these aquatic peoples as gillmen or sometimes Low Azlanti, though they typically refer to themselves as azarketi, an Azlanti word that translates roughly to \"people of the seas.\" After Earthfall, these proud humans were mutated into aquatic servants by their alghollthu foes. Feeling like they don't fully belong with their human brethren nor with the sea that binds them, many azarketis struggle for a sense of identity and purpose. Though they remain distrusted by the surface dwellers, azarketis celebrate their unique lineage and their descent from the venerated Azlanti culture.\n\nAzarketi",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Swim",
+        "Compendium.pf2e.ancestryfeatures.Item.Hydration"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "oqzkk-swim",
+          "level": 1,
+          "name": "Swim",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Swim"
+        },
+        {
+          "grantId": "vhxlw-hydration",
+          "level": 1,
+          "name": "Hydration",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Hydration"
+        }
+      ],
+      "hp": 8,
+      "id": "azarketi",
+      "languages": {
+        "custom": "",
+        "value": [
+          "alghollthu",
+          "common"
+        ]
+      },
+      "name": "Azarketi",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Absalom, City of Lost Omens"
+      },
+      "speed": 20,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "amphibious",
+          "azarketi",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Azarketi",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "draconic",
+          "elven",
+          "fey",
+          "gnomish",
+          "goblin",
+          "halfling",
+          "iruxi",
+          "jotun"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Curious and gregarious wanderers, catfolk combine the features of felines and humanoids in both appearance and temperament. They enjoy learning new things, collecting new tales and trinkets, and ensuring their loved ones are safe and happy. Catfolk view themselves as the chosen guardians of natural places in the world and are often recklessly brave, even in the face of overwhelming opposition. They believe that strong communities, breadth of experience, and continual self-improvement aid them in this fight.\n\nCatfolk",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Land on Your Feet"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "iyksy-land-on-your-feet",
+          "level": "1",
+          "name": "Land on Your Feet",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Land on Your Feet"
+        }
+      ],
+      "hp": 8,
+      "id": "catfolk",
+      "languages": {
+        "custom": "",
+        "value": [
+          "amurrun",
+          "common"
+        ]
+      },
+      "name": "Catfolk",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core 2"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "catfolk",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Catfolk",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "arboreal",
+          "cyclops",
+          "dwarven",
+          "elven",
+          "gnomish",
+          "halfling",
+          "jotun"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Centaurs are proud nomads who range far and wide across their ancestral territories, protecting their lands from exploitation and intrusion. They are survivalists who forge tight bonds with family and community and stand firm in the face of danger. Many are skilled hunters, trackers, and warriors who do battle with bow, steel, and hooves. Brave and stubborn, they're willing to challenge even the fiercest foes and largest forces to protect their homes, kin, and the land within their domain.\n\nCentaur",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Mount",
+        "Compendium.pf2e.ancestryfeatures.Item.Robust"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "takbb-mount",
+          "level": 1,
+          "name": "Mount",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Mount"
+        },
+        {
+          "grantId": "frfkm-robust",
+          "level": 1,
+          "name": "Robust",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Robust"
+        }
+      ],
+      "hp": 8,
+      "id": "centaur",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "fey"
+        ]
+      },
+      "name": "Centaur",
+      "size": "lg",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Howl of the Wild"
+      },
+      "speed": 30,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "beast",
+          "centaur",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Centaur",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "elven",
+          "empyrean",
+          "fey",
+          "iruxi",
+          "petran",
+          "utopian"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Conrasus are shards of cosmic force given consciousness who construct intricate exoskeletons to interface with the mortal world. Both an integral part of the underlying processes of the universe and strangely set apart, conrasus look to aeons to understand their existence.\n\nConrasu",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Sunlight Healing"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "secef-sunlight-healing",
+          "level": 1,
+          "name": "Sunlight Healing",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Sunlight Healing"
+        }
+      ],
+      "hp": 10,
+      "id": "conrasu",
+      "languages": {
+        "custom": "",
+        "value": [
+          "mwangi",
+          "rasu"
+        ]
+      },
+      "name": "Conrasu",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens The Mwangi Expanse"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "aeon",
+          "conrasu",
+          "plant"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Conrasu",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": []
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Dragonets are miniature dragons, complete with wings, dagger-like teeth, and magical breath. They can be fiercely independent and proud, at times protective or avaricious, and they delight in the finer things in life.\n\nDragonet",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Big Sharp Teeth",
+        "Compendium.pf2e.ancestryfeatures.Item.Wings (Dragonet)"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "bdkkf-big-sharp-teeth",
+          "level": 1,
+          "name": "Big Sharp Teeth",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Big Sharp Teeth"
+        },
+        {
+          "grantId": "lxyww-wings-dragonet",
+          "level": 1,
+          "name": "Wings (Dragonet)",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Wings (Dragonet)"
+        }
+      ],
+      "hp": 8,
+      "id": "dragonet",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "draconic"
+        ]
+      },
+      "name": "Dragonet",
+      "size": "tiny",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Lost Omens Draconic Codex"
+      },
+      "speed": 20,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "dragon"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Dragonet",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "gnomish",
+          "goblin",
+          "jotun",
+          "orcish",
+          "petran",
+          "sakvroth"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Dwarves have a well-earned reputation as a stoic and stern people, ensconced within citadels and cities carved from solid rock. While some see them as dour and humorless crafters of stone and metal, dwarves and those who have spent time among them understand their unbridled zeal for their work, caring far more about quality than quantity. To a stranger, they can seem untrusting and clannish, but to their friends and family, they are warm and caring, their halls filled with the sounds of laughter and hammers hitting anvils.\n\nDwarf",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Clan Dagger"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "5vjeq-clan-dagger",
+          "level": 0,
+          "name": "Clan Dagger",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Clan Dagger"
+        }
+      ],
+      "hp": 10,
+      "id": "dwarf",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "dwarven"
+        ]
+      },
+      "name": "Dwarf",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core"
+      },
+      "speed": 20,
+      "traits": {
+        "rarity": "common",
+        "value": [
+          "dwarf",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Dwarf",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "draconic",
+          "empyrean",
+          "fey",
+          "gnomish",
+          "goblin",
+          "kholo",
+          "orcish"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "As an ancient people, elves have seen great change and have the perspective that can come only from watching the arc of history. After leaving the world in ancient times, they returned to a changed land, and they still struggle to reclaim their ancestral homes, most notably from terrible demons that have invaded parts of their lands. To some, the elves are objects of awe—graceful and beautiful, with immense talent and knowledge. Among themselves, however, the elves place far more importance on personal freedom than on living up to these ideals.\n\nElf",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 6,
+      "id": "elf",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "elven"
+        ]
+      },
+      "name": "Elf",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core"
+      },
+      "speed": 30,
+      "traits": {
+        "rarity": "common",
+        "value": [
+          "elf",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Elf",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "aklo",
+          "draconic",
+          "dziriak",
+          "necril",
+          "sakvroth"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Once human and now something apart, fetchlings display the Shadow Plane's ancient influence through monochrome complexions, glowing eyes, and the casting of supernatural shadows.\n\nFetchling",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 8,
+      "id": "fetchling",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "shadowtongue"
+        ]
+      },
+      "name": "Fetchling",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Ancestry Guide"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "fetchling",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Fetchling",
+      "warnings": [
+        {
+          "message": "ActiveEffectLike rule is preserved as metadata and is not fully evaluated yet.",
+          "originalText": "{\"key\":\"ActiveEffectLike\",\"mode\":\"override\",\"path\":\"flags.system.colorDarkvision\",\"value\":true}",
+          "recordId": "fetchling",
+          "recordType": "ancestry",
+          "ruleType": "ActiveEffectLike",
+          "severity": "WARNING",
+          "sourceRulePath": "system.rules[0]",
+          "warningId": "ancestry-fetchling-0-activeeffectlike"
+        }
+      ]
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "aklo",
+          "draconic",
+          "dwarven",
+          "elven",
+          "goblin",
+          "sakvroth"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [
+        {
+          "choiceConfig": [
+            {
+              "label": "PF2E.ActorSizeSmall",
+              "value": "sm"
+            },
+            {
+              "label": "PF2E.ActorSizeMedium",
+              "value": "med"
+            }
+          ],
+          "label": "PF2E.SpecificRule.Prompt.CreatureSize",
+          "promptId": "fleshwarpsize",
+          "required": true,
+          "sourceRulePath": "system.rules[0]"
+        }
+      ],
+      "description": "Fleshwarps are people whose forms were created or radically transformed by magic, alchemy, or unnatural energies. Their unorthodox appearance can make it difficult for them to find a place for themselves in the world.\n\nFleshwarp",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Unusual Anatomy"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "31xm9-unusual-anatomy",
+          "level": 1,
+          "name": "Unusual Anatomy",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Unusual Anatomy"
+        }
+      ],
+      "hp": 10,
+      "id": "fleshwarp",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common"
+        ]
+      },
+      "name": "Fleshwarp",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Ancestry Guide"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "aberration",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Fleshwarp",
+      "warnings": [
+        {
+          "message": "ChoiceSet rule is preserved as metadata and is not fully evaluated yet.",
+          "originalText": "{\"adjustName\":false,\"choices\":[{\"label\":\"PF2E.ActorSizeSmall\",\"value\":\"sm\"},{\"label\":\"PF2E.ActorSizeMedium\",\"value\":\"med\"}],\"flag\":\"fleshwarpSize\",\"key\":\"ChoiceSet\",\"prompt\":\"PF2E.SpecificRule.Prompt.CreatureSize\"}",
+          "recordId": "fleshwarp",
+          "recordType": "ancestry",
+          "ruleType": "ChoiceSet",
+          "severity": "INFO",
+          "sourceRulePath": "system.rules[0]",
+          "warningId": "ancestry-fleshwarp-0-choiceset"
+        }
+      ]
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "aklo",
+          "draconic",
+          "elven",
+          "gnomish",
+          "jotun"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "These intelligent plant people, created by a long-dead druid, possess a sort of immortality through their seeds—unless these are destroyed by external events other than merely the ravages of time.\n\nGhoran",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Photosynthesis"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "jpors-photosynthesis",
+          "level": 0,
+          "name": "Photosynthesis",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Photosynthesis"
+        }
+      ],
+      "hp": 8,
+      "id": "ghoran",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "fey"
+        ]
+      },
+      "name": "Ghoran",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Impossible Lands"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "ghoran",
+          "humanoid",
+          "plant"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Ghoran",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "draconic",
+          "dwarven",
+          "elven",
+          "goblin",
+          "jotun",
+          "orcish"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Long ago, early gnome ancestors emigrated from the First World, realm of the fey. While it's unclear why the first gnomes wandered to Golarion, this lineage manifests in modern gnomes as bizarre reasoning, eccentricity, obsessive tendencies, and what some see as naivete. These qualities are further reflected in their physical characteristics, such as spindly limbs, brightly colored hair, and childlike and extremely expressive facial features that further reflect their otherworldly origins.\n\nGnome",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 8,
+      "id": "gnome",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "fey",
+          "gnomish"
+        ]
+      },
+      "name": "Gnome",
+      "size": "sm",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "common",
+        "value": [
+          "gnome",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Gnome",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "draconic",
+          "dwarven",
+          "gnomish",
+          "halfling",
+          "kholo",
+          "orcish"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "The convoluted histories other people cling to don't interest goblins. These small folk live in the moment, and they prefer tall tales over factual records. The wars of a few decades ago might as well be from the ancient past. Misunderstood by other people, goblins are happy how they are. Goblin virtues are about being present, creative, and honest. They strive to lead fulfilled lives, rather than worrying about how their journeys will end. To tell stories, not nitpick the facts. To be small, but dream big.\n\nGoblin",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 6,
+      "id": "goblin",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "goblin"
+        ]
+      },
+      "name": "Goblin",
+      "size": "sm",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "common",
+        "value": [
+          "goblin",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Goblin",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "aklo",
+          "chthonian",
+          "draconic",
+          "elven",
+          "fey",
+          "halfling",
+          "necril",
+          "orcish"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Golomas fear most other people and deliberately use their unusual biology to frighten off those they consider to be dangerous predators. Rarely seen and poorly understood, golomas' many-eyed and wooden faced visages instill terror in most they meet.\n\nGoloma",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Eyes in Back"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "lxqc0-eyes-in-back",
+          "level": 1,
+          "name": "Eyes in Back",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Eyes in Back"
+        }
+      ],
+      "hp": 8,
+      "id": "goloma",
+      "languages": {
+        "custom": "",
+        "value": [
+          "goloma",
+          "mwangi"
+        ]
+      },
+      "name": "Goloma",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens The Mwangi Expanse"
+      },
+      "speed": 30,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "goloma",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Goloma",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "dwarven",
+          "elven",
+          "gnomish",
+          "goblin"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Claiming no place as their own, halflings control few settlements larger than villages. Instead, they frequently live among humans within the walls of larger cities, carving out small communities alongside taller folk. Many halflings lead perfectly fulfilling lives in the shadows of their larger neighbors, while others prefer a nomadic existence, traveling the world and taking advantage of opportunities and adventures as they come.\n\nHalfling",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Keen Eyes"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "3084v-keen-eyes",
+          "level": "0",
+          "name": "Keen Eyes",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Keen Eyes"
+        }
+      ],
+      "hp": 6,
+      "id": "halfling",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "halfling"
+        ]
+      },
+      "name": "Halfling",
+      "size": "sm",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "common",
+        "value": [
+          "halfling",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Halfling",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "draconic",
+          "dwarven",
+          "halfling",
+          "jotun",
+          "kholo",
+          "orcish"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Taller and stronger than their goblin kin, hobgoblins are equals in strength and size to humans, with broad shoulders and long, powerful arms.\n\nHobgoblin",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 8,
+      "id": "hobgoblin",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "goblin"
+        ]
+      },
+      "name": "Hobgoblin",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core 2"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "hobgoblin",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Hobgoblin",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 1,
+        "custom": "",
+        "value": []
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "As unpredictable and varied as any of Golarion's peoples, humans have exceptional drive and the capacity to endure and expand. Though many civilizations thrived before humanity rose to prominence, humans have built some of the greatest and the most terrible societies throughout the course of history, and today they are the most populous people in the realms around the Inner Sea.\n\nHuman",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 8,
+      "id": "human",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common"
+        ]
+      },
+      "name": "Human",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "common",
+        "value": [
+          "human",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Human",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "cyclops",
+          "dwarven",
+          "empyrean",
+          "fey",
+          "orcish",
+          "petran",
+          "shadowtongue"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "According to their oldest stories, the first jotunborn were the direct creations of the earliest gods. Having just completed the majority of the creation of Golarion, these gods created several groups of people to act as stewards for this new world. Among these groups were jotunborn, beings who were formed from the remains of titans who dared rebel against the gods in the earliest days of existence. Rather than give jotunborn the full power they gave the titans, the gods instead instilled the first jotunborn with the faintest spark of creation and gave them slighter forms. These new servitors would be just as capable at helping to shape the rest of Golarion but would also be weaker and easier to strike down should they rebel like their progenitors.",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Iivlar Weaving"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "sfqdi-iivlar-weaving",
+          "level": 1,
+          "name": "Iivlar Weaving",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Iivlar Weaving"
+        }
+      ],
+      "hp": 10,
+      "id": "jotunborn",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "jotun"
+        ]
+      },
+      "name": "Jotunborn",
+      "size": "lg",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Battlecry!"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "giant",
+          "humanoid",
+          "jotunborn"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Jotunborn",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "draconic",
+          "empyrean",
+          "fey",
+          "petran",
+          "thalassic"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Kashrishi make their homes in remote areas of the world. These quiet beings have stout, durable frames and distinctive crystalline horns. Their inherent psychic abilities make them natural empaths but also occasionally burden them with the unceasing thoughts of their neighbors.\n\nKashrishi",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Empathic Sense",
+        "Compendium.pf2e.ancestryfeatures.Item.Glowing Horn"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "iacue-empathic-sense",
+          "level": 0,
+          "name": "Empathic Sense",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Empathic Sense"
+        },
+        {
+          "grantId": "wceqv-glowing-horn",
+          "level": 0,
+          "name": "Glowing Horn",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Glowing Horn"
+        }
+      ],
+      "hp": 8,
+      "id": "kashrishi",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common"
+        ]
+      },
+      "name": "Kashrishi",
+      "size": "sm",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Impossible Lands"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "humanoid",
+          "kashrishi"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Kashrishi",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "draconic",
+          "elven",
+          "fey",
+          "iruxi",
+          "necril",
+          "orcish"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Kholo have bad reputations as brutal raiders and demon-worshipers. Many believe that kholo are witches, cannibals, and worse. The truth is more complex. Kholo are eminently practical and pragmatic hunters and raiders. To them, honor is just another word for pointless risk. Any loss of a kholo affects not just the individual, but their packmates and kin as well. Wasting time on anything but victory, whether it's mercy or cruelty, is seen as little shy of immoral. Kholo are masters of ambushes, tactical feints, and psychological warfare. Equally misunderstood is the kholo practice of ancestor worship and endocannibalism. Kholo consume their dead as a sign of reverence, holding a grand feast and transforming the bones into art or weapons. Kholo extend this honor to respected foes, hoping to bring their enemy's cunning or strength into the clan.\n\nxBV8oGvecw7abZxc",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Bite"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "awa7a-bite",
+          "level": 0,
+          "name": "Bite",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Bite"
+        }
+      ],
+      "hp": 8,
+      "id": "kholo",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "kholo"
+        ]
+      },
+      "name": "Kholo",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core 2"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "gnoll",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Kholo",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "dwarven",
+          "elven",
+          "fey",
+          "gnomish",
+          "goblin",
+          "halfling"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Kitsune are a charismatic and witty people with a connection to the spiritual that grants them many magical abilities, chiefly the power to shapechange into other forms. Whether they pass unseen among other peoples or hold their tails high, kitsune are clever observers of the societies around them.\n\nKitsune",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Change Shape"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "lzwb0-change-shape",
+          "level": 1,
+          "name": "Change Shape",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Change Shape"
+        }
+      ],
+      "hp": 8,
+      "id": "kitsune",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common"
+        ]
+      },
+      "name": "Kitsune",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Ancestry Guide"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "humanoid",
+          "kitsune"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Kitsune",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "aklo",
+          "diabolic",
+          "draconic",
+          "dwarven",
+          "empyrean",
+          "fey",
+          "gnomish",
+          "petran"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Every kobold instinctively understands the importance of power, and many are inclined to venerate those who have it, whether they be mighty dragons, cruel fiends, imperious fey, or even ancient artifacts. Kobolds seek out these alliances out of a sense of pragmatism—after all, who would dare bully a kobold who serves an ancient dragon?—but also because kobold eggs incubated near such loci of power take on physical traits (and sometimes abilities) similar to those of the warren's benefactor. On their own, kobolds are ingenious crafters and devoted allies, but outsiders who trespass into their territory find them to be inspired skirmishers and clever ambushers. However, these reptilian opportunists prove happy to cooperate with other humanoids when it's to their benefit, combining caution and cunning to make their fortunes in the wider world.\n\nKobold",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 6,
+      "id": "kobold",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "sakvroth"
+        ]
+      },
+      "name": "Kobold",
+      "size": "sm",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core 2"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "humanoid",
+          "kobold"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Kobold",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "draconic",
+          "elven",
+          "gnomish",
+          "goblin",
+          "halfling",
+          "sakvroth"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Guardians and emissaries of the environment, leshies are immortal spirits of nature temporarily granted a physical form.\n\nLeshy",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Plant Nourishment"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "32oz7-plant-nourishment",
+          "level": "1",
+          "name": "Plant Nourishment",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Plant Nourishment"
+        }
+      ],
+      "hp": 8,
+      "id": "leshy",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "fey"
+        ]
+      },
+      "name": "Leshy",
+      "size": "sm",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "common",
+        "value": [
+          "leshy",
+          "plant"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Leshy",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "amurrun",
+          "boggard",
+          "draconic",
+          "elven",
+          "fey",
+          "jotun",
+          "thalassic"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Lizardfolk are consummate survivors, heirs to empires considered ancient even by the elves.\n\nLizardfolk",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Aquatic Adaptation",
+        "Compendium.pf2e.ancestryfeatures.Item.Claws"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "ry9ai-aquatic-adaptation",
+          "level": "1",
+          "name": "Aquatic Adaptation",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Aquatic Adaptation"
+        },
+        {
+          "grantId": "xkzsg-claws",
+          "level": "1",
+          "name": "Claws",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Claws"
+        }
+      ],
+      "hp": 8,
+      "id": "lizardfolk",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "iruxi"
+        ]
+      },
+      "name": "Lizardfolk",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core 2"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "humanoid",
+          "lizardfolk"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Lizardfolk",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "aklo",
+          "azlanti",
+          "draconic",
+          "elven",
+          "fey"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Merfolk live in every ocean of Golarion, infinite in their variety and awe-inspiring in their majesty. They consider themselves, not without some merit, the rulers of the sea. Among the tropical reefs of the Fever Sea, merfolk build temples and palaces of brightly colored corals. Beneath the ice floes of the Shining Sea, merfolk hunt seals and whales for food in small, standoffish clans. In the Embaral Ocean, merfolk populate the great trading city of Alohmab, built into the shell of a titanic snail that crawls across the ocean floor.\n\nMerfolk",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Hydration (Merfolk)",
+        "Compendium.pf2e.ancestryfeatures.Item.Aquatic Grace"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "1zhyb-hydration-merfolk",
+          "level": 0,
+          "name": "Hydration (Merfolk)",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Hydration (Merfolk)"
+        },
+        {
+          "grantId": "t9wbi-aquatic-grace",
+          "level": 0,
+          "name": "Aquatic Grace",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Aquatic Grace"
+        }
+      ],
+      "hp": 8,
+      "id": "merfolk",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "thalassic"
+        ]
+      },
+      "name": "Merfolk",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Howl of the Wild"
+      },
+      "speed": 5,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "amphibious",
+          "humanoid",
+          "merfolk"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Merfolk",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "cyclops",
+          "dwarven",
+          "fey",
+          "petran",
+          "sakvroth"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Minotaurs stalk complex passageways, whether natural or artificial, and are masters of stone architecture. Inquisitive and steadfast, these bovine humanoids spend their lives perfecting the pursuit that calls to them, which can sometimes lead them far from the enclaves where they were raised. Minotaurs are originally from the Iblydos archipelago but have spread far and wide across Golarion, forming close-knit communities often near mountains or beneath the surface of the earth. Though sometimes mistaken for simple brutes, minotaurs have scholars and warriors alike. Those who can look past their appearance will find an affinity for building and navigation, as well as creative problem-solving.\n\nMinotaur",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Horns (Minotaur)"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "mzeaa-horns",
+          "level": 1,
+          "name": "Horns",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Horns (Minotaur)"
+        }
+      ],
+      "hp": 10,
+      "id": "minotaur",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "jotun"
+        ]
+      },
+      "name": "Minotaur",
+      "size": "lg",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Howl of the Wild"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "beast",
+          "humanoid",
+          "minotaur"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Minotaur",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "aklo",
+          "amurrun",
+          "draconic",
+          "empyrean",
+          "shadowtongue",
+          "tengu",
+          "thalassic",
+          "sakvroth",
+          "vanara"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "With humanoid figures and serpentine heads, nagaji are heralds, companions, and servitors of powerful nagas. They hold a deep reverence for holy areas and spiritual truths, an aspect many others find as intimidating as a nagaji's appearance.\n\nNagaji",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Fangs (Nagaji)"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "o6guq-fangs-nagaji",
+          "level": 0,
+          "name": "Fangs (Nagaji)",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Fangs (Nagaji)"
+        }
+      ],
+      "hp": 10,
+      "id": "nagaji",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "nagaji"
+        ]
+      },
+      "name": "Nagaji",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Impossible Lands"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "humanoid",
+          "nagaji"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Nagaji",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "goblin",
+          "jotun",
+          "petran",
+          "sakvroth"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Orcs are forged in the fires of violence and conflict, often from the moment they are born. As they live lives that are frequently cut brutally short, orcs revel in testing their strength against worthy foes, whether by challenging a higher-ranking member of their community for dominance or raiding a neighboring settlement. Many orcs seek glory as soon as they can walk and carry a blade or club, taming wild beasts or hunting deadly monsters.\n\nOrc",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 10,
+      "id": "orc",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "orcish"
+        ]
+      },
+      "name": "Orc",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "common",
+        "value": [
+          "humanoid",
+          "orc"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Orc",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "draconic",
+          "dwarven",
+          "elven",
+          "fey",
+          "gnomish",
+          "goblin"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Poppets are small, basic constructs that typically help their owners with simple tasks. Occasionally, poppets gain sapience, independence, and a spark of life. Elevated beyond mere helpers or playthings, these poppets are free to chart their own destinies.\n\nPoppet",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Flammable",
+        "Compendium.pf2e.ancestryfeatures.Item.Constructed (Poppet)"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "m1kcq-flammable",
+          "level": 1,
+          "name": "Flammable",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Flammable"
+        },
+        {
+          "grantId": "soffu-constructed-poppet",
+          "level": 1,
+          "name": "Constructed (Poppet)",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Constructed (Poppet)"
+        }
+      ],
+      "hp": 6,
+      "id": "poppet",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common"
+        ]
+      },
+      "name": "Poppet",
+      "size": "sm",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens The Grand Bazaar"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "construct",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Poppet",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "aklo",
+          "draconic",
+          "dwarven",
+          "gnomish",
+          "goblin",
+          "halfling",
+          "kholo",
+          "orcish",
+          "sakvroth"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Ysoki are beings that most surface-dwelling humanoids refer to as \"ratfolk.\" They are a communal people who prefer cramped conditions, with up to 100 individuals living in a given home. If they can't find homes in town, ratfolk may instead live in caves and cavern complexes, as these provide great storage for the many and varied goods they bring back from trading expeditions.\n\nRatfolk",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Sharp Teeth"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "jkllm-sharp-teeth",
+          "level": 1,
+          "name": "Sharp Teeth",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Sharp Teeth"
+        }
+      ],
+      "hp": 6,
+      "id": "ratfolk",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "ysoki"
+        ]
+      },
+      "name": "Ratfolk",
+      "size": "sm",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core 2"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "humanoid",
+          "ratfolk"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Ratfolk",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "chthonian",
+          "empyrean",
+          "jotun",
+          "petran",
+          "pyric",
+          "sussuran",
+          "thalassic",
+          "diabolic",
+          "draconic"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Samsarans, as the tale goes, originated with a group of scholars in Zi Ha who ventured into the mountains to find the cure for an illness ravaging their village. After weeks of peril, they found a freshwater spring filled with pure magical life essence. This water brought the scholars back from the brink of death and cured the villagers. Given a new chance at life, everyone who drank the water devoted the rest of their life to learning and experiencing the world fully. Upon death, this devotion, combined with the magical essence now infused in their bodies, transformed these people into the first samsarans.\n\nSamsaran",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Cryptomnesia",
+        "Compendium.pf2e.ancestryfeatures.Item.Wanderer's Soul"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "be6lq-cryptomnesia",
+          "level": 1,
+          "name": "Cryptomnesia",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Cryptomnesia"
+        },
+        {
+          "grantId": "xyhuy-wanderer-s-soul",
+          "level": 1,
+          "name": "Wanderer's Soul",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Wanderer's Soul"
+        }
+      ],
+      "hp": 8,
+      "id": "samsaran",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "samsaran"
+        ]
+      },
+      "name": "Samsaran",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Lost Omens Tian Xia Character Guide"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "humanoid",
+          "samsaran"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Samsaran",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "empyrean",
+          "fey",
+          "nagaji",
+          "petran",
+          "pyric",
+          "sussuran",
+          "thalassic",
+          "yaksha"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Sarangay are carabao-headed people who have long survived deep in the forests across Tian Xia. Many adventurers have thought them to be monsters at first, but sarangay are nothing more than a thriving society who value their community and their souls above all else. Their cultures are built upon the intense desire to protect their communities and their chosen leader. Their horns are said to be a crescent moon, and their towering statures are said to have come from their ancestors being stretched so far up to reach their Father Moon while their Mother Earth kept them close to her bosom. They revere the great Father Moon, their First Ancestor, and endeavor to protect and exalt nature above all else, for they understand that they're part of it.\n\nSarangay",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Head Gem",
+        "Compendium.pf2e.ancestryfeatures.Item.Horns (Sarangay)"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "pia9y-head-gem",
+          "level": 1,
+          "name": "Head Gem",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Head Gem"
+        },
+        {
+          "grantId": "bpf5g-horns-sarangay",
+          "level": 1,
+          "name": "Horns (Sarangay)",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Horns (Sarangay)"
+        }
+      ],
+      "hp": 8,
+      "id": "sarangay",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common"
+        ]
+      },
+      "name": "Sarangay",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Lost Omens Tian Xia Character Guide"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "humanoid",
+          "sarangay"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Sarangay",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "common",
+          "draconic",
+          "dwarven",
+          "elven",
+          "fey",
+          "gnomish",
+          "goblin",
+          "halfling",
+          "jotun",
+          "orcish",
+          "sakvroth"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Shisks are secretive mountain-dwellers, bone-feathered humanoids who lurk underground in dark tunnels and caverns. Their fascination with collecting and protecting esoteric knowledge is one of the few things that can persuade them to explore the outside world.\n\nShisk",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 8,
+      "id": "shisk",
+      "languages": {
+        "custom": "",
+        "value": [
+          "mwangi",
+          "shisk"
+        ]
+      },
+      "name": "Shisk",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens The Mwangi Expanse"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "humanoid",
+          "shisk"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Shisk",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "dwarven",
+          "gnomish",
+          "goblin",
+          "halfling",
+          "petran"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Diminutive humanoids who resemble squat, bipedal dogs, shoonies are sometimes mistaken for weak and insular pacifists. However, their sheer perseverance, incredible work ethic, and resourceful use of diplomacy make shoonies far from helpless.\n\nShoony",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Blunt Snout"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "82kag-blunt-snout",
+          "level": "1",
+          "name": "Blunt Snout",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Blunt Snout"
+        }
+      ],
+      "hp": 6,
+      "id": "shoony",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "shoony"
+        ]
+      },
+      "name": "Shoony",
+      "size": "sm",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder #153: Life's Long Shadows"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "humanoid",
+          "shoony"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Shoony",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": []
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Skeletons are considered among the lowest types of undead. They're typically mindless creatures, lacking many of the abilities that make other undead a serious threat. However, the animated bones of dragons, giants, and other great beasts make for dangerous foes. Powerful living creatures can retain some of their might and intellect upon returning as a skeleton. Some necromancers turn their strongest enemies into skeletal undead servants, assuming they can keep control of them.\n\nSkeleton",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Basic Undead Benefits"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "padw6-basic-undead-benefits",
+          "level": 0,
+          "name": "Basic Undead Benefits",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Basic Undead Benefits"
+        }
+      ],
+      "hp": 6,
+      "id": "skeleton",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "necril"
+        ]
+      },
+      "name": "Skeleton",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Book of the Dead"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "skeleton",
+          "undead"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Skeleton",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "draconic",
+          "elven",
+          "empyrean",
+          "gnomish",
+          "goblin",
+          "jotun"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Sprites are diminutive, whimsical, and exuberant creatures from the fey realm known as the First World. They love playing pranks, exploring new things, and embracing everything to do with magic.\n\nSprite",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Magical Strikes"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "55xmg-magical-strikes",
+          "level": 1,
+          "name": "Magical Strikes",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Magical Strikes"
+        }
+      ],
+      "hp": 6,
+      "id": "sprite",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "fey"
+        ]
+      },
+      "name": "Sprite",
+      "size": "tiny",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Ancestry Guide"
+      },
+      "speed": 20,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "fey",
+          "sprite"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Sprite",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "diabolic",
+          "draconic",
+          "gnomish",
+          "jotun"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Known as itarii in their own language, strix are reclusive avian humanoids devoted to their homelands and their tribes. They defend their precious communities with broad wingspans and razor talons.\n\nStrix",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Wings"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "uecvz-wings",
+          "level": 1,
+          "name": "Wings",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Wings"
+        }
+      ],
+      "hp": 8,
+      "id": "strix",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "strix"
+        ]
+      },
+      "name": "Strix",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Ancestry Guide"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "humanoid",
+          "strix"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Strix",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "elven",
+          "fey",
+          "sakvroth"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Surkis are an insectile species who subsist on the latent magic in the world around them. As a subterranean species native to the Darklands, surkis have rarely been seen on the surface, and always with long pauses between historical sightings. This is due to surkis' life cycle—long dormancies followed by so-called \"generation digs,\" as they migrate great distances in response to happenings underground. The healing of the Worldwound initiated one of the largest such digs in their history, bringing surkis up into the caverns and passages of the Sarkoris Scar and emerging onto the surface for the first time in many years. Since their emergence, several small surki settlements have been established in secluded corners of Sarkoris, voraciously cataloging the wildlife, magics, and various other inhabitants of the area as they explore the alien environment of the surface.\n\nSurki",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Magiphage"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "ve2ag-magiphage",
+          "level": 1,
+          "name": "Magiphage",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Magiphage"
+        }
+      ],
+      "hp": 8,
+      "id": "surki",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "surki"
+        ]
+      },
+      "name": "Surki",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Howl of the Wild"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "humanoid",
+          "surki"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Surki",
+      "warnings": [
+        {
+          "message": "ActiveEffectLike rule is preserved as metadata and is not fully evaluated yet.",
+          "originalText": "{\"key\":\"ActiveEffectLike\",\"mode\":\"override\",\"path\":\"flags.system.surki.evolutions\",\"priority\":10,\"value\":[]}",
+          "recordId": "surki",
+          "recordType": "ancestry",
+          "ruleType": "ActiveEffectLike",
+          "severity": "WARNING",
+          "sourceRulePath": "system.rules[0]",
+          "warningId": "ancestry-surki-0-activeeffectlike"
+        }
+      ]
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "elven",
+          "fey",
+          "gnomish",
+          "goblin",
+          "kitsune",
+          "tengu"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Tian Xia is replete with magically gifted ancestries—such as tengu, kitsune, yakshas, and yaoguai—whose powers bring them high regard and who, in turn, use their gifts for responsible ends. Tanuki aren't one of these ancestries. Instead, the shapeshifting raccoon dog–like humanoids use their powers of illusion and transformation in ways more people should: for fun! Tanuki delight in pranks and practical jokes, especially those that allow them to take the high and mighty down a notch and show them what life is like for everyone else. Where other peoples take pride in their storied histories, noble traditions, or intricate ceremonies, tanuki take pride in their simplicity and disregard for the world's many rules. Though some might claim this outlook reduces tanuki to uncouth rubes, tanuki feel it makes them more cultured; after all, one must know a rule to bend it, and one must understand a norm to break it.\n\nTanuki",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "rule-0-compendium-pf2e-actionspf2e-item-change-shape",
+          "level": null,
+          "name": null,
+          "source": "system.rules[0]",
+          "uuid": "Compendium.pf2e.actionspf2e.Item.Change Shape"
+        }
+      ],
+      "hp": 10,
+      "id": "tanuki",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "tanuki"
+        ]
+      },
+      "name": "Tanuki",
+      "size": "sm",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Lost Omens Tian Xia Character Guide"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "humanoid",
+          "tanuki"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Tanuki",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "dwarven",
+          "elven",
+          "fey",
+          "gnomish",
+          "goblin",
+          "halfling"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Tengu are survivalists and conversationalists, equally at home living off the wilderness and finding a niche in dense cities. They accumulate knowledge, tools, and companions, adding them to their collection as they travel.\n\nTengu",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Sharp Beak"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "vo9ge-sharp-beak",
+          "level": 0,
+          "name": "Sharp Beak",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Sharp Beak"
+        }
+      ],
+      "hp": 6,
+      "id": "tengu",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "tengu"
+        ]
+      },
+      "name": "Tengu",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core 2"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "humanoid",
+          "tengu"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Tengu",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "boggard",
+          "chthonian",
+          "draconic",
+          "elven",
+          "fey",
+          "iruxi",
+          "thalassic"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "wis"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Tripkees are a shy and cautious people who generally seek to avoid being drawn into the affairs of others. Despite their cautious outlook and small stature, adventurous tripkees still take bold and noble action when the situation demands it.\n\nFhIJtKcINEe7fipX",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Natural Climber"
+      ],
+      "flaws": [
+        {
+          "abilities": [
+            "str"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "3ljfy-natural-climber",
+          "level": 1,
+          "name": "Natural Climber",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Natural Climber"
+        }
+      ],
+      "hp": 6,
+      "id": "tripkee",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "grippli"
+        ]
+      },
+      "name": "Tripkee",
+      "size": "sm",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Player Core 2"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "grippli",
+          "humanoid"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Tripkee",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "diabolic",
+          "elven",
+          "fey",
+          "gnomish",
+          "goblin"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Vanaras are inquisitive and mischievous monkey-like humanoids with short, soft fur, expressive eyes, and long, prehensile tails. Their handlike feet and agile builds serve them well in the jungle realms where most vanaras live.\n\nVanara",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Prehensile Tail"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "zlija-prehensile-tail",
+          "level": 1,
+          "name": "Prehensile Tail",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Prehensile Tail"
+        }
+      ],
+      "hp": 6,
+      "id": "vanara",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "vanara"
+        ]
+      },
+      "name": "Vanara",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Impossible Lands"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "humanoid",
+          "vanara"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Vanara",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "aklo",
+          "draconic",
+          "elven",
+          "goblin",
+          "thalassic",
+          "sakvroth",
+          "vanara"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Vishkanyas are ophidian humanoids who carry potent venom within their blood and saliva. Largely misunderstood due to old tales of their toxicity and natural finesse, vishkanyas work to grow into more than just what stories paint them to be.\n\nVishkanya",
+      "featureRefs": [
+        "Compendium.pf2e.ancestryfeatures.Item.Innate Venom"
+      ],
+      "flaws": [
+        {
+          "abilities": [],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "0wy9n-innate-venom",
+          "level": 0,
+          "name": "Innate Venom",
+          "source": "system.items",
+          "uuid": "Compendium.pf2e.ancestryfeatures.Item.Innate Venom"
+        }
+      ],
+      "hp": 8,
+      "id": "vishkanya",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "vishkanyan"
+        ]
+      },
+      "name": "Vishkanya",
+      "size": "med",
+      "source": {
+        "license": "OGL",
+        "page": null,
+        "remaster": false,
+        "title": "Pathfinder Lost Omens Impossible Lands"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "humanoid",
+          "vishkanya"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Vishkanya",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "dziriak",
+          "diabolic",
+          "minaten",
+          "nagaji",
+          "thalassic",
+          "vudrani",
+          "yaksha"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "dex"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Wayangs are diasporic sojourners from the Netherworld where they lived and worked alongside their allies, lightweaving d'ziriaks. Both peoples shared affinities for artistic expression and spiritual introspection, inspiring each other's sensitivities to color, form, and function; they also bolstered each other's defense against rampaging dragons, oni, and undead. This idyll collapsed from divine meddling; some say when Abadar sentenced Zon-Kuthon to exile in the Netherworld, the Midnight Lord's deific presence distorted the plane into a nightmarish domain, while others accounts ascribe fiendish sources to this doom.\n\nWayang",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 8,
+      "id": "wayang",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "shadowtongue",
+          "wayang"
+        ]
+      },
+      "name": "Wayang",
+      "size": "sm",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Lost Omens Tian Xia Character Guide"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "uncommon",
+        "value": [
+          "humanoid",
+          "shadow",
+          "wayang"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Wayang",
+      "warnings": [
+        {
+          "message": "ActiveEffectLike rule is preserved as metadata and is not fully evaluated yet.",
+          "originalText": "{\"key\":\"ActiveEffectLike\",\"mode\":\"override\",\"path\":\"flags.system.colorDarkvision\",\"value\":true}",
+          "recordId": "wayang",
+          "recordType": "ancestry",
+          "ruleType": "ActiveEffectLike",
+          "severity": "WARNING",
+          "sourceRulePath": "system.rules[0]",
+          "warningId": "ancestry-wayang-0-activeeffectlike"
+        }
+      ]
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "diabolic",
+          "empyrean",
+          "nagaji",
+          "tang",
+          "tengu",
+          "vudrani"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Away from shining citadels and opulent palaces, reticent yakshas shelter Tian Xia's rural hinterlands from natural disasters and otherworldly depredations. Famed for resolute vows and prowess with primal magic, yakshas shield the indigent and protect the wilderness, punishing those who threaten either with bone-crushing fury. Yaksha legends recall their origins as divine spirits, overseeing the safety of roads and abodes in a primeval world of vast storm forests and titanic flame floods—the First World, a realm of boundless potentiality. During the Great Abandonment, when the gods left the First World, many yakshas rejected this exodus, instead staying to perform their duties as caretakers. Despite the realm's sudden dearth of divine power, the remaining yakshas swore primordial vows, allowing them to channel power from the nearby Creation's Forge into primal magic and transform swathes of the metamorphic First World into stable regions to provide refuge for destitute fey.\n\nYaksha",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [],
+      "hp": 8,
+      "id": "yaksha",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common",
+          "fey",
+          "yaksha"
+        ]
+      },
+      "name": "Yaksha",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Lost Omens Tian Xia Character Guide"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "spirit",
+          "yaksha"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Yaksha",
+      "warnings": []
+    },
+    {
+      "additionalLanguages": {
+        "count": 0,
+        "custom": "",
+        "value": [
+          "aklo",
+          "draconic",
+          "elven",
+          "fey",
+          "kitsune",
+          "nagaji",
+          "sakvroth",
+          "tengu",
+          "ysoki"
+        ]
+      },
+      "boosts": [
+        {
+          "abilities": [
+            "cha"
+          ],
+          "id": "0",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "con"
+          ],
+          "id": "1",
+          "selected": null
+        },
+        {
+          "abilities": [
+            "cha",
+            "con",
+            "dex",
+            "int",
+            "str",
+            "wis"
+          ],
+          "id": "2",
+          "selected": null
+        }
+      ],
+      "choicePrompts": [],
+      "description": "Yaoguai usually begin as simple animals, plants, or objects before finding a way to awaken to sapience, becoming strange shapeshifting creatures in the process. Often originating from an infusion of ambient energy into their original form, yaoguai attain their powers through training their innate magic. Taking care not to expose their true appearance and nature, yaoguai of the same origins or species sometimes form enclaves in which they dedicate their lives to honing their powers or engaging in hedonistic pursuits—though the two aren't mutually exclusive. Yaoguai who lack a solid community, meanwhile, feel compelled to cultivate themselves until they transcend their origin, which might allow them to join society and experience a new kind of freedom.\n\nYaoguai",
+      "featureRefs": [],
+      "flaws": [
+        {
+          "abilities": [
+            "int"
+          ],
+          "id": "0",
+          "selected": null
+        }
+      ],
+      "grants": [
+        {
+          "grantId": "rule-4-compendium-pf2e-actionspf2e-item-change-shape",
+          "level": null,
+          "name": null,
+          "source": "system.rules[4]",
+          "uuid": "Compendium.pf2e.actionspf2e.Item.Change Shape"
+        }
+      ],
+      "hp": 8,
+      "id": "yaoguai",
+      "languages": {
+        "custom": "",
+        "value": [
+          "common"
+        ]
+      },
+      "name": "Yaoguai",
+      "size": "med",
+      "source": {
+        "license": "ORC",
+        "page": null,
+        "remaster": true,
+        "title": "Pathfinder Lost Omens Tian Xia Character Guide"
+      },
+      "speed": 25,
+      "traits": {
+        "rarity": "rare",
+        "value": [
+          "humanoid",
+          "yaoguai"
+        ]
+      },
+      "type": "ancestry",
+      "uuid": "Compendium.pf2e.ancestries.Item.Yaoguai",
+      "warnings": []
+    }
+  ],
+  "datasetVersion": "20260427-000000",
+  "generatedAtUtc": "2026-04-27T00:00:00Z",
+  "sourceCommit": "local-unknown"
+}

@@ -3,7 +3,6 @@ package com.spellapp.core.data.local
 import com.spellapp.core.model.CastingProgressionType
 import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CastingTrackSourceType
-import com.spellapp.core.model.ClassSpellcastingCatalog
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.EmptyClassSpellcastingCatalogSource
 import com.spellapp.core.model.SlotProgressionKeys
@@ -67,8 +66,7 @@ internal class DefaultSlotProgressionEngine(
         }
 
         if (track.sourceType == CastingTrackSourceType.PRIMARY_CLASS) {
-            val catalogKey = ClassSpellcastingCatalog.classFromId(track.sourceId)
-                ?.let(classSpellcastingCatalogSource::definitionFor)
+            val catalogKey = classSpellcastingCatalogSource.definitionFor(track.sourceId)
                 ?.primaryTracks
                 ?.firstOrNull { definition -> definition.trackKey == track.trackKey }
                 ?.slotProgressionKey

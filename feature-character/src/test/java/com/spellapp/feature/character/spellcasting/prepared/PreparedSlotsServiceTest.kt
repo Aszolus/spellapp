@@ -16,7 +16,6 @@ import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.CharacterBuildIdentity
 import com.spellapp.core.model.CharacterBuildOption
 import com.spellapp.core.model.CharacterBuildOptionType
-import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.FocusState
 import com.spellapp.core.model.HeightenTrigger
@@ -474,7 +473,7 @@ class PreparedSlotsServiceTest {
             detailsById = details,
         )
         val characterCrudRepository = FakeCharacterCrudRepository(
-            character = characterProfile(characterClass = CharacterClass.WIZARD),
+            character = characterProfile(classId = "wizard"),
         )
         val focusStateRepository = FakeFocusStateRepository()
         val sessionEventRepository = FakeSessionEventRepository()
@@ -896,12 +895,12 @@ class PreparedSlotsServiceTest {
         )
     }
 
-    private fun characterProfile(characterClass: CharacterClass): CharacterProfile {
+    private fun characterProfile(classId: String): CharacterProfile {
         return CharacterProfile(
             id = CHARACTER_ID,
             name = "Tester",
             level = 10,
-            characterClass = characterClass,
+            classId = classId,
             keyAbility = AbilityScore.INTELLIGENCE,
             spellDc = 28,
             spellAttackModifier = 18,

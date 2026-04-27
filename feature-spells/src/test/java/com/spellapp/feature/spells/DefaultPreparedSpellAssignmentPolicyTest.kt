@@ -1,7 +1,6 @@
 package com.spellapp.feature.spells
 
 import com.spellapp.core.data.local.ClassSpellcastingCatalogJsonParser
-import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SpellListItem
@@ -26,7 +25,7 @@ class DefaultPreparedSpellAssignmentPolicyTest {
     @Test
     fun clericPrimaryTrack_allowsDivineSpell_and_rejectsArcaneSpell() {
         val context = PreparedSlotAssignmentContext(
-            characterClass = CharacterClass.CLERIC,
+            classId = "cleric",
             trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
             slotRank = 3,
         )
@@ -48,7 +47,7 @@ class DefaultPreparedSpellAssignmentPolicyTest {
     @Test
     fun multiTraditionSpell_is_legal_when_any_tradition_matches_track() {
         val context = PreparedSlotAssignmentContext(
-            characterClass = CharacterClass.CLERIC,
+            classId = "cleric",
             trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
             slotRank = 2,
         )
@@ -64,7 +63,7 @@ class DefaultPreparedSpellAssignmentPolicyTest {
     @Test
     fun archetypeTrack_uses_archetype_tradition_not_primary_class_tradition() {
         val context = PreparedSlotAssignmentContext(
-            characterClass = CharacterClass.CLERIC,
+            classId = "cleric",
             trackKey = "archetype-wizard",
             slotRank = 1,
         )
@@ -86,7 +85,7 @@ class DefaultPreparedSpellAssignmentPolicyTest {
     @Test
     fun unknownArchetypeTrack_is_restrictive_by_default() {
         val context = PreparedSlotAssignmentContext(
-            characterClass = CharacterClass.CLERIC,
+            classId = "cleric",
             trackKey = "archetype-bard",
             slotRank = 1,
         )
@@ -102,7 +101,7 @@ class DefaultPreparedSpellAssignmentPolicyTest {
     @Test
     fun injectedLegalityProfile_can_allow_explicit_spell_exception() {
         val context = PreparedSlotAssignmentContext(
-            characterClass = CharacterClass.WIZARD,
+            classId = "wizard",
             trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
             slotRank = 1,
         )
@@ -125,7 +124,7 @@ class DefaultPreparedSpellAssignmentPolicyTest {
     @Test
     fun injectedLegalityProfile_allowAny_policy_allows_any_tradition() {
         val context = PreparedSlotAssignmentContext(
-            characterClass = CharacterClass.WIZARD,
+            classId = "wizard",
             trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
             slotRank = 1,
         )
@@ -148,7 +147,7 @@ class DefaultPreparedSpellAssignmentPolicyTest {
     @Test
     fun preparedHeightening_allows_lower_rank_spell_in_higher_rank_slot() {
         val context = PreparedSlotAssignmentContext(
-            characterClass = CharacterClass.WIZARD,
+            classId = "wizard",
             trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
             slotRank = 4,
         )
@@ -164,7 +163,7 @@ class DefaultPreparedSpellAssignmentPolicyTest {
     @Test
     fun preparedHeightening_rejects_spell_rank_higher_than_slot_rank() {
         val context = PreparedSlotAssignmentContext(
-            characterClass = CharacterClass.WIZARD,
+            classId = "wizard",
             trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
             slotRank = 3,
         )
@@ -180,7 +179,7 @@ class DefaultPreparedSpellAssignmentPolicyTest {
     @Test
     fun cantrip_slot_accepts_only_cantrips() {
         val context = PreparedSlotAssignmentContext(
-            characterClass = CharacterClass.WIZARD,
+            classId = "wizard",
             trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
             slotRank = 0,
         )
@@ -202,7 +201,7 @@ class DefaultPreparedSpellAssignmentPolicyTest {
     @Test
     fun nonCantrip_slot_rejects_cantrips() {
         val context = PreparedSlotAssignmentContext(
-            characterClass = CharacterClass.WIZARD,
+            classId = "wizard",
             trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
             slotRank = 1,
         )

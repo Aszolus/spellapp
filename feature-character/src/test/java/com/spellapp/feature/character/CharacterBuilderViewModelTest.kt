@@ -15,7 +15,6 @@ import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.CharacterBuildIdentity
 import com.spellapp.core.model.CharacterBuildOption
 import com.spellapp.core.model.CharacterBuildOptionType
-import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.ClassSpellcastingCatalog
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
@@ -180,6 +179,7 @@ class CharacterBuilderViewModelTest {
         )
         advanceUntilIdle()
         selectRequiredClassChoices(viewModel)
+        selectRequiredBuilderBasics(viewModel)
         val wizard = viewModel.uiState.value.archetypeSpellcastingPackages.first { it.archetypeId == "wizard" }
         val cleric = viewModel.uiState.value.archetypeSpellcastingPackages.first { it.archetypeId == "cleric" }
         val druid = viewModel.uiState.value.archetypeSpellcastingPackages.first { it.archetypeId == "druid" }
@@ -227,8 +227,9 @@ class CharacterBuilderViewModelTest {
         )
         advanceUntilIdle()
         viewModel.updateName("Mira")
-        viewModel.selectClass(CharacterClass.CLERIC)
+        viewModel.selectClass("cleric")
         selectRequiredClassChoices(viewModel)
+        selectRequiredBuilderBasics(viewModel)
         viewModel.setAcceptedSourceBooks(setOf("Player Core"))
 
         viewModel.save()
@@ -272,6 +273,12 @@ class CharacterBuilderViewModelTest {
             }
     }
 
+    private fun selectRequiredBuilderBasics(viewModel: CharacterBuilderViewModel) {
+        viewModel.selectAncestry("human")
+        viewModel.selectHeritage("skilled-heritage")
+        viewModel.selectBackground("acolyte")
+    }
+
     private fun createViewModel(
         characterId: Long,
         characterCrudRepository: CharacterCrudRepository = FakeCharacterCrudRepository(),
@@ -302,6 +309,7 @@ class CharacterBuilderViewModelTest {
                 archetypeSpellcastingCatalogSource = StaticArchetypeSpellcastingCatalogSource,
             ),
             classDefinitionSource = StaticCharacterClassDefinitionSource,
+            characterBuilderCatalogSource = FakeCharacterBuilderCatalogSource(),
             archetypeSpellcastingCatalogSource = StaticArchetypeSpellcastingCatalogSource,
             classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )
@@ -319,13 +327,13 @@ class CharacterBuilderViewModelTest {
 
     private fun sampleCharacter(
         id: Long,
-        characterClass: CharacterClass = CharacterClass.WIZARD,
+        classId: String = "wizard",
     ): CharacterProfile {
         return CharacterProfile(
             id = id,
             name = "Test",
             level = 5,
-            characterClass = characterClass,
+            classId = classId,
             keyAbility = AbilityScore.INTELLIGENCE,
             spellDc = 22,
             spellAttackModifier = 12,
@@ -351,6 +359,108 @@ class CharacterBuilderViewModelTest {
 
     private companion object {
         val DEFAULT_ACCEPTED_SOURCES: Set<String> = setOf("Player Core")
+    }
+}
+
+private class FakeCharacterBuilderCatalogSource : CharacterBuilderCatalogSource {
+    override suspend fun loadCatalog(): CharacterBuilderCatalogResult {
+        val source = BuilderSourceRecord(
+            title = "Test",
+            license = "Test",
+            remaster = true,
+        )
+        val traits = BuilderTraitsRecord(
+            rarity = "common",
+            values = emptyList(),
+        )
+        return CharacterBuilderCatalogResult(
+            catalog = CharacterBuilderCatalog(
+                classes = listOf(
+                    BuilderClassRecord(
+                        id = "wizard",
+                        name = "Wizard",
+                        hp = 6,
+                        keyAbilityOptions = listOf(AbilityScore.INTELLIGENCE),
+                        featSlots = listOf(
+                            BuilderFeatSlot(
+                                slotId = "wizard-class-2",
+                                kind = "class",
+                                level = 2,
+                            ),
+                        ),
+                        source = source,
+                        traits = traits,
+                        description = "",
+                        warnings = emptyList(),
+                    ),
+                    BuilderClassRecord(
+                        id = "cleric",
+                        name = "Cleric",
+                        hp = 8,
+                        keyAbilityOptions = listOf(AbilityScore.WISDOM),
+                        featSlots = emptyList(),
+                        source = source,
+                        traits = traits,
+                        description = "",
+                        warnings = emptyList(),
+                    ),
+                ),
+                ancestries = listOf(
+                    BuilderAncestryRecord(
+                        id = "human",
+                        name = "Human",
+                        hp = 8,
+                        speed = "25 feet",
+                        size = "medium",
+                        source = source,
+                        traits = traits,
+                        description = "",
+                        grants = emptyList(),
+                        choicePrompts = emptyList(),
+                        warnings = emptyList(),
+                    ),
+                ),
+                heritages = listOf(
+                    BuilderHeritageRecord(
+                        id = "skilled-heritage",
+                        name = "Skilled Heritage",
+                        ancestryId = "human",
+                        source = source,
+                        traits = traits,
+                        description = "",
+                        grants = emptyList(),
+                        choicePrompts = emptyList(),
+                        warnings = emptyList(),
+                    ),
+                ),
+                backgrounds = listOf(
+                    BuilderBackgroundRecord(
+                        id = "acolyte",
+                        name = "Acolyte",
+                        source = source,
+                        traits = traits,
+                        description = "",
+                        grants = emptyList(),
+                        choicePrompts = emptyList(),
+                        warnings = emptyList(),
+                    ),
+                ),
+                featIndex = listOf(
+                    BuilderFeatIndexRecord(
+                        id = "counterspell",
+                        name = "Counterspell",
+                        category = "class",
+                        level = 1,
+                        rarity = "common",
+                        traits = emptyList(),
+                        shard = "feats.class.normalized.json.gz",
+                    ),
+                ),
+                featShards = emptyList(),
+                classFeatures = emptyList(),
+                ancestryFeatures = emptyList(),
+            ),
+        )
     }
 }
 

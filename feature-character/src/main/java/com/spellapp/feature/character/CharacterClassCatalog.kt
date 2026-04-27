@@ -1,11 +1,11 @@
 package com.spellapp.feature.character
 
 import com.spellapp.core.model.AbilityScore
-import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.ClassSpellcastingCatalog
+import com.spellapp.core.model.normalizeClassId
 
 data class CharacterClassDefinition(
-    val characterClass: CharacterClass,
+    val classId: String,
     val label: String,
     val defaultKeyAbility: AbilityScore,
     val keyAbilityOptions: List<AbilityScore>,
@@ -14,15 +14,15 @@ data class CharacterClassDefinition(
 interface CharacterClassDefinitionSource {
     fun allDefinitions(): List<CharacterClassDefinition>
     fun phaseOneDefinitions(): List<CharacterClassDefinition>
-    fun definitionFor(characterClass: CharacterClass): CharacterClassDefinition
+    fun definitionFor(classId: String): CharacterClassDefinition
 }
 
 object StaticCharacterClassDefinitionSource : CharacterClassDefinitionSource {
-    private val byClass: Map<CharacterClass, CharacterClassDefinition> =
+    private val byClassId: Map<String, CharacterClassDefinition> =
         ClassSpellcastingCatalog.allDefinitions()
             .map { definition ->
                 CharacterClassDefinition(
-                    characterClass = definition.characterClass,
+                    classId = definition.classId,
                     label = definition.label,
                     defaultKeyAbility = definition.defaultKeyAbility,
                     keyAbilityOptions = definition.keyAbilityOptions,
@@ -30,7 +30,7 @@ object StaticCharacterClassDefinitionSource : CharacterClassDefinitionSource {
             }
             .plus(
                 CharacterClassDefinition(
-                    characterClass = CharacterClass.OTHER,
+                    classId = "other",
                     label = "Other",
                     defaultKeyAbility = AbilityScore.INTELLIGENCE,
                     keyAbilityOptions = listOf(
@@ -40,18 +40,18 @@ object StaticCharacterClassDefinitionSource : CharacterClassDefinitionSource {
                     ),
                 ),
             )
-            .associateBy { it.characterClass }
+            .associateBy { normalizeClassId(it.classId) }
 
     override fun allDefinitions(): List<CharacterClassDefinition> {
-        return byClass.values.toList()
+        return byClassId.values.toList()
     }
 
     override fun phaseOneDefinitions(): List<CharacterClassDefinition> =
         ClassSpellcastingCatalog.allDefinitions()
-            .map { definition -> definition.characterClass }
+            .map { definition -> definition.classId }
             .map(::definitionFor)
 
-    override fun definitionFor(characterClass: CharacterClass): CharacterClassDefinition {
-        return byClass[characterClass] ?: byClass.getValue(CharacterClass.OTHER)
+    override fun definitionFor(classId: String): CharacterClassDefinition {
+        return byClassId[normalizeClassId(classId)] ?: byClassId.getValue("other")
     }
 }

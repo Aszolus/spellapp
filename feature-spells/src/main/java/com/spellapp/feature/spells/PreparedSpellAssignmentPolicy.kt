@@ -1,7 +1,6 @@
 package com.spellapp.feature.spells
 
 import com.spellapp.core.model.CastingStyle
-import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.ClassSpellcastingCatalog
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.PreparedSlot
@@ -14,7 +13,7 @@ import com.spellapp.core.rules.spellcasting.parseSpellTradition
 import com.spellapp.core.rules.spellcasting.parseSpellTraditions
 
 data class PreparedSlotAssignmentContext(
-    val characterClass: CharacterClass,
+    val classId: String,
     val trackKey: String,
     val slotRank: Int,
     val preferredTradition: String? = null,
@@ -93,7 +92,7 @@ class DefaultPreparedTrackLegalityProfileSource(
             ?.let { tradition -> return setOf(tradition) }
 
         if (context.trackKey == PreparedSlot.PRIMARY_TRACK_KEY) {
-            return traditionForPrimaryClass(context.characterClass)?.let { setOf(it) }
+            return traditionForPrimaryClass(context.classId)?.let { setOf(it) }
                 ?: emptySet()
         }
 
@@ -106,17 +105,15 @@ class DefaultPreparedTrackLegalityProfileSource(
         return emptySet()
     }
 
-    private fun traditionForPrimaryClass(characterClass: CharacterClass): SpellTradition? {
+    private fun traditionForPrimaryClass(classId: String): SpellTradition? {
         return classSpellcastingCatalogSource.traditionFor(
-            characterClass = characterClass,
+            classId = classId,
             selectedOptionIds = emptySet(),
         )?.toRulesTradition()
     }
 
     private fun traditionForArchetype(archetypeId: String): SpellTradition? {
-        val definition = ClassSpellcastingCatalog.classFromId(archetypeId)
-            ?.let(classSpellcastingCatalogSource::definitionFor)
-            ?: return null
+        val definition = classSpellcastingCatalogSource.definitionFor(archetypeId) ?: return null
         if (definition.primaryTracks.none { track -> track.castingStyle == CastingStyle.PREPARED }) {
             return null
         }

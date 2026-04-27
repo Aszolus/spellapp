@@ -1,0 +1,102 @@
+{
+  "assetCount": 12,
+  "assets": [
+    {
+      "artifactSha256": "a530c08017dd5007de364435a23e28e399d609a243d4abb8a0a0b50f601d4290",
+      "bytes": 122887,
+      "contentSha256": "a530c08017dd5007de364435a23e28e399d609a243d4abb8a0a0b50f601d4290",
+      "gzipped": false,
+      "name": "ancestries.normalized.json"
+    },
+    {
+      "artifactSha256": "f87ddfdc9f1ab34519094af196faa2ec164afc3d94df381daafe1677fdf3e856",
+      "bytes": 13791,
+      "contentSha256": "c20bd21f5bee51f3041e5bd483ce94028006b7639ab66886a66936fb0061012f",
+      "gzipped": true,
+      "name": "ancestry-features.normalized.json.gz"
+    },
+    {
+      "artifactSha256": "c8111d41f08f3fb94b652951c80c6e4ce9ecccddf298b7d206e376d2e976adec",
+      "bytes": 1232961,
+      "contentSha256": "c8111d41f08f3fb94b652951c80c6e4ce9ecccddf298b7d206e376d2e976adec",
+      "gzipped": false,
+      "name": "backgrounds.normalized.json"
+    },
+    {
+      "artifactSha256": "4a2c1ecff530f9f3973d3ccbe6375650f3ddbc46a9ec361419e840a38fa36a9c",
+      "bytes": 300747,
+      "contentSha256": "969a79cd273d5223b37754ddace39208b5b87baf377f917959af7c1784831a98",
+      "gzipped": true,
+      "name": "class-features.normalized.json.gz"
+    },
+    {
+      "artifactSha256": "5142cf938721e57b3de24b841795f2884014b4fb722206dae7a13ace716ecba4",
+      "bytes": 290212,
+      "contentSha256": "5142cf938721e57b3de24b841795f2884014b4fb722206dae7a13ace716ecba4",
+      "gzipped": false,
+      "name": "classes.normalized.json"
+    },
+    {
+      "artifactSha256": "cbef971eac9aee548e5b0a52589a788c8e3fb5731c54ca166f6beaf2bb97b485",
+      "bytes": 322044,
+      "contentSha256": "f83c644af4ce644726966b3267fceb3888fd17b31b3ba5f33affc2812029c23b",
+      "gzipped": true,
+      "name": "feats.ancestry.normalized.json.gz"
+    },
+    {
+      "artifactSha256": "34e92f503b03b7381a99a6c9d67aa053fa151f0c8a95ed09e3a26b2acb5023c5",
+      "bytes": 465611,
+      "contentSha256": "bf7092511e55255c994c8a4a01fcdfe6c7a02d704b3b6ac8658a9b86e3ffdb58",
+      "gzipped": true,
+      "name": "feats.archetype.normalized.json.gz"
+    },
+    {
+      "artifactSha256": "de3879bff9cae8b2167131c9abf8cdb1071e483dbec44081493e4b5404f2e6e0",
+      "bytes": 494805,
+      "contentSha256": "275b2596586c5c53f35f3e926e2b3fbaa2b5a45c42b3573642e4f43cb392b608",
+      "gzipped": true,
+      "name": "feats.class.normalized.json.gz"
+    },
+    {
+      "artifactSha256": "232f91c67edc70d15b163cca31aa1bb544945d2249b7751ce0ea51555dc017f2",
+      "bytes": 10273,
+      "contentSha256": "0e6297ac2abbe901c91bca4ff702c3541fe7c2a87d215b0fdcedfbd83eb01a59",
+      "gzipped": true,
+      "name": "feats.general.normalized.json.gz"
+    },
+    {
+      "artifactSha256": "c4d51c09774b293894d90f72329e81766c538a0ecb0789767463070bd1e36c73",
+      "bytes": 1569564,
+      "contentSha256": "c4d51c09774b293894d90f72329e81766c538a0ecb0789767463070bd1e36c73",
+      "gzipped": false,
+      "name": "feats.index.normalized.json"
+    },
+    {
+      "artifactSha256": "ee1e530d754f3846ceda79f45eaef3c91fa564f973460fdbfc4c770c7d307fe3",
+      "bytes": 82885,
+      "contentSha256": "233f1501481cb35b820dc8f943e36218a2bc4005ec47ffe50f00c0049d9fb9ee",
+      "gzipped": true,
+      "name": "feats.skill.normalized.json.gz"
+    },
+    {
+      "artifactSha256": "dac46b6e81a592c80a7d03cd992e743b74c1f58f8ffa622ef05b7f295832743c",
+      "bytes": 475244,
+      "contentSha256": "dac46b6e81a592c80a7d03cd992e743b74c1f58f8ffa622ef05b7f295832743c",
+      "gzipped": false,
+      "name": "heritages.normalized.json"
+    }
+  ],
+  "counts": {
+    "ancestries": 50,
+    "ancestryFeatures": 55,
+    "backgrounds": 490,
+    "classFeatures": 823,
+    "classes": 27,
+    "featShards": 5,
+    "feats": 5976,
+    "heritages": 321
+  },
+  "datasetVersion": "20260427-000000",
+  "generatedAtUtc": "2026-04-27T00:00:00Z",
+  "sourceCommit": "local-unknown"
+}

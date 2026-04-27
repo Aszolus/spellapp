@@ -1,7 +1,6 @@
 package com.spellapp.core.model
 
 data class ClassSpellcastingDefinition(
-    val characterClass: CharacterClass,
     val classId: String,
     val label: String,
     val defaultKeyAbility: AbilityScore,
@@ -67,33 +66,33 @@ data class ClassChoice(
 
 interface ClassSpellcastingCatalogSource {
     fun allDefinitions(): List<ClassSpellcastingDefinition>
-    fun definitionFor(characterClass: CharacterClass): ClassSpellcastingDefinition?
+    fun definitionFor(classId: String): ClassSpellcastingDefinition?
 }
 
 class InMemoryClassSpellcastingCatalogSource(
     definitions: List<ClassSpellcastingDefinition>,
 ) : ClassSpellcastingCatalogSource {
     private val orderedDefinitions = definitions
-    private val definitionsByClass = definitions.associateBy { it.characterClass }
+    private val definitionsByClassId = definitions.associateBy { normalizeClassId(it.classId) }
 
     override fun allDefinitions(): List<ClassSpellcastingDefinition> = orderedDefinitions
 
-    override fun definitionFor(characterClass: CharacterClass): ClassSpellcastingDefinition? =
-        definitionsByClass[characterClass]
+    override fun definitionFor(classId: String): ClassSpellcastingDefinition? =
+        definitionsByClassId[normalizeClassId(classId)]
 }
 
 object EmptyClassSpellcastingCatalogSource : ClassSpellcastingCatalogSource {
     override fun allDefinitions(): List<ClassSpellcastingDefinition> = emptyList()
 
-    override fun definitionFor(characterClass: CharacterClass): ClassSpellcastingDefinition? = null
+    override fun definitionFor(classId: String): ClassSpellcastingDefinition? = null
 }
 
 object ClassSpellcastingCatalog : ClassSpellcastingCatalogSource {
     @Volatile
     private var source: ClassSpellcastingCatalogSource = EmptyClassSpellcastingCatalogSource
 
-    val supportedSpellcasterClasses: List<CharacterClass>
-        get() = allDefinitions().map { it.characterClass }
+    val supportedSpellcasterClassIds: List<String>
+        get() = allDefinitions().map { it.classId }
 
     fun install(catalogSource: ClassSpellcastingCatalogSource) {
         source = catalogSource
@@ -102,8 +101,8 @@ object ClassSpellcastingCatalog : ClassSpellcastingCatalogSource {
     override fun allDefinitions(): List<ClassSpellcastingDefinition> =
         source.allDefinitions()
 
-    override fun definitionFor(characterClass: CharacterClass): ClassSpellcastingDefinition? =
-        source.definitionFor(characterClass)
+    override fun definitionFor(classId: String): ClassSpellcastingDefinition? =
+        source.definitionFor(classId)
 
     fun classFromId(id: String): CharacterClass? {
         val normalized = id.trim().replace('-', '_')
@@ -114,10 +113,10 @@ object ClassSpellcastingCatalog : ClassSpellcastingCatalogSource {
     }
 
     fun selectedChoices(
-        characterClass: CharacterClass,
+        classId: String,
         selectedOptionIds: Set<String>,
     ): List<ClassChoice> {
-        return definitionFor(characterClass)
+        return definitionFor(classId)
             ?.choiceGroups
             .orEmpty()
             .flatMap { group -> group.choices }
@@ -125,21 +124,21 @@ object ClassSpellcastingCatalog : ClassSpellcastingCatalogSource {
     }
 
     fun traditionFor(
-        characterClass: CharacterClass,
+        classId: String,
         selectedOptionIds: Set<String>,
     ): SpellcastingTradition? {
-        return selectedChoices(characterClass, selectedOptionIds)
+        return selectedChoices(classId, selectedOptionIds)
             .firstNotNullOfOrNull { it.tradition }
-            ?: definitionFor(characterClass)?.baseTradition
+            ?: definitionFor(classId)?.baseTradition
     }
 
     fun defaultKeyAbilityFor(
-        characterClass: CharacterClass,
+        classId: String,
         selectedOptionIds: Set<String> = emptySet(),
     ): AbilityScore {
-        return selectedChoices(characterClass, selectedOptionIds)
+        return selectedChoices(classId, selectedOptionIds)
             .firstNotNullOfOrNull { it.keyAbility }
-            ?: definitionFor(characterClass)?.defaultKeyAbility
+            ?: definitionFor(classId)?.defaultKeyAbility
             ?: AbilityScore.INTELLIGENCE
     }
 
@@ -160,10 +159,10 @@ object ClassSpellcastingCatalog : ClassSpellcastingCatalogSource {
 }
 
 fun ClassSpellcastingCatalogSource.selectedChoices(
-    characterClass: CharacterClass,
+    classId: String,
     selectedOptionIds: Set<String>,
 ): List<ClassChoice> {
-    return definitionFor(characterClass)
+    return definitionFor(classId)
         ?.choiceGroups
         .orEmpty()
         .flatMap { group -> group.choices }
@@ -171,25 +170,25 @@ fun ClassSpellcastingCatalogSource.selectedChoices(
 }
 
 fun ClassSpellcastingCatalogSource.traditionFor(
-    characterClass: CharacterClass,
+    classId: String,
     selectedOptionIds: Set<String>,
 ): SpellcastingTradition? {
     return selectedChoices(
-        characterClass = characterClass,
+        classId = classId,
         selectedOptionIds = selectedOptionIds,
     ).firstNotNullOfOrNull { it.tradition }
-        ?: definitionFor(characterClass)?.baseTradition
+        ?: definitionFor(classId)?.baseTradition
 }
 
 fun ClassSpellcastingCatalogSource.defaultKeyAbilityFor(
-    characterClass: CharacterClass,
+    classId: String,
     selectedOptionIds: Set<String> = emptySet(),
 ): AbilityScore {
     return selectedChoices(
-        characterClass = characterClass,
+        classId = classId,
         selectedOptionIds = selectedOptionIds,
     ).firstNotNullOfOrNull { it.keyAbility }
-        ?: definitionFor(characterClass)?.defaultKeyAbility
+        ?: definitionFor(classId)?.defaultKeyAbility
         ?: AbilityScore.INTELLIGENCE
 }
 
@@ -226,9 +225,7 @@ fun ClassSpellcastingCatalogSource.slotCountsForTrack(
     sourceId: String,
     level: Int,
 ): Map<Int, Int>? {
-    val definition = ClassSpellcastingCatalog.classFromId(sourceId)
-        ?.let(::definitionFor)
-        ?: return null
+    val definition = definitionFor(sourceId) ?: return null
     return definition.primaryTracks
         .firstOrNull { track -> track.trackKey == trackKey }
         ?.slotsByLevel
@@ -239,13 +236,20 @@ fun ClassSpellcastingCatalogSource.allowanceRulesForTrack(
     trackKey: String,
     sourceId: String,
 ): List<SpellAllowanceRule> {
-    val definition = ClassSpellcastingCatalog.classFromId(sourceId)
-        ?.let(::definitionFor)
-        ?: return emptyList()
+    val definition = definitionFor(sourceId) ?: return emptyList()
     return definition.primaryTracks
         .firstOrNull { track -> track.trackKey == trackKey }
         ?.allowanceRules
         .orEmpty()
+}
+
+fun normalizeClassId(rawValue: String?): String {
+    val normalized = rawValue
+        ?.trim()
+        ?.lowercase()
+        ?.replace('_', '-')
+        .orEmpty()
+    return normalized.ifBlank { "other" }
 }
 
 fun SpellAllowanceRule.countsAtLevel(level: Int): Map<Int, Int> {

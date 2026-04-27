@@ -1,13 +1,14 @@
 package com.spellapp.feature.character
 
 import com.spellapp.core.model.AbilityScore
-import com.spellapp.core.model.CharacterClass
+import com.spellapp.core.model.normalizeClassId
 
-internal fun CharacterClass.label(
-    classDefinitions: Map<CharacterClass, CharacterClassDefinition> = emptyMap(),
+internal fun String.classLabel(
+    classDefinitions: Map<String, CharacterClassDefinition> = emptyMap(),
 ): String {
-    return classDefinitions[this]?.label
-        ?: StaticCharacterClassDefinitionSource.definitionFor(this).label
+    val classId = normalizeClassId(this)
+    return classDefinitions[classId]?.label
+        ?: StaticCharacterClassDefinitionSource.definitionFor(classId).label
 }
 
 internal fun AbilityScore.label(): String {
@@ -22,19 +23,21 @@ internal fun AbilityScore.label(): String {
 }
 
 internal fun defaultKeyAbility(
-    characterClass: CharacterClass,
-    classDefinitions: Map<CharacterClass, CharacterClassDefinition> = emptyMap(),
+    classId: String,
+    classDefinitions: Map<String, CharacterClassDefinition> = emptyMap(),
 ): AbilityScore {
-    return classDefinitions[characterClass]?.defaultKeyAbility
-        ?: StaticCharacterClassDefinitionSource.definitionFor(characterClass).defaultKeyAbility
+    val normalized = normalizeClassId(classId)
+    return classDefinitions[normalized]?.defaultKeyAbility
+        ?: StaticCharacterClassDefinitionSource.definitionFor(normalized).defaultKeyAbility
 }
 
 internal fun keyAbilityOptions(
-    characterClass: CharacterClass,
-    classDefinitions: Map<CharacterClass, CharacterClassDefinition> = emptyMap(),
+    classId: String,
+    classDefinitions: Map<String, CharacterClassDefinition> = emptyMap(),
 ): List<AbilityScore> {
-    return classDefinitions[characterClass]?.keyAbilityOptions
-        ?: StaticCharacterClassDefinitionSource.definitionFor(characterClass).keyAbilityOptions
+    val normalized = normalizeClassId(classId)
+    return classDefinitions[normalized]?.keyAbilityOptions
+        ?: StaticCharacterClassDefinitionSource.definitionFor(normalized).keyAbilityOptions
 }
 
 internal fun sanitizeSignedNumber(value: String, maxLength: Int): String {

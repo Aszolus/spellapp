@@ -4,7 +4,6 @@ import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CastingStyle
 import com.spellapp.core.model.CharacterProfile
-import com.spellapp.core.model.ClassSpellcastingCatalog
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.EmptyClassSpellcastingCatalogSource
 import com.spellapp.core.model.KnownSpellOrigin
@@ -25,13 +24,13 @@ class DefaultKnownSpellsSeeder(
         selectedBuildOptionIds: Set<String>,
         acceptedSourceBooks: Set<String>,
     ) {
-        val definition = classSpellcastingCatalogSource.definitionFor(character.characterClass) ?: return
+        val definition = classSpellcastingCatalogSource.definitionFor(character.classId) ?: return
         val selectedChoices = classSpellcastingCatalogSource.selectedChoices(
-            characterClass = character.characterClass,
+            classId = character.classId,
             selectedOptionIds = selectedBuildOptionIds,
         )
         val traditionOverride = classSpellcastingCatalogSource.traditionFor(
-            characterClass = character.characterClass,
+            classId = character.classId,
             selectedOptionIds = selectedBuildOptionIds,
         )
 
@@ -80,8 +79,7 @@ class DefaultKnownSpellsSeeder(
         archetypeClassId: String,
         acceptedSourceBooks: Set<String>,
     ) {
-        val characterClass = ClassSpellcastingCatalog.classFromId(archetypeClassId) ?: return
-        val definition = classSpellcastingCatalogSource.definitionFor(characterClass) ?: return
+        val definition = classSpellcastingCatalogSource.definitionFor(archetypeClassId) ?: return
         val tradition = definition.baseTradition.preferredTraditionString() ?: return
         seedPreparedTradition(
             characterId = characterId,

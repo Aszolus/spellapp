@@ -15,13 +15,10 @@ fun preferredSpellTraditionForSource(
     return when (sourceType) {
         CastingTrackSourceType.PRIMARY_CLASS,
         CastingTrackSourceType.ARCHETYPE,
-        -> ClassSpellcastingCatalog.classFromId(sourceId)
-            ?.let { characterClass ->
-                ClassSpellcastingCatalog.traditionFor(
-                    characterClass = characterClass,
-                    selectedOptionIds = emptySet(),
-                )
-            }
+        -> ClassSpellcastingCatalog.traditionFor(
+            classId = sourceId,
+            selectedOptionIds = emptySet(),
+        )
             .preferredTraditionString()
     }
 }

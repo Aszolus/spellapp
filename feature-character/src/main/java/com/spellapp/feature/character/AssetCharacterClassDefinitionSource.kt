@@ -2,9 +2,9 @@ package com.spellapp.feature.character
 
 import android.content.Context
 import com.spellapp.core.model.AbilityScore
-import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.ClassSpellcastingCatalog
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
+import com.spellapp.core.model.normalizeClassId
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -14,35 +14,30 @@ class AssetCharacterClassDefinitionSource(
     private val fallback: CharacterClassDefinitionSource = StaticCharacterClassDefinitionSource,
 ) : CharacterClassDefinitionSource {
     private val appContext = context.applicationContext
-    private val definitionsByClass: Map<CharacterClass, CharacterClassDefinition> by lazy {
+    private val definitionsByClassId: Map<String, CharacterClassDefinition> by lazy {
         loadDefinitions()
     }
 
     override fun allDefinitions(): List<CharacterClassDefinition> {
-        return canonicalClassOrder().mapNotNull { definitionsByClass[it] }
+        val orderedIds = canonicalClassOrder()
+        return orderedIds.mapNotNull { definitionsByClassId[it] } +
+            definitionsByClassId.values.filterNot { it.classId in orderedIds }.sortedBy { it.label }
     }
 
     override fun phaseOneDefinitions(): List<CharacterClassDefinition> {
-        val fromDataset = classSpellcastingCatalogSource.allDefinitions()
-            .map { it.characterClass }
-            .mapNotNull { definitionsByClass[it] }
-        return if (fromDataset.isNotEmpty()) {
-            fromDataset
-        } else {
-            fallback.phaseOneDefinitions()
-        }
+        return allDefinitions()
     }
 
-    override fun definitionFor(characterClass: CharacterClass): CharacterClassDefinition {
-        return definitionsByClass[characterClass] ?: fallback.definitionFor(characterClass)
+    override fun definitionFor(classId: String): CharacterClassDefinition {
+        return definitionsByClassId[normalizeClassId(classId)] ?: fallback.definitionFor(classId)
     }
 
-    private fun loadDefinitions(): Map<CharacterClass, CharacterClassDefinition> {
-        val fallbackMap = fallback.allDefinitions().associateBy { it.characterClass }
+    private fun loadDefinitions(): Map<String, CharacterClassDefinition> {
+        val fallbackMap = fallback.allDefinitions().associateBy { normalizeClassId(it.classId) }
         val spellcastingMap = classSpellcastingCatalogSource.allDefinitions()
             .associate { definition ->
-                definition.characterClass to CharacterClassDefinition(
-                    characterClass = definition.characterClass,
+                normalizeClassId(definition.classId) to CharacterClassDefinition(
+                    classId = definition.classId,
                     label = definition.label,
                     defaultKeyAbility = definition.defaultKeyAbility,
                     keyAbilityOptions = definition.keyAbilityOptions,
@@ -52,7 +47,7 @@ class AssetCharacterClassDefinitionSource(
         return fallbackMap + parsedMap + spellcastingMap
     }
 
-    private fun parseFromAsset(): Map<CharacterClass, CharacterClassDefinition> {
+    private fun parseFromAsset(): Map<String, CharacterClassDefinition> {
         val rawJson = appContext.assets
             .open(ASSET_FILE_NAME)
             .bufferedReader()
@@ -63,23 +58,21 @@ class AssetCharacterClassDefinitionSource(
 
         for (index in 0 until entries.length()) {
             val entry = entries.optJSONObject(index) ?: continue
-            val classId = entry.optString("id").trim().lowercase()
-            val characterClass = classFromId(classId) ?: continue
-            val spellcastingFlag = entry.optInt("spellcastingFlag", 0)
-            if (spellcastingFlag <= 0) {
+            val classId = normalizeClassId(entry.optString("id"))
+            if (classId == "other") {
                 continue
             }
 
             val label = entry.optString("name").takeIf { it.isNotBlank() }
-                ?: fallback.definitionFor(characterClass).label
+                ?: classId
             val abilityOptions = parseAbilityOptions(entry.optJSONArray("keyAbilityOptions"))
             val normalizedOptions = abilityOptions.ifEmpty {
-                fallback.definitionFor(characterClass).keyAbilityOptions
+                fallback.definitionFor(classId).keyAbilityOptions
             }
-            val publication = entry.optJSONObject("publication")
+            val publication = entry.optJSONObject("source")
             val remaster = publication?.optBoolean("remaster", false) ?: false
             candidates += ClassCandidate(
-                characterClass = characterClass,
+                classId = classId,
                 label = label,
                 keyAbilityOptions = normalizedOptions,
                 remaster = remaster,
@@ -87,13 +80,13 @@ class AssetCharacterClassDefinitionSource(
         }
 
         return candidates
-            .groupBy { it.characterClass }
+            .groupBy { normalizeClassId(it.classId) }
             .mapValues { (_, options) ->
                 val preferred = options
                     .sortedWith(compareByDescending<ClassCandidate> { it.remaster })
                     .first()
                 CharacterClassDefinition(
-                    characterClass = preferred.characterClass,
+                    classId = preferred.classId,
                     label = preferred.label,
                     defaultKeyAbility = preferred.keyAbilityOptions.first(),
                     keyAbilityOptions = preferred.keyAbilityOptions,
@@ -124,17 +117,13 @@ class AssetCharacterClassDefinitionSource(
         return options
     }
 
-    private fun classFromId(id: String): CharacterClass? {
-        return ClassSpellcastingCatalog.classFromId(id)
-    }
-
-    private fun canonicalClassOrder(): List<CharacterClass> {
+    private fun canonicalClassOrder(): List<String> {
         return classSpellcastingCatalogSource.allDefinitions()
-            .map { it.characterClass } + CharacterClass.OTHER
+            .map { it.classId } + "other"
     }
 
     private data class ClassCandidate(
-        val characterClass: CharacterClass,
+        val classId: String,
         val label: String,
         val keyAbilityOptions: List<AbilityScore>,
         val remaster: Boolean,

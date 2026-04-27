@@ -10,7 +10,6 @@ import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.AbilityScore
 import com.spellapp.core.model.CastingStyle
 import com.spellapp.core.model.CharacterBuildOption
-import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.ClassChoice
 import com.spellapp.core.model.ClassChoiceGroup
@@ -23,6 +22,7 @@ import com.spellapp.core.model.SpellAllowanceRule
 import com.spellapp.core.model.SpellcastingTradition
 import com.spellapp.core.model.countsAtLevel
 import com.spellapp.core.model.managedOptionIds
+import com.spellapp.core.model.normalizeClassId
 import com.spellapp.core.model.optionTypeForOptionId
 import com.spellapp.core.model.totalAtLevel
 import com.spellapp.feature.character.spellcasting.RefreshSpellcastingProjectionUseCase
@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 data class CharacterBuilderUiState(
     val characterId: Long = 0L,
@@ -47,7 +48,11 @@ data class CharacterBuilderUiState(
     val saveError: String? = null,
     val name: String = "",
     val levelText: String = "1",
-    val selectedClass: CharacterClass = CharacterClass.WIZARD,
+    val selectedClassId: String = "wizard",
+    val selectedAncestryId: String? = null,
+    val selectedHeritageId: String? = null,
+    val selectedBackgroundId: String? = null,
+    val selectedFeatSlotOptions: Map<String, String> = emptyMap(),
     val keyAbility: AbilityScore = AbilityScore.INTELLIGENCE,
     val spellDcText: String = "10",
     val spellAttackText: String = "0",
@@ -56,8 +61,15 @@ data class CharacterBuilderUiState(
     val selectedBuildOptionIds: Set<String> = emptySet(),
     val acceptedSourceBooks: Set<String> = emptySet(),
     val availableSpellSources: List<String> = emptyList(),
-    val classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition> = emptyMap(),
+    val classDefinitionsByClass: Map<String, CharacterClassDefinition> = emptyMap(),
     val availableClasses: List<CharacterClassDefinition> = emptyList(),
+    val availableAncestries: List<BuilderAncestryRecord> = emptyList(),
+    val availableHeritages: List<BuilderHeritageRecord> = emptyList(),
+    val availableBackgrounds: List<BuilderBackgroundRecord> = emptyList(),
+    val expectedFeatSlots: List<BuilderFeatSlot> = emptyList(),
+    val featIndexById: Map<String, BuilderFeatIndexRecord> = emptyMap(),
+    val featCandidatesBySlotId: Map<String, List<BuilderFeatIndexRecord>> = emptyMap(),
+    val builderWarningLines: List<String> = emptyList(),
     val classChoiceGroups: List<ClassChoiceGroup> = emptyList(),
     val missingRequiredClassChoices: List<ClassChoiceGroup> = emptyList(),
     val selectedClassChoices: List<ClassChoice> = emptyList(),
@@ -89,7 +101,10 @@ data class CharacterBuilderSectionSummary(
 
 enum class CharacterBuilderSectionId {
     IDENTITY,
+    ANCESTRY_HERITAGE,
+    BACKGROUND,
     CLASS_SPELLCASTING,
+    FEATS,
     CASTING_STATS,
     SPELL_SOURCES,
     ARCHETYPE_SPELLCASTING,
@@ -111,6 +126,7 @@ class CharacterBuilderViewModel(
     private val spellRepository: SpellRepository,
     private val refreshSpellcastingProjectionUseCase: RefreshSpellcastingProjectionUseCase,
     private val classDefinitionSource: CharacterClassDefinitionSource,
+    private val characterBuilderCatalogSource: CharacterBuilderCatalogSource,
     private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
     private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource,
 ) : ViewModel() {
@@ -120,10 +136,11 @@ class CharacterBuilderViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList(),
         )
-    private val classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition> =
-        classDefinitionSource.allDefinitions().associateBy { it.characterClass }
+    private val classDefinitionsByClass: Map<String, CharacterClassDefinition> =
+        classDefinitionSource.allDefinitions().associateBy { normalizeClassId(it.classId) }
     private val availableClasses: List<CharacterClassDefinition> =
         classDefinitionSource.phaseOneDefinitions()
+    private var builderCatalog: CharacterBuilderCatalog? = null
     private val archetypeSpellcastingPackages: List<ArchetypeSpellcastingPackage> =
         archetypeSpellcastingCatalogSource.phaseOnePackages()
     private val managedArchetypeOptionIds: Set<String> =
@@ -162,11 +179,45 @@ class CharacterBuilderViewModel(
         updateState { it.copy(levelText = value.filter(Char::isDigit).take(2), saveError = null) }
     }
 
-    fun selectClass(characterClass: CharacterClass) {
+    fun selectAncestry(ancestryId: String) {
+        updateState { current ->
+            val normalized = ancestryId.trim()
+            val heritageStillValid = builderCatalog
+                ?.heritagesForAncestry(normalized)
+                .orEmpty()
+                .any { heritage -> heritage.id == current.selectedHeritageId }
+            current.copy(
+                selectedAncestryId = normalized,
+                selectedHeritageId = current.selectedHeritageId.takeIf { heritageStillValid },
+                saveError = null,
+            )
+        }
+    }
+
+    fun selectHeritage(heritageId: String) {
+        updateState { it.copy(selectedHeritageId = heritageId.trim(), saveError = null) }
+    }
+
+    fun selectBackground(backgroundId: String) {
+        updateState { it.copy(selectedBackgroundId = backgroundId.trim(), saveError = null) }
+    }
+
+    fun selectFeatForSlot(slotId: String, featId: String?) {
         updateState { current ->
             current.copy(
-                selectedClass = characterClass,
-                keyAbility = defaultKeyAbility(characterClass, classDefinitionsByClass),
+                selectedFeatSlotOptions = current.selectedFeatSlotOptions.toMutableMap().apply {
+                    if (featId.isNullOrBlank()) remove(slotId) else put(slotId, featId)
+                },
+                saveError = null,
+            )
+        }
+    }
+
+    fun selectClass(classId: String) {
+        updateState { current ->
+            current.copy(
+                selectedClassId = normalizeClassId(classId),
+                keyAbility = defaultKeyAbility(classId, classDefinitionsByClass),
                 selectedBuildOptionIds = current.selectedBuildOptionIds - managedClassChoiceOptionIds,
                 saveError = null,
             )
@@ -263,7 +314,7 @@ class CharacterBuilderViewModel(
                     id = attempted.characterId,
                     name = attempted.name.trim(),
                     level = attempted.level ?: 1,
-                    characterClass = attempted.selectedClass,
+                    classId = attempted.selectedClassId,
                     keyAbility = attempted.keyAbility,
                     spellDc = attempted.spellDc ?: 10,
                     spellAttackModifier = attempted.spellAttack ?: 0,
@@ -271,6 +322,14 @@ class CharacterBuilderViewModel(
                 )
                 val isNew = profile.id == 0L
                 val savedCharacterId = characterCrudRepository.upsertCharacter(profile)
+                characterBuildRepository.upsertBuildIdentity(
+                    com.spellapp.core.model.CharacterBuildIdentity(
+                        characterId = savedCharacterId,
+                        ancestryId = attempted.selectedAncestryId,
+                        heritageId = attempted.selectedHeritageId,
+                        backgroundId = attempted.selectedBackgroundId,
+                    ),
+                )
                 acceptedSpellSourceRepository.replaceAcceptedSources(
                     characterId = savedCharacterId,
                     sources = attempted.acceptedSourceBooks,
@@ -278,6 +337,10 @@ class CharacterBuilderViewModel(
                 val shouldReconcileArchetypes = persistManagedBuildOptions(
                     characterId = savedCharacterId,
                     selectedBuildOptionIds = attempted.selectedBuildOptionIds,
+                    selectedFeatSlotOptions = attempted.selectedFeatSlotOptions,
+                    selectedAncestryId = attempted.selectedAncestryId,
+                    selectedHeritageId = attempted.selectedHeritageId,
+                    selectedBackgroundId = attempted.selectedBackgroundId,
                 )
                 refreshSpellcastingProjectionUseCase.refreshCharacterSpellcasting(
                     character = profile.copy(id = savedCharacterId),
@@ -311,6 +374,8 @@ class CharacterBuilderViewModel(
 
     private suspend fun loadDraft() {
         val sources = spellRepository.observeAvailableSources().first()
+        val catalogResult = characterBuilderCatalogSource.loadCatalog()
+        builderCatalog = catalogResult.catalog
         val isNew = characterId == 0L
         val existingCharacter = if (isNew) null else characterCrudRepository.getCharacter(characterId)
         if (!isNew && existingCharacter == null) {
@@ -326,18 +391,36 @@ class CharacterBuilderViewModel(
             )
             return
         }
+        if (catalogResult.loadError != null || catalogResult.catalog == null) {
+            _uiState.value = derive(
+                _uiState.value.copy(
+                    isLoading = false,
+                    loadError = catalogResult.loadError ?: "Character builder catalog could not be loaded.",
+                    availableSpellSources = sources,
+                    classDefinitionsByClass = classDefinitionsByClass,
+                    availableClasses = availableClasses,
+                    archetypeSpellcastingPackages = archetypeSpellcastingPackages,
+                ),
+            )
+            return
+        }
 
-        val initialClass = existingCharacter?.characterClass
-            ?: availableClasses.firstOrNull()?.characterClass
-            ?: CharacterClass.WIZARD
+        val initialClassId = existingCharacter?.classId
+            ?: availableClasses.firstOrNull()?.classId
+            ?: "wizard"
+        val existingIdentity = if (isNew) null else characterBuildRepository.getBuildIdentity(characterId)
+        val existingOptions = if (isNew) emptyList() else characterBuildRepository.getBuildOptions(characterId)
         val selectedOptionIds = if (isNew) {
             emptySet()
         } else {
-            characterBuildRepository.getBuildOptions(characterId)
+            existingOptions
                 .map { it.optionId }
                 .filter { optionId -> optionId in managedBuildOptionIds }
                 .toSet()
         }
+        val selectedFeatSlotOptions = existingOptions
+            .mapNotNull(::featSlotSelectionFromOption)
+            .toMap()
         val acceptedSources = if (isNew) {
             sources.toSet()
         } else {
@@ -350,9 +433,13 @@ class CharacterBuilderViewModel(
             isLoading = false,
             name = existingCharacter?.name.orEmpty(),
             levelText = (existingCharacter?.level ?: 1).toString(),
-            selectedClass = initialClass,
+            selectedClassId = initialClassId,
+            selectedAncestryId = existingIdentity?.ancestryId,
+            selectedHeritageId = existingIdentity?.heritageId,
+            selectedBackgroundId = existingIdentity?.backgroundId,
+            selectedFeatSlotOptions = selectedFeatSlotOptions,
             keyAbility = existingCharacter?.keyAbility
-                ?: defaultKeyAbility(initialClass, classDefinitionsByClass),
+                ?: defaultKeyAbility(initialClassId, classDefinitionsByClass),
             spellDcText = (existingCharacter?.spellDc ?: 10).toString(),
             spellAttackText = (existingCharacter?.spellAttackModifier ?: 0).toString(),
             legacyTerminologyEnabled = existingCharacter?.legacyTerminologyEnabled ?: false,
@@ -361,6 +448,10 @@ class CharacterBuilderViewModel(
             availableSpellSources = sources,
             classDefinitionsByClass = classDefinitionsByClass,
             availableClasses = availableClasses,
+            availableAncestries = catalogResult.catalog.ancestries,
+            availableHeritages = catalogResult.catalog.heritagesForAncestry(existingIdentity?.ancestryId),
+            availableBackgrounds = catalogResult.catalog.backgrounds,
+            featIndexById = catalogResult.catalog.featIndexById,
             archetypeSpellcastingPackages = archetypeSpellcastingPackages,
             expandedSection = CharacterBuilderSectionId.IDENTITY,
         )
@@ -371,6 +462,10 @@ class CharacterBuilderViewModel(
     private suspend fun persistManagedBuildOptions(
         characterId: Long,
         selectedBuildOptionIds: Set<String>,
+        selectedFeatSlotOptions: Map<String, String>,
+        selectedAncestryId: String?,
+        selectedHeritageId: String?,
+        selectedBackgroundId: String?,
     ): Boolean {
         val existingOptions = characterBuildRepository.getBuildOptions(characterId)
         val existingManagedOptions = existingOptions
@@ -379,12 +474,9 @@ class CharacterBuilderViewModel(
             .filter { optionId -> optionId in managedBuildOptionIds }
             .toSet()
         val hasManagedState = existingManagedOptions.isNotEmpty() || selectedManagedOptionIds.isNotEmpty()
-        if (!hasManagedState) {
-            return false
-        }
 
         val retainedOptions = existingOptions
-            .filterNot { option -> option.optionId in managedBuildOptionIds }
+            .filterNot { option -> option.optionId in managedBuildOptionIds || option.isBuilderManaged() }
         val managedOptions = selectedManagedOptionIds
             .sorted()
             .mapNotNull { optionId ->
@@ -399,11 +491,125 @@ class CharacterBuilderViewModel(
                 )
             }
 
+        val builderOptions = buildBuilderManagedOptions(
+            characterId = characterId,
+            selectedFeatSlotOptions = selectedFeatSlotOptions,
+            selectedAncestryId = selectedAncestryId,
+            selectedHeritageId = selectedHeritageId,
+            selectedBackgroundId = selectedBackgroundId,
+        )
+
         characterBuildRepository.replaceBuildOptions(
             characterId = characterId,
-            options = retainedOptions + managedOptions,
+            options = retainedOptions + managedOptions + builderOptions,
         )
-        return true
+        return hasManagedState
+    }
+
+    private fun CharacterBuildOption.isBuilderManaged(): Boolean {
+        return metadataJson.contains("\"managedBy\":\"builder\"")
+    }
+
+    private fun featSlotSelectionFromOption(option: CharacterBuildOption): Pair<String, String>? {
+        if (!option.isBuilderManaged() || option.optionType != com.spellapp.core.model.CharacterBuildOptionType.FEAT) {
+            return null
+        }
+        val metadata = runCatching { JSONObject(option.metadataJson) }.getOrNull() ?: return null
+        val slotId = metadata.optString("slotId").takeIf { it.isNotBlank() } ?: return null
+        return slotId to option.optionId
+    }
+
+    private fun buildBuilderManagedOptions(
+        characterId: Long,
+        selectedFeatSlotOptions: Map<String, String>,
+        selectedAncestryId: String?,
+        selectedHeritageId: String?,
+        selectedBackgroundId: String?,
+    ): List<CharacterBuildOption> {
+        val catalog = builderCatalog ?: return emptyList()
+        val featOptions = selectedFeatSlotOptions.mapNotNull { (slotId, featId) ->
+            val slot = catalog.classes
+                .flatMap { it.featSlots }
+                .firstOrNull { it.slotId == slotId }
+                ?: return@mapNotNull null
+            CharacterBuildOption(
+                characterId = characterId,
+                optionType = com.spellapp.core.model.CharacterBuildOptionType.FEAT,
+                optionId = featId,
+                levelAcquired = slot.level,
+                metadataJson = builderMetadataJson(
+                    "slotId" to slot.slotId,
+                    "slotKind" to slot.kind,
+                    "slotLevel" to slot.level.toString(),
+                    "grantOrigin" to "player",
+                ),
+            )
+        }
+        val grantOptions = buildList {
+            selectedAncestryId
+                ?.let(catalog.ancestriesById::get)
+                ?.grants
+                .orEmpty()
+                .mapNotNullTo(this) { grant ->
+                    grant.toBuildOption(
+                        characterId = characterId,
+                        optionType = com.spellapp.core.model.CharacterBuildOptionType.ANCESTRY_FEATURE,
+                        origin = "ancestry/$selectedAncestryId",
+                    )
+                }
+            selectedHeritageId
+                ?.let(catalog.heritagesById::get)
+                ?.grants
+                .orEmpty()
+                .mapNotNullTo(this) { grant ->
+                    grant.toBuildOption(
+                        characterId = characterId,
+                        optionType = com.spellapp.core.model.CharacterBuildOptionType.ANCESTRY_FEATURE,
+                        origin = "heritage/$selectedHeritageId",
+                    )
+                }
+            selectedBackgroundId
+                ?.let(catalog.backgroundsById::get)
+                ?.grants
+                .orEmpty()
+                .mapNotNullTo(this) { grant ->
+                    grant.toBuildOption(
+                        characterId = characterId,
+                        optionType = com.spellapp.core.model.CharacterBuildOptionType.BACKGROUND_FEATURE,
+                        origin = "background/$selectedBackgroundId",
+                    )
+                }
+        }
+        return (featOptions + grantOptions)
+            .distinctBy { option -> option.optionType to option.optionId }
+            .sortedWith(compareBy<CharacterBuildOption> { it.levelAcquired ?: 0 }.thenBy { it.optionId })
+    }
+
+    private fun BuilderGrantRecord.toBuildOption(
+        characterId: Long,
+        optionType: com.spellapp.core.model.CharacterBuildOptionType,
+        origin: String,
+    ): CharacterBuildOption? {
+        val optionId = uuid ?: name?.let { normalizeClassId(it) } ?: return null
+        return CharacterBuildOption(
+            characterId = characterId,
+            optionType = optionType,
+            optionId = optionId,
+            levelAcquired = level,
+            metadataJson = builderMetadataJson(
+                "grantOrigin" to origin,
+                "grantName" to name.orEmpty(),
+                "source" to source,
+            ),
+        )
+    }
+
+    private fun builderMetadataJson(vararg pairs: Pair<String, String>): String {
+        val json = JSONObject()
+        json.put("schemaVersion", 1)
+        json.put("managedBy", "builder")
+        pairs.forEach { (key, value) -> json.put(key, value) }
+        return json.toString()
     }
 
     private fun updateState(reducer: (CharacterBuilderUiState) -> CharacterBuilderUiState) {
@@ -411,7 +617,8 @@ class CharacterBuilderViewModel(
     }
 
     private fun derive(state: CharacterBuilderUiState): CharacterBuilderUiState {
-        val definition = classSpellcastingCatalogSource.definitionFor(state.selectedClass)
+        val definition = classSpellcastingCatalogSource.definitionFor(state.selectedClassId)
+        val catalog = builderCatalog
         val choiceGroups = definition?.choiceGroups.orEmpty()
         val selectedChoices = choiceGroups
             .flatMap { it.choices }
@@ -423,11 +630,18 @@ class CharacterBuilderViewModel(
             .filter { it.dedicationOptionId in state.selectedBuildOptionIds }
         val availableArchetypes = state.archetypeSpellcastingPackages
             .filter { it.dedicationOptionId !in state.selectedBuildOptionIds }
+        val expectedFeatSlots = catalog?.featSlotsFor(state.selectedClassId, state.level ?: 1).orEmpty()
+        val featCandidatesBySlotId = expectedFeatSlots.associate { slot ->
+            slot.slotId to catalog!!.featCandidatesFor(slot)
+        }
         val canSave = !state.isLoading &&
             !state.isSaving &&
             state.loadError == null &&
             !state.nameInvalid &&
             !state.levelInvalid &&
+            state.selectedAncestryId != null &&
+            state.selectedHeritageId != null &&
+            state.selectedBackgroundId != null &&
             !state.spellDcInvalid &&
             !state.spellAttackInvalid &&
             missingRequiredChoices.isEmpty()
@@ -437,12 +651,19 @@ class CharacterBuilderViewModel(
             missingRequiredClassChoices = missingRequiredChoices,
             selectedClassChoices = selectedChoices,
             classPreviewLines = buildClassPreviewLines(
-                selectedClass = state.selectedClass,
+                selectedClassId = state.selectedClassId,
                 level = state.level ?: 1,
                 selectedChoices = selectedChoices,
             ),
             selectedArchetypePackages = selectedArchetypes,
             availableArchetypePackages = availableArchetypes,
+            availableHeritages = catalog?.heritagesForAncestry(state.selectedAncestryId).orEmpty(),
+            expectedFeatSlots = expectedFeatSlots,
+            featCandidatesBySlotId = featCandidatesBySlotId,
+            builderWarningLines = buildBuilderWarningLines(
+                state.copy(expectedFeatSlots = expectedFeatSlots),
+                catalog,
+            ),
             canSave = canSave,
             isDirty = initialSnapshot?.let { baseline -> snapshot(state) != baseline } ?: false,
         )
@@ -472,8 +693,41 @@ class CharacterBuilderViewModel(
             },
         )
         sections += CharacterBuilderSectionSummary(
+            id = CharacterBuilderSectionId.ANCESTRY_HERITAGE,
+            title = "Ancestry & Heritage",
+            status = if (state.selectedAncestryId == null || state.selectedHeritageId == null) {
+                CharacterBuilderSectionStatus.NEEDS_REVIEW
+            } else {
+                CharacterBuilderSectionStatus.COMPLETE
+            },
+            summary = ancestryHeritageSummary(state),
+            validationMessage = when {
+                !state.saveAttempted -> null
+                state.selectedAncestryId == null -> "Choose an ancestry."
+                state.selectedHeritageId == null -> "Choose a heritage."
+                else -> null
+            },
+        )
+        sections += CharacterBuilderSectionSummary(
+            id = CharacterBuilderSectionId.BACKGROUND,
+            title = "Background",
+            status = if (state.selectedBackgroundId == null) {
+                CharacterBuilderSectionStatus.NEEDS_REVIEW
+            } else {
+                CharacterBuilderSectionStatus.COMPLETE
+            },
+            summary = state.selectedBackgroundId
+                ?.let { id -> builderCatalog?.backgroundsById?.get(id)?.name }
+                ?: "Choose a background",
+            validationMessage = if (state.saveAttempted && state.selectedBackgroundId == null) {
+                "Choose a background."
+            } else {
+                null
+            },
+        )
+        sections += CharacterBuilderSectionSummary(
             id = CharacterBuilderSectionId.CLASS_SPELLCASTING,
-            title = "Class & Spellcasting",
+            title = "Class",
             status = when {
                 state.availableClasses.isEmpty() -> CharacterBuilderSectionStatus.BLOCKED
                 state.missingRequiredClassChoices.isNotEmpty() -> CharacterBuilderSectionStatus.NEEDS_REVIEW
@@ -481,11 +735,27 @@ class CharacterBuilderViewModel(
             },
             summary = classSpellcastingSummary(state),
             validationMessage = when {
-                state.availableClasses.isEmpty() -> "No supported spellcasting classes are available."
+                state.availableClasses.isEmpty() -> "No classes are available."
                 state.saveAttempted && state.missingRequiredClassChoices.isNotEmpty() -> {
                     "Choose ${state.missingRequiredClassChoices.joinToString { it.label.lowercase() }}."
                 }
                 else -> null
+            },
+        )
+        sections += CharacterBuilderSectionSummary(
+            id = CharacterBuilderSectionId.FEATS,
+            title = "Feats",
+            status = if (state.expectedFeatSlots.isEmpty()) {
+                CharacterBuilderSectionStatus.OPTIONAL
+            } else if (state.selectedFeatSlotOptions.size < state.expectedFeatSlots.size) {
+                CharacterBuilderSectionStatus.NEEDS_REVIEW
+            } else {
+                CharacterBuilderSectionStatus.COMPLETE
+            },
+            summary = if (state.expectedFeatSlots.isEmpty()) {
+                "No feat slots at this level"
+            } else {
+                "${state.selectedFeatSlotOptions.size} of ${state.expectedFeatSlots.size} filled"
             },
         )
         sections += CharacterBuilderSectionSummary(
@@ -544,8 +814,7 @@ class CharacterBuilderViewModel(
     }
 
     private fun classSpellcastingSummary(state: CharacterBuilderUiState): String {
-        val classLabel = state.classDefinitionsByClass[state.selectedClass]?.label
-            ?: state.selectedClass.label(state.classDefinitionsByClass)
+        val classLabel = state.selectedClassId.classLabel(state.classDefinitionsByClass)
         val keyAbilityText = state.keyAbility.label()
         return if (state.missingRequiredClassChoices.isEmpty()) {
             "$classLabel · $keyAbilityText"
@@ -554,12 +823,56 @@ class CharacterBuilderViewModel(
         }
     }
 
+    private fun ancestryHeritageSummary(state: CharacterBuilderUiState): String {
+        val ancestryName = state.selectedAncestryId
+            ?.let { id -> builderCatalog?.ancestriesById?.get(id)?.name }
+        val heritageName = state.selectedHeritageId
+            ?.let { id -> builderCatalog?.heritagesById?.get(id)?.name }
+        return listOfNotNull(ancestryName, heritageName)
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(" · ")
+            ?: "Choose ancestry and heritage"
+    }
+
+    private fun buildBuilderWarningLines(
+        state: CharacterBuilderUiState,
+        catalog: CharacterBuilderCatalog?,
+    ): List<String> {
+        if (catalog == null) return emptyList()
+        val warnings = mutableListOf<String>()
+        state.selectedAncestryId
+            ?.let(catalog.ancestriesById::get)
+            ?.warnings
+            .orEmpty()
+            .take(2)
+            .forEach { warning -> warnings += "Ancestry: ${warning.message}" }
+        state.selectedHeritageId
+            ?.let(catalog.heritagesById::get)
+            ?.warnings
+            .orEmpty()
+            .take(2)
+            .forEach { warning -> warnings += "Heritage: ${warning.message}" }
+        state.selectedBackgroundId
+            ?.let(catalog.backgroundsById::get)
+            ?.warnings
+            .orEmpty()
+            .take(2)
+            .forEach { warning -> warnings += "Background: ${warning.message}" }
+        val missingFeatSlots = state.expectedFeatSlots.count { slot ->
+            slot.slotId !in state.selectedFeatSlotOptions
+        }
+        if (missingFeatSlots > 0) {
+            warnings += "$missingFeatSlots expected feat slot${if (missingFeatSlots == 1) "" else "s"} unfilled."
+        }
+        return warnings.distinct().take(8)
+    }
+
     private fun buildClassPreviewLines(
-        selectedClass: CharacterClass,
+        selectedClassId: String,
         level: Int,
         selectedChoices: List<ClassChoice>,
     ): List<String> {
-        val definition = classSpellcastingCatalogSource.definitionFor(selectedClass) ?: return emptyList()
+        val definition = classSpellcastingCatalogSource.definitionFor(selectedClassId) ?: return emptyList()
         val trackLines = definition.primaryTracks.map { track ->
             track.previewLine(level)
         }
@@ -623,11 +936,15 @@ class CharacterBuilderViewModel(
             characterId = state.characterId,
             name = state.name,
             levelText = state.levelText,
-            selectedClass = state.selectedClass,
+            selectedClassId = state.selectedClassId,
             keyAbility = state.keyAbility,
             spellDcText = state.spellDcText,
             spellAttackText = state.spellAttackText,
             legacyTerminologyEnabled = state.legacyTerminologyEnabled,
+            selectedAncestryId = state.selectedAncestryId,
+            selectedHeritageId = state.selectedHeritageId,
+            selectedBackgroundId = state.selectedBackgroundId,
+            selectedFeatSlotOptions = state.selectedFeatSlotOptions,
             selectedBuildOptionIds = state.selectedBuildOptionIds,
             acceptedSourceBooks = state.acceptedSourceBooks,
         )
@@ -637,11 +954,15 @@ class CharacterBuilderViewModel(
         val characterId: Long,
         val name: String,
         val levelText: String,
-        val selectedClass: CharacterClass,
+        val selectedClassId: String,
         val keyAbility: AbilityScore,
         val spellDcText: String,
         val spellAttackText: String,
         val legacyTerminologyEnabled: Boolean,
+        val selectedAncestryId: String?,
+        val selectedHeritageId: String?,
+        val selectedBackgroundId: String?,
+        val selectedFeatSlotOptions: Map<String, String>,
         val selectedBuildOptionIds: Set<String>,
         val acceptedSourceBooks: Set<String>,
     )
@@ -662,6 +983,8 @@ class CharacterBuilderViewModelFactory(
     private val spellRepository: SpellRepository,
     private val refreshSpellcastingProjectionUseCase: RefreshSpellcastingProjectionUseCase,
     private val classDefinitionSource: CharacterClassDefinitionSource = StaticCharacterClassDefinitionSource,
+    private val characterBuilderCatalogSource: CharacterBuilderCatalogSource =
+        EmptyCharacterBuilderCatalogSource,
     private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource =
         StaticArchetypeSpellcastingCatalogSource,
     private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource =
@@ -680,6 +1003,7 @@ class CharacterBuilderViewModelFactory(
             spellRepository = spellRepository,
             refreshSpellcastingProjectionUseCase = refreshSpellcastingProjectionUseCase,
             classDefinitionSource = classDefinitionSource,
+            characterBuilderCatalogSource = characterBuilderCatalogSource,
             archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
             classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         ) as T

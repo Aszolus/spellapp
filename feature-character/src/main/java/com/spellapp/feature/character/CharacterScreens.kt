@@ -42,7 +42,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.ClassChoice
 import com.spellapp.core.model.ClassChoiceGroup
@@ -62,7 +61,7 @@ private val coreSpellSourceBooks = setOf(
 @Composable
 fun CharacterListRoute(
     characters: List<CharacterProfile>,
-    classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
+    classDefinitionsByClass: Map<String, CharacterClassDefinition>,
     onAddCharacter: () -> Unit,
     onEditCharacter: (CharacterProfile) -> Unit,
     onDeleteCharacter: (CharacterProfile) -> Unit,
@@ -171,7 +170,7 @@ fun CharacterListRoute(
 @Composable
 private fun CharacterRow(
     character: CharacterProfile,
-    classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
+    classDefinitionsByClass: Map<String, CharacterClassDefinition>,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onOpenPreparedSlots: () -> Unit,
@@ -189,7 +188,7 @@ private fun CharacterRow(
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            text = "Level ${character.level} ${character.characterClass.label(classDefinitionsByClass)}",
+            text = "Level ${character.level} ${character.classId.classLabel(classDefinitionsByClass)}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -224,7 +223,7 @@ private fun CharacterRow(
 internal class CharacterEditorState(
     private val initialCharacter: CharacterProfile?,
     availableClasses: List<CharacterClassDefinition>,
-    private val classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
+    private val classDefinitionsByClass: Map<String, CharacterClassDefinition>,
     availableSpellSources: List<String>,
     initialSelectedBuildOptionIds: Set<String>,
     initialAcceptedSourceBooks: Set<String>,
@@ -232,9 +231,9 @@ internal class CharacterEditorState(
     var name by mutableStateOf(initialCharacter?.name.orEmpty())
     var levelText by mutableStateOf((initialCharacter?.level ?: 1).toString())
     var selectedClass by mutableStateOf(
-        initialCharacter?.characterClass
-            ?: availableClasses.firstOrNull()?.characterClass
-            ?: CharacterClass.WIZARD,
+        initialCharacter?.classId
+            ?: availableClasses.firstOrNull()?.classId
+            ?: "wizard",
     )
     var keyAbility by mutableStateOf(
         initialCharacter?.keyAbility
@@ -271,7 +270,7 @@ internal class CharacterEditorState(
             !spellAttackInvalid &&
             missingRequiredClassChoices.isEmpty()
 
-    fun selectClass(klass: CharacterClass) {
+    fun selectClass(klass: String) {
         selectedClass = klass
         selectedBuildOptionIds = selectedBuildOptionIds - ClassSpellcastingCatalog.managedOptionIds()
         keyAbility = defaultKeyAbility(klass, classDefinitionsByClass)
@@ -310,7 +309,7 @@ internal class CharacterEditorState(
             id = initialCharacter?.id ?: 0L,
             name = name.trim(),
             level = level ?: 1,
-            characterClass = selectedClass,
+            classId = selectedClass,
             keyAbility = keyAbility,
             spellDc = spellDc ?: 10,
             spellAttackModifier = spellAttack ?: 0,
@@ -323,7 +322,7 @@ internal class CharacterEditorState(
 private fun rememberCharacterEditorState(
     initialCharacter: CharacterProfile?,
     availableClasses: List<CharacterClassDefinition>,
-    classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
+    classDefinitionsByClass: Map<String, CharacterClassDefinition>,
     availableSpellSources: List<String>,
     initialSelectedBuildOptionIds: Set<String>,
     initialAcceptedSourceBooks: Set<String>,
@@ -351,7 +350,7 @@ fun CharacterEditorDialog(
     initialAcceptedSourceBooks: Set<String>,
     availableSpellSources: List<String>,
     availableClasses: List<CharacterClassDefinition>,
-    classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
+    classDefinitionsByClass: Map<String, CharacterClassDefinition>,
     archetypeSpellcastingPackages: List<ArchetypeSpellcastingPackage>,
     onDismiss: () -> Unit,
     onSave: (CharacterProfile, Set<String>, Set<String>) -> Unit,
@@ -464,7 +463,7 @@ private fun ClassSelector(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         availableClasses.forEach { definition ->
-            val klass = definition.characterClass
+            val klass = definition.classId
             FilterChip(
                 selected = state.selectedClass == klass,
                 onClick = { state.selectClass(klass) },
@@ -478,7 +477,7 @@ private fun ClassSelector(
 @Composable
 private fun KeyAbilitySelector(
     state: CharacterEditorState,
-    classDefinitionsByClass: Map<CharacterClass, CharacterClassDefinition>,
+    classDefinitionsByClass: Map<String, CharacterClassDefinition>,
 ) {
     SectionLabel("Key Ability")
     FlowRow(
@@ -487,7 +486,7 @@ private fun KeyAbilitySelector(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         keyAbilityOptions(
-            characterClass = state.selectedClass,
+            classId = state.selectedClass,
             classDefinitions = classDefinitionsByClass,
         ).forEach { ability ->
             FilterChip(

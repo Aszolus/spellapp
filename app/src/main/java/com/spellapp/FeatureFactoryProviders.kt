@@ -14,6 +14,7 @@ import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.data.SpellRulesTextRepository
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
+import com.spellapp.feature.character.CharacterBuilderCatalogSource
 import com.spellapp.feature.character.CharacterBuilderViewModelFactory
 import com.spellapp.feature.character.CharacterClassDefinitionSource
 import com.spellapp.feature.character.CharacterListViewModelFactory
@@ -51,6 +52,7 @@ class AppCharacterFeatureFactoryProvider(
     private val castingTrackRepository: com.spellapp.core.data.CastingTrackRepository,
     private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
     private val classDefinitionSource: CharacterClassDefinitionSource,
+    private val characterBuilderCatalogSource: CharacterBuilderCatalogSource,
     private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
     private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource,
 ) : CharacterFeatureFactoryProvider {
@@ -79,6 +81,7 @@ class AppCharacterFeatureFactoryProvider(
                 archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
             ),
             classDefinitionSource = classDefinitionSource,
+            characterBuilderCatalogSource = characterBuilderCatalogSource,
             archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
             classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )

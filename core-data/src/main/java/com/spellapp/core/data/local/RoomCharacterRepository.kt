@@ -10,7 +10,6 @@ import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.CharacterBuildIdentity
 import com.spellapp.core.model.CharacterBuildOption
 import com.spellapp.core.model.CharacterBuildOptionType
-import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.EmptyClassSpellcastingCatalogSource
@@ -18,8 +17,8 @@ import com.spellapp.core.model.FocusState
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEvent
 import com.spellapp.core.model.SessionEventType
-import com.spellapp.core.model.SlotProgressionKeys
 import com.spellapp.core.model.SpellcastingTradition
+import com.spellapp.core.model.normalizeClassId
 import com.spellapp.core.model.traditionFor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -499,39 +498,24 @@ class RoomCharacterRepository private constructor(
         val selectedBuildOptionIds = characterBuildOptionDao.getByCharacter(character.id)
             .map { entity -> entity.optionId }
             .toSet()
-        val definition = classSpellcastingCatalogSource.definitionFor(character.characterClass)
+        val definition = classSpellcastingCatalogSource.definitionFor(character.classId)
+            ?: return
         val traditionOverride = classSpellcastingCatalogSource.traditionFor(
-            characterClass = character.characterClass,
+            classId = character.classId,
             selectedOptionIds = selectedBuildOptionIds,
         )
-        val desiredTracks = if (definition == null) {
-            listOf(
-                CastingTrack(
-                    characterId = character.id,
-                    trackKey = CastingTrack.PRIMARY_TRACK_KEY,
-                    sourceType = CastingTrackSourceType.PRIMARY_CLASS,
-                    sourceId = character.characterClass.name.lowercase(),
-                    progressionType = CastingProgressionType.FULL_PREPARED,
-                    displayName = "Primary",
-                    castingStyle = CastingStyle.PREPARED,
-                    tradition = null,
-                    slotProgressionKey = SlotProgressionKeys.FULL_PREPARED_STANDARD,
-                ),
+        val desiredTracks = definition.primaryTracks.map { template ->
+            CastingTrack(
+                characterId = character.id,
+                trackKey = template.trackKey,
+                sourceType = CastingTrackSourceType.PRIMARY_CLASS,
+                sourceId = definition.classId,
+                progressionType = template.progressionType,
+                displayName = template.displayName,
+                castingStyle = template.castingStyle,
+                tradition = traditionOverride ?: template.tradition,
+                slotProgressionKey = template.slotProgressionKey,
             )
-        } else {
-            definition.primaryTracks.map { template ->
-                CastingTrack(
-                    characterId = character.id,
-                    trackKey = template.trackKey,
-                    sourceType = CastingTrackSourceType.PRIMARY_CLASS,
-                    sourceId = definition.classId,
-                    progressionType = template.progressionType,
-                    displayName = template.displayName,
-                    castingStyle = template.castingStyle,
-                    tradition = traditionOverride ?: template.tradition,
-                    slotProgressionKey = template.slotProgressionKey,
-                )
-            }
         }
 
         val desiredKeys = desiredTracks.map { it.trackKey }.toSet()
@@ -661,7 +645,7 @@ class RoomCharacterRepository private constructor(
             id = id,
             name = name,
             level = level,
-            characterClass = enumValueOrDefault(characterClass, CharacterClass.OTHER),
+            classId = normalizeClassId(characterClass),
             keyAbility = enumValueOrDefault(keyAbility, AbilityScore.INTELLIGENCE),
             spellDc = spellDc,
             spellAttackModifier = spellAttackModifier,
@@ -674,7 +658,7 @@ class RoomCharacterRepository private constructor(
             id = id,
             name = name,
             level = level,
-            characterClass = characterClass.name,
+            characterClass = normalizeClassId(classId),
             keyAbility = keyAbility.name,
             spellDc = spellDc,
             spellAttackModifier = spellAttackModifier,

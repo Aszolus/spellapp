@@ -43,7 +43,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.spellapp.core.model.AbilityScore
-import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.ClassChoice
 import com.spellapp.core.model.ClassChoiceGroup
 
@@ -63,9 +62,13 @@ fun CharacterBuilderRoute(
     uiState: CharacterBuilderUiState,
     onNameChange: (String) -> Unit,
     onLevelChange: (String) -> Unit,
-    onClassSelected: (CharacterClass) -> Unit,
+    onAncestrySelected: (String) -> Unit,
+    onHeritageSelected: (String) -> Unit,
+    onBackgroundSelected: (String) -> Unit,
+    onClassSelected: (String) -> Unit,
     onClassChoiceSelected: (ClassChoiceGroup, ClassChoice) -> Unit,
     onKeyAbilitySelected: (AbilityScore) -> Unit,
+    onFeatSelected: (String, String?) -> Unit,
     onSpellDcChange: (String) -> Unit,
     onSpellAttackChange: (String) -> Unit,
     onAcceptedSourcesChange: (Set<String>) -> Unit,
@@ -115,9 +118,13 @@ fun CharacterBuilderRoute(
             uiState = uiState,
             onNameChange = onNameChange,
             onLevelChange = onLevelChange,
+            onAncestrySelected = onAncestrySelected,
+            onHeritageSelected = onHeritageSelected,
+            onBackgroundSelected = onBackgroundSelected,
             onClassSelected = onClassSelected,
             onClassChoiceSelected = onClassChoiceSelected,
             onKeyAbilitySelected = onKeyAbilitySelected,
+            onFeatSelected = onFeatSelected,
             onSpellDcChange = onSpellDcChange,
             onSpellAttackChange = onSpellAttackChange,
             onAcceptedSourcesChange = onAcceptedSourcesChange,
@@ -163,9 +170,13 @@ private fun CharacterBuilderContent(
     uiState: CharacterBuilderUiState,
     onNameChange: (String) -> Unit,
     onLevelChange: (String) -> Unit,
-    onClassSelected: (CharacterClass) -> Unit,
+    onAncestrySelected: (String) -> Unit,
+    onHeritageSelected: (String) -> Unit,
+    onBackgroundSelected: (String) -> Unit,
+    onClassSelected: (String) -> Unit,
     onClassChoiceSelected: (ClassChoiceGroup, ClassChoice) -> Unit,
     onKeyAbilitySelected: (AbilityScore) -> Unit,
+    onFeatSelected: (String, String?) -> Unit,
     onSpellDcChange: (String) -> Unit,
     onSpellAttackChange: (String) -> Unit,
     onAcceptedSourcesChange: (Set<String>) -> Unit,
@@ -228,11 +239,27 @@ private fun CharacterBuilderContent(
                         onLevelChange = onLevelChange,
                     )
 
+                    CharacterBuilderSectionId.ANCESTRY_HERITAGE -> AncestryHeritageSection(
+                        uiState = uiState,
+                        onAncestrySelected = onAncestrySelected,
+                        onHeritageSelected = onHeritageSelected,
+                    )
+
+                    CharacterBuilderSectionId.BACKGROUND -> BackgroundSection(
+                        uiState = uiState,
+                        onBackgroundSelected = onBackgroundSelected,
+                    )
+
                     CharacterBuilderSectionId.CLASS_SPELLCASTING -> ClassSpellcastingSection(
                         uiState = uiState,
                         onClassSelected = onClassSelected,
                         onClassChoiceSelected = onClassChoiceSelected,
                         onKeyAbilitySelected = onKeyAbilitySelected,
+                    )
+
+                    CharacterBuilderSectionId.FEATS -> FeatsSection(
+                        uiState = uiState,
+                        onFeatSelected = onFeatSelected,
                     )
 
                     CharacterBuilderSectionId.CASTING_STATS -> CastingStatsSection(
@@ -368,11 +395,115 @@ private fun IdentitySection(
     )
 }
 
+@Composable
+private fun AncestryHeritageSection(
+    uiState: CharacterBuilderUiState,
+    onAncestrySelected: (String) -> Unit,
+    onHeritageSelected: (String) -> Unit,
+) {
+    var picker by remember { mutableStateOf<BuilderPickerKind?>(null) }
+    val selectedAncestry = uiState.selectedAncestryId
+        ?.let { id -> uiState.availableAncestries.firstOrNull { it.id == id } }
+    val selectedHeritage = uiState.selectedHeritageId
+        ?.let { id -> uiState.availableHeritages.firstOrNull { it.id == id } }
+
+    BuilderSelectionRow(
+        label = "Ancestry",
+        value = selectedAncestry?.name ?: "None selected",
+        onChoose = { picker = BuilderPickerKind.ANCESTRY },
+    )
+    BuilderSelectionRow(
+        label = "Heritage",
+        value = selectedHeritage?.name ?: if (selectedAncestry == null) "Choose ancestry first" else "None selected",
+        enabled = selectedAncestry != null,
+        onChoose = { picker = BuilderPickerKind.HERITAGE },
+    )
+    selectedAncestry?.let { ancestry ->
+        Text(
+            text = listOfNotNull(
+                ancestry.hp?.let { "HP $it" },
+                ancestry.size.ifBlank { null },
+                ancestry.traits.rarity.takeIf { it != "common" },
+            ).joinToString(" · ").ifBlank { ancestry.source.title.orEmpty() },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    BuilderWarnings(uiState.builderWarningLines)
+
+    when (picker) {
+        BuilderPickerKind.ANCESTRY -> BuilderPickerDialog(
+            title = "Choose Ancestry",
+            items = uiState.availableAncestries.map {
+                BuilderPickerItem(it.id, it.name, it.source.title.orEmpty())
+            },
+            onPick = { item ->
+                onAncestrySelected(item.id)
+                picker = null
+            },
+            onDismiss = { picker = null },
+        )
+
+        BuilderPickerKind.HERITAGE -> BuilderPickerDialog(
+            title = "Choose Heritage",
+            items = uiState.availableHeritages.map {
+                BuilderPickerItem(it.id, it.name, it.source.title.orEmpty())
+            },
+            onPick = { item ->
+                onHeritageSelected(item.id)
+                picker = null
+            },
+            onDismiss = { picker = null },
+        )
+
+        null -> Unit
+    }
+}
+
+@Composable
+private fun BackgroundSection(
+    uiState: CharacterBuilderUiState,
+    onBackgroundSelected: (String) -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    val selectedBackground = uiState.selectedBackgroundId
+        ?.let { id -> uiState.availableBackgrounds.firstOrNull { it.id == id } }
+    BuilderSelectionRow(
+        label = "Background",
+        value = selectedBackground?.name ?: "None selected",
+        onChoose = { showPicker = true },
+    )
+    selectedBackground?.let { background ->
+        Text(
+            text = listOf(
+                background.source.title.orEmpty(),
+                background.grants.mapNotNull { it.name }.take(2).joinToString(prefix = "Grants: "),
+            ).filter { it.isNotBlank() }.joinToString(" · "),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    BuilderWarnings(uiState.builderWarningLines)
+    if (showPicker) {
+        BuilderPickerDialog(
+            title = "Choose Background",
+            items = uiState.availableBackgrounds.map {
+                BuilderPickerItem(it.id, it.name, it.source.title.orEmpty())
+            },
+            onPick = { item ->
+                onBackgroundSelected(item.id)
+                showPicker = false
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ClassSpellcastingSection(
     uiState: CharacterBuilderUiState,
-    onClassSelected: (CharacterClass) -> Unit,
+    onClassSelected: (String) -> Unit,
     onClassChoiceSelected: (ClassChoiceGroup, ClassChoice) -> Unit,
     onKeyAbilitySelected: (AbilityScore) -> Unit,
 ) {
@@ -384,8 +515,8 @@ private fun ClassSpellcastingSection(
     ) {
         uiState.availableClasses.forEach { definition ->
             FilterChip(
-                selected = uiState.selectedClass == definition.characterClass,
-                onClick = { onClassSelected(definition.characterClass) },
+                selected = uiState.selectedClassId == definition.classId,
+                onClick = { onClassSelected(definition.classId) },
                 label = { Text(definition.label) },
             )
         }
@@ -415,7 +546,7 @@ private fun ClassSpellcastingSection(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         keyAbilityOptions(
-            characterClass = uiState.selectedClass,
+            classId = uiState.selectedClassId,
             classDefinitions = uiState.classDefinitionsByClass,
         ).forEach { ability ->
             FilterChip(
@@ -437,6 +568,75 @@ private fun ClassSpellcastingSection(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun FeatsSection(
+    uiState: CharacterBuilderUiState,
+    onFeatSelected: (String, String?) -> Unit,
+) {
+    if (uiState.expectedFeatSlots.isEmpty()) {
+        Text(
+            text = "No feat slots are expected at this level for the selected class.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+    var activeSlot by remember { mutableStateOf<BuilderFeatSlot?>(null) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        uiState.expectedFeatSlots.forEach { slot ->
+            val selectedFeatId = uiState.selectedFeatSlotOptions[slot.slotId]
+            val selectedFeat = selectedFeatId?.let(uiState.featIndexById::get)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = "Level ${slot.level} ${slot.kind.replaceFirstChar { it.uppercase() }} Feat",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = selectedFeat?.name ?: "No feat selected",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                TextButton(onClick = { activeSlot = slot }) {
+                    Text(if (selectedFeat == null) "Choose" else "Change")
+                }
+            }
+        }
+    }
+    BuilderWarnings(uiState.builderWarningLines)
+    activeSlot?.let { slot ->
+        val items = uiState.featCandidatesBySlotId[slot.slotId].orEmpty().map { feat ->
+            BuilderPickerItem(
+                id = feat.id,
+                label = feat.name,
+                subtitle = "Level ${feat.level} · ${feat.rarity}",
+            )
+        }
+        BuilderPickerDialog(
+            title = "Choose ${slot.kind.replaceFirstChar { it.uppercase() }} Feat",
+            items = items,
+            allowClear = true,
+            onClear = {
+                onFeatSelected(slot.slotId, null)
+                activeSlot = null
+            },
+            onPick = { item ->
+                onFeatSelected(slot.slotId, item.id)
+                activeSlot = null
+            },
+            onDismiss = { activeSlot = null },
+        )
     }
 }
 
@@ -851,6 +1051,143 @@ private fun SourceBookRow(
 }
 
 @Composable
+private fun BuilderSelectionRow(
+    label: String,
+    value: String,
+    enabled: Boolean = true,
+    onChoose: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        TextButton(
+            onClick = onChoose,
+            enabled = enabled,
+        ) {
+            Text("Choose")
+        }
+    }
+}
+
+@Composable
+private fun BuilderWarnings(lines: List<String>) {
+    if (lines.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        lines.take(4).forEach { line ->
+            Text(
+                text = line,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BuilderPickerDialog(
+    title: String,
+    items: List<BuilderPickerItem>,
+    allowClear: Boolean = false,
+    onClear: () -> Unit = {},
+    onPick: (BuilderPickerItem) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+    val filtered = remember(items, query) {
+        val normalized = query.trim()
+        if (normalized.isBlank()) {
+            items
+        } else {
+            items.filter { item ->
+                item.label.contains(normalized, ignoreCase = true) ||
+                    item.subtitle.contains(normalized, ignoreCase = true)
+            }
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("Search") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = screenHeightDp * 0.55f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    if (filtered.isEmpty()) {
+                        item("empty") {
+                            Text(
+                                text = "No matches.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    items(filtered, key = { it.id }) { item ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(role = Role.Button) { onPick(item) }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                text = item.label,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            if (item.subtitle.isNotBlank()) {
+                                Text(
+                                    text = item.subtitle,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        dismissButton = if (allowClear) {
+            {
+                TextButton(onClick = onClear) {
+                    Text("Clear")
+                }
+            }
+        } else {
+            null
+        },
+    )
+}
+
+@Composable
 private fun BuilderArchetypePickerDialog(
     available: List<ArchetypeSpellcastingPackage>,
     onPick: (ArchetypeSpellcastingPackage) -> Unit,
@@ -880,6 +1217,17 @@ private fun BuilderArchetypePickerDialog(
         },
     )
 }
+
+private enum class BuilderPickerKind {
+    ANCESTRY,
+    HERITAGE,
+}
+
+private data class BuilderPickerItem(
+    val id: String,
+    val label: String,
+    val subtitle: String,
+)
 
 @Composable
 private fun SectionLabel(text: String) {

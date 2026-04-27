@@ -4,9 +4,14 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.spellapp.core.model.AbilityScore
-import com.spellapp.core.model.CharacterClass
+import com.spellapp.core.model.CastingProgressionType
+import com.spellapp.core.model.CastingStyle
 import com.spellapp.core.model.CharacterProfile
+import com.spellapp.core.model.ClassSpellcastingDefinition
+import com.spellapp.core.model.InMemoryClassSpellcastingCatalogSource
 import com.spellapp.core.model.PreparedSlot
+import com.spellapp.core.model.PrimaryTrackDefinition
+import com.spellapp.core.model.SpellcastingTradition
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -39,6 +44,7 @@ class RoomCharacterRepositoryPersistenceTest {
             castingTrackDao = database.castingTrackDao(),
             focusStateDao = database.focusStateDao(),
             sessionEventDao = database.sessionEventDao(),
+            classSpellcastingCatalogSource = testSpellcastingCatalog(),
         )
         knownSpellRepository = RoomKnownSpellRepository(database.knownSpellDao())
     }
@@ -136,11 +142,36 @@ class RoomCharacterRepositoryPersistenceTest {
             id = id,
             name = name,
             level = 5,
-            characterClass = CharacterClass.WIZARD,
+            classId = "wizard",
             keyAbility = AbilityScore.INTELLIGENCE,
             spellDc = 22,
             spellAttackModifier = 12,
             legacyTerminologyEnabled = false,
         )
     }
+
+    private fun testSpellcastingCatalog() = InMemoryClassSpellcastingCatalogSource(
+        listOf(
+            ClassSpellcastingDefinition(
+                classId = "wizard",
+                label = "Wizard",
+                defaultKeyAbility = AbilityScore.INTELLIGENCE,
+                keyAbilityOptions = listOf(AbilityScore.INTELLIGENCE),
+                baseTradition = SpellcastingTradition.ARCANE,
+                primaryTracks = listOf(
+                    PrimaryTrackDefinition(
+                        trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+                        displayName = "Wizard Spellcasting",
+                        progressionType = CastingProgressionType.FULL_PREPARED,
+                        castingStyle = CastingStyle.PREPARED,
+                        tradition = SpellcastingTradition.ARCANE,
+                        slotProgressionKey = "full-prepared",
+                        slotsByLevel = mapOf(
+                            5 to mapOf(0 to 5, 1 to 3, 2 to 3, 3 to 2),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
 }

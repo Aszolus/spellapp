@@ -19,7 +19,9 @@ import com.spellapp.core.model.ClassSpellcastingCatalog
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
 import com.spellapp.feature.character.AssetArchetypeSpellcastingCatalogSource
+import com.spellapp.feature.character.AssetCharacterBuilderCatalogSource
 import com.spellapp.feature.character.AssetCharacterClassDefinitionSource
+import com.spellapp.feature.character.CharacterBuilderCatalogSource
 import com.spellapp.feature.character.CharacterClassDefinitionSource
 import com.spellapp.feature.spells.AssignPreparedSpellUseCase
 
@@ -80,6 +82,10 @@ class AppContainer(
         AssetArchetypeSpellcastingCatalogSource(appContext)
     }
 
+    val characterBuilderCatalogSource: CharacterBuilderCatalogSource by lazy {
+        AssetCharacterBuilderCatalogSource(appContext)
+    }
+
     val characterFeatureFactoryProvider: CharacterFeatureFactoryProvider by lazy {
         AppCharacterFeatureFactoryProvider(
             characterCrudRepository = characterRepository,
@@ -90,6 +96,7 @@ class AppContainer(
             castingTrackRepository = characterRepository,
             preparedSlotSyncRepository = characterRepository,
             classDefinitionSource = characterClassDefinitionSource,
+            characterBuilderCatalogSource = characterBuilderCatalogSource,
             archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
             classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )

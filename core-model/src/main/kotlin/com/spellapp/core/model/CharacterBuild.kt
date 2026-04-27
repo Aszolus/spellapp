@@ -26,5 +26,6 @@ enum class CharacterBuildOptionType {
     BACKGROUND,
     BACKGROUND_FEATURE,
     HERITAGE,
+    OVERRIDE,
     OTHER,
 }
