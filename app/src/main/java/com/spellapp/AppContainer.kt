@@ -117,6 +117,7 @@ class AppContainer(
             spellRepository = spellRepository,
             characterCrudRepository = characterRepository,
             characterBuildRepository = characterRepository,
+            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )
     }
 

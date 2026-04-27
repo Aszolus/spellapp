@@ -54,6 +54,8 @@ import com.spellapp.core.model.HeightenTrigger
 import com.spellapp.core.model.HeightenedEntry
 import com.spellapp.core.model.RulesReferenceKey
 import com.spellapp.core.model.RulesTextDocument
+import com.spellapp.core.model.SpellAllowancePolicy
+import com.spellapp.core.model.SpellAllowanceSummary
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
 import com.spellapp.core.model.heightenBonusDice
@@ -70,6 +72,11 @@ fun SpellListRoute(
     title: String = "Spell List",
     browserMode: SpellBrowserMode,
     knownSpellIds: Set<String>,
+    knownSpellStatuses: Map<String, KnownSpellStatus>,
+    signatureSpellIds: Set<String>,
+    canManageSignatureSpells: Boolean,
+    allKnownSpellsAreSignature: Boolean,
+    allowanceSummaries: List<SpellAllowanceSummary>,
     query: String,
     onQueryChange: (String) -> Unit,
     traitQuery: String,
@@ -94,6 +101,7 @@ fun SpellListRoute(
     onClearFilters: () -> Unit,
     onSpellClick: (String) -> Unit,
     onKnownSpellToggle: (String) -> Unit,
+    onSignatureSpellToggle: (String) -> Unit,
     onLearnAllKnownSpells: () -> Unit,
     onUnlearnAllKnownSpells: () -> Unit,
     onBack: (() -> Unit)? = null,
@@ -149,7 +157,9 @@ fun SpellListRoute(
         0
     }
     val removableSpellCount = if (isManageKnownSpells) {
-        spells.count { it.id in knownSpellIds }
+        spells.count { spell ->
+            spell.id in knownSpellIds && knownSpellStatuses[spell.id]?.isLocked != true
+        }
     } else {
         0
     }
@@ -264,6 +274,25 @@ fun SpellListRoute(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        if (isManageKnownSpells && allowanceSummaries.isNotEmpty()) {
+                            allowanceSummaries
+                                .filter { summary ->
+                                    summary.expected != 0 || summary.policy == SpellAllowancePolicy.ALL_KNOWN
+                                }
+                                .take(10)
+                                .forEach { summary ->
+                                    val warning = summary.warning
+                                    Text(
+                                        text = warning ?: formatAllowanceSummary(summary),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (warning != null) {
+                                            MaterialTheme.colorScheme.error
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                    )
+                                }
+                        }
                     }
                 }
             }
@@ -342,6 +371,10 @@ fun SpellListRoute(
                 val subtitle = remember(spell.id, spell.rank, spell.tradition) {
                     formatSpellSubtitle(spell.rank, spell.tradition)
                 }
+                val isKnown = isManageKnownSpells && spell.id in knownSpellIds
+                val knownStatus = knownSpellStatuses[spell.id]
+                val isLockedKnown = isKnown && knownStatus?.isLocked == true
+                val isSignature = spell.id in signatureSpellIds
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -370,20 +403,64 @@ fun SpellListRoute(
                             )
                         }
                         if (isManageKnownSpells) {
-                            val isKnown = spell.id in knownSpellIds
                             TextButton(
                                 onClick = { onKnownSpellToggle(spell.id) },
+                                enabled = !isLockedKnown,
                             ) {
-                                Text(if (isKnown) "Remove" else "Add")
+                                Text(
+                                    when {
+                                        isLockedKnown -> "Locked"
+                                        isKnown -> "Remove"
+                                        else -> "Add"
+                                    },
+                                )
                             }
                         }
                     }
-                    if (isManageKnownSpells && spell.id in knownSpellIds) {
-                        Text(
-                            text = "Known on this track",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                    if (isKnown) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                text = "Known on this track",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            knownStatus?.label?.let { label ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (knownStatus.isLocked) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
+                            }
+                            when {
+                                allKnownSpellsAreSignature -> {
+                                    Text(
+                                        text = "Signature spell",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+
+                                canManageSignatureSpells -> {
+                                    TextButton(
+                                        onClick = { onSignatureSpellToggle(spell.id) },
+                                        modifier = Modifier.heightIn(min = 32.dp),
+                                        contentPadding = PaddingValues(
+                                            horizontal = 8.dp,
+                                            vertical = 0.dp,
+                                        ),
+                                    ) {
+                                        Text(if (isSignature) "Unmark Signature" else "Mark Signature")
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 HorizontalDivider()
@@ -919,6 +996,18 @@ private fun formatSpellSubtitle(rank: Int, tradition: String): String {
         .filter { it.isNotEmpty() }
         .joinToString(", ") { it.replaceFirstChar { ch -> ch.uppercase() } }
     return if (traditions.isEmpty()) rankLabel else "$rankLabel | $traditions"
+}
+
+private fun formatAllowanceSummary(summary: SpellAllowanceSummary): String {
+    val expected = summary.expected
+    return when {
+        summary.policy == SpellAllowancePolicy.ALL_KNOWN -> summary.note ?: "All known spells are signature."
+        expected == null -> "${summary.label}: ${summary.actual}"
+        summary.policy == SpellAllowancePolicy.MINIMUM -> "${summary.label}: ${summary.actual} known, minimum $expected"
+        summary.rank == null -> "${summary.label}: ${summary.actual}/$expected"
+        summary.rank == 0 -> "${summary.label} cantrips: ${summary.actual}/$expected"
+        else -> "${summary.label} rank ${summary.rank}: ${summary.actual}/$expected"
+    }
 }
 
 internal data class SpellLookupDialogState(

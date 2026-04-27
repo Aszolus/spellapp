@@ -14,6 +14,9 @@ import com.spellapp.core.model.EmptyClassSpellcastingCatalogSource
 import com.spellapp.core.model.InMemoryClassSpellcastingCatalogSource
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.PrimaryTrackDefinition
+import com.spellapp.core.model.SpellAllowanceKind
+import com.spellapp.core.model.SpellAllowancePolicy
+import com.spellapp.core.model.SpellAllowanceRule
 import com.spellapp.core.model.SpellcastingTradition
 import org.json.JSONArray
 import org.json.JSONObject
@@ -88,9 +91,33 @@ object ClassSpellcastingCatalogJsonParser {
                 tradition = parseNullableEnum<SpellcastingTradition>(entry, "tradition"),
                 slotProgressionKey = entry.optString("slotProgressionKey"),
                 slotsByLevel = parseSlotsByLevel(entry.optJSONObject("slotsByLevel")),
+                allowanceRules = parseAllowanceRules(entry.optJSONArray("allowanceRules")),
             )
         }
         return tracks
+    }
+
+    private fun parseAllowanceRules(raw: JSONArray?): List<SpellAllowanceRule> {
+        if (raw == null) {
+            return emptyList()
+        }
+        val rules = mutableListOf<SpellAllowanceRule>()
+        for (index in 0 until raw.length()) {
+            val entry = raw.optJSONObject(index) ?: continue
+            rules += SpellAllowanceRule(
+                trackKey = entry.optString("trackKey").ifBlank { PreparedSlot.PRIMARY_TRACK_KEY },
+                kind = parseEnum<SpellAllowanceKind>(entry.optString("kind"))
+                    ?: SpellAllowanceKind.PREPARED_SLOTS,
+                label = entry.optString("label"),
+                policy = parseEnum<SpellAllowancePolicy>(entry.optString("policy"))
+                    ?: SpellAllowancePolicy.WARNING_ONLY,
+                countsByLevel = parseSlotsByLevel(entry.optJSONObject("countsByLevel")),
+                totalsByLevel = parseTotalsByLevel(entry.optJSONObject("totalsByLevel")),
+                source = entry.optString("source").ifBlank { null },
+                note = entry.optString("note").ifBlank { null },
+            )
+        }
+        return rules
     }
 
     private fun parseChoiceGroups(raw: JSONArray?): List<ClassChoiceGroup> {
@@ -145,6 +172,18 @@ object ClassSpellcastingCatalogJsonParser {
             levels[levelKey.toIntOrNull() ?: return@forEach] = ranks
         }
         return levels
+    }
+
+    private fun parseTotalsByLevel(raw: JSONObject?): Map<Int, Int> {
+        if (raw == null) {
+            return emptyMap()
+        }
+        val totals = linkedMapOf<Int, Int>()
+        raw.keys().forEach { levelKey ->
+            val level = levelKey.toIntOrNull() ?: return@forEach
+            totals[level] = raw.optInt(levelKey)
+        }
+        return totals
     }
 
     private fun parseStringArray(raw: JSONArray?): List<String> {

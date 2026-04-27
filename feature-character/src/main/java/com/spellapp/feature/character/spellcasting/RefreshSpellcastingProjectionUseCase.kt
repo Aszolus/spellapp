@@ -7,6 +7,7 @@ import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
+import com.spellapp.feature.character.ArchetypeSpellcastingPackage
 
 class RefreshSpellcastingProjectionUseCase(
     private val castingTrackRepository: CastingTrackRepository,
@@ -21,16 +22,26 @@ class RefreshSpellcastingProjectionUseCase(
         isNewCharacter: Boolean,
         reconcileArchetypeTracks: Boolean,
     ) {
-        if (reconcileArchetypeTracks) {
+        val selectedPreparedArchetypes = if (reconcileArchetypeTracks) {
             reconcileArchetypeTracks(
                 characterId = character.id,
                 selectedBuildOptionIds = selectedBuildOptionIds,
             )
+        } else {
+            emptyList()
         }
         if (isNewCharacter) {
             knownSpellsSeeder.seedForCharacter(
                 character = character,
                 selectedBuildOptionIds = selectedBuildOptionIds,
+                acceptedSourceBooks = acceptedSourceBooks,
+            )
+        }
+        selectedPreparedArchetypes.forEach { packageDef ->
+            knownSpellsSeeder.seedPreparedArchetypeTrack(
+                characterId = character.id,
+                trackKey = trackKeyForArchetype(packageDef.archetypeId),
+                archetypeClassId = packageDef.archetypeId,
                 acceptedSourceBooks = acceptedSourceBooks,
             )
         }
@@ -40,7 +51,7 @@ class RefreshSpellcastingProjectionUseCase(
     private suspend fun reconcileArchetypeTracks(
         characterId: Long,
         selectedBuildOptionIds: Set<String>,
-    ) {
+    ): List<ArchetypeSpellcastingPackage> {
         val existingArchetypeTracks = castingTrackRepository.getCastingTracks(characterId)
             .filter { it.sourceType == CastingTrackSourceType.ARCHETYPE }
         val selectedArchetypes = archetypeSpellcastingCatalogSource.phaseOnePackages()
@@ -67,11 +78,13 @@ class RefreshSpellcastingProjectionUseCase(
                     characterId = characterId,
                     trackKey = trackKey,
                     sourceType = CastingTrackSourceType.ARCHETYPE,
-                    sourceId = packageDef.label,
+                    sourceId = packageDef.archetypeId,
                     progressionType = CastingProgressionType.ARCHETYPE_PREPARED,
+                    displayName = packageDef.label,
                 ),
             )
         }
+        return selectedArchetypes
     }
 
     private fun trackKeyForArchetype(archetypeId: String): String {

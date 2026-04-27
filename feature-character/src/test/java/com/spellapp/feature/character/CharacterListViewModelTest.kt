@@ -134,9 +134,10 @@ class CharacterListViewModelTest {
         val archetypeTracks = castingTrackRepository.getCastingTracks(existingCharacterId)
             .filter { it.sourceType == CastingTrackSourceType.ARCHETYPE }
         val archetypeLabels = archetypeTracks
-            .map { it.sourceId }
+            .map { it.displayName }
             .toSet()
         assertEquals(setOf("Wizard", "Cleric"), archetypeLabels)
+        assertEquals(setOf("wizard", "cleric"), archetypeTracks.map { it.sourceId }.toSet())
         assertTrue(archetypeTracks.all { it.progressionType == CastingProgressionType.ARCHETYPE_PREPARED })
         assertEquals(2, archetypeTracks.size)
         assertEquals(listOf(existingCharacterId), preparedSlotSyncRepository.syncedCharacterIds)
@@ -275,7 +276,8 @@ class CharacterListViewModelTest {
         val tracks = castingTrackRepository.getCastingTracks(existingCharacterId)
             .filter { it.sourceType == CastingTrackSourceType.ARCHETYPE }
         assertEquals(1, tracks.size)
-        assertEquals("Wizard", tracks.first().sourceId)
+        assertEquals("wizard", tracks.first().sourceId)
+        assertEquals("Wizard", tracks.first().displayName)
         assertEquals(
             listOf(existingCharacterId, existingCharacterId),
             preparedSlotSyncRepository.syncedCharacterIds,
@@ -387,6 +389,54 @@ class CharacterListViewModelTest {
         val savedCharacterId = characterCrudRepository.observeCharacters().first().single().id
         assertEquals(setOf("Player Core"), acceptedSpellSourceRepository.getAcceptedSources(savedCharacterId))
         assertEquals(setOf("heal"), knownSpellRepository.getKnownSpellIds(savedCharacterId))
+    }
+
+    @Test
+    fun saveCharacter_addingPreparedArchetype_seedsKnownSpellsForArchetypeTrack() = runTest {
+        val characterCrudRepository = FakeCharacterCrudRepository()
+        val knownSpellRepository = FakeKnownSpellRepository()
+        val spellRepository = FakeSpellRepository(
+            availableSources = listOf("Player Core", "Gods & Magic"),
+            spells = listOf(
+                spell(id = "force-barrage", tradition = "arcane", rarity = "common", sourceBook = "Player Core"),
+                spell(id = "private-sanctum", tradition = "arcane", rarity = "common", sourceBook = "Gods & Magic"),
+                spell(id = "heal", tradition = "divine", rarity = "common", sourceBook = "Player Core"),
+            ),
+        )
+        val viewModel = createViewModel(
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = FakeCharacterBuildRepository(),
+            castingTrackRepository = FakeCastingTrackRepository(),
+            preparedSlotSyncRepository = FakePreparedSlotSyncRepository(),
+            knownSpellRepository = knownSpellRepository,
+            spellRepository = spellRepository,
+        )
+        val existingId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 51L))
+
+        viewModel.saveCharacter(
+            character = sampleCharacter(id = existingId),
+            selectedBuildOptionIds = setOf(
+                "archetype/wizard/wizard-dedication",
+                "archetype/wizard/basic-wizard-spellcasting",
+            ),
+            acceptedSourceBooks = setOf("Player Core"),
+        )
+        advanceUntilIdle()
+
+        assertEquals(
+            setOf("force-barrage"),
+            knownSpellRepository.getKnownSpellIds(
+                characterId = existingId,
+                trackKey = "archetype-wizard",
+            ),
+        )
+        assertEquals(
+            emptySet<String>(),
+            knownSpellRepository.getKnownSpellIds(
+                characterId = existingId,
+                trackKey = "primary",
+            ),
+        )
     }
 
     @Test
@@ -753,6 +803,15 @@ private class FakeKnownSpellRepository : KnownSpellRepository {
 
     fun getKnownSpellIds(characterId: Long): Set<String> {
         return knownSpellsByCharacter[characterId]?.value?.map { it.spellId }?.toSet().orEmpty()
+    }
+
+    fun getKnownSpellIds(characterId: Long, trackKey: String): Set<String> {
+        return knownSpellsByCharacter[characterId]
+            ?.value
+            ?.filter { it.trackKey == trackKey }
+            ?.map { it.spellId }
+            ?.toSet()
+            .orEmpty()
     }
 }
 

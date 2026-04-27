@@ -5,6 +5,10 @@ import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.ClassSpellcastingCatalog
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
+import com.spellapp.core.model.SpellAllowanceKind
+import com.spellapp.core.model.SpellAllowancePolicy
+import com.spellapp.core.model.countsAtLevel
+import com.spellapp.core.model.totalAtLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -94,6 +98,26 @@ class DefaultSlotProgressionEngineTest {
             .map { track -> track.slotProgressionKey }
 
         assertTrue(progressionKeys.none { key -> key in classIds })
+    }
+
+    @Test
+    fun classCatalog_parsesSpellAllowanceRules() {
+        val sorcererRepertoire = allowanceRule("sorcerer", SpellAllowanceKind.REPERTOIRE)
+        assertEquals(SpellAllowancePolicy.CAP, sorcererRepertoire.policy)
+        assertEquals(slots(0 to 5, 1 to 3), sorcererRepertoire.countsAtLevel(1))
+        assertEquals(slots(0 to 5, 1 to 4, 2 to 4, 3 to 3), sorcererRepertoire.countsAtLevel(5))
+
+        val psychicRepertoire = allowanceRule("psychic", SpellAllowanceKind.REPERTOIRE)
+        assertEquals(slots(0 to 5, 1 to 2), psychicRepertoire.countsAtLevel(1))
+        assertEquals(slots(0 to 5, 1 to 3, 2 to 3, 3 to 2), psychicRepertoire.countsAtLevel(5))
+
+        val wizardSpellbook = allowanceRule("wizard", SpellAllowanceKind.SPELLBOOK_MINIMUM)
+        assertEquals(SpellAllowancePolicy.MINIMUM, wizardSpellbook.policy)
+        assertEquals(slots(0 to 10, 1 to 5), wizardSpellbook.countsAtLevel(1))
+        assertEquals(23, wizardSpellbook.totalAtLevel(5))
+
+        val summonerSignatures = allowanceRule("summoner", SpellAllowanceKind.SIGNATURE_SPELLS)
+        assertEquals(SpellAllowancePolicy.ALL_KNOWN, summonerSignatures.policy)
     }
 
     @Test
@@ -287,6 +311,17 @@ class DefaultSlotProgressionEngineTest {
             progressionType = CastingProgressionType.ARCHETYPE_PREPARED,
         )
     }
+
+    private fun allowanceRule(
+        classId: String,
+        kind: SpellAllowanceKind,
+        trackKey: String = "primary",
+    ) = ClassSpellcastingCatalog.allDefinitions()
+        .first { definition -> definition.classId == classId }
+        .primaryTracks
+        .first { track -> track.trackKey == trackKey }
+        .allowanceRules
+        .first { rule -> rule.kind == kind }
 
     private fun slots(vararg entries: Pair<Int, Int>): Map<Int, Int> = mapOf(*entries)
 

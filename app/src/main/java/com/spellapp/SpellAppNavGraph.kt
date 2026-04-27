@@ -164,12 +164,14 @@ private fun NavGraphBuilder.preparedSlotsDestination(
             onNewDayPreparation = preparedSlotsViewModel::newDayPreparation,
             onPrepareRandom = preparedSlotsViewModel::prepareRandom,
             onUndoLastCast = preparedSlotsViewModel::undoLastCast,
-            onManageKnownSpells = { trackKey, preferredTradition, trackSourceId ->
+            onManageKnownSpells = { trackKey, preferredTradition, trackSourceId, initialRank ->
                 navigationViewModel.manageKnownSpells(
                     characterId = characterId,
                     trackKey = trackKey,
+                    characterLevel = uiState.characterLevel,
                     preferredTradition = preferredTradition,
                     trackSourceId = trackSourceId,
+                    initialRank = initialRank,
                 )
                 navController.navigate(AppDestinations.SpellList.route)
             },
@@ -238,6 +240,11 @@ private fun NavGraphBuilder.spellListDestination(
             ),
             browserMode = spellListUiState.browserMode,
             knownSpellIds = spellListUiState.knownSpellIds,
+            knownSpellStatuses = spellListUiState.knownSpellStatuses,
+            signatureSpellIds = spellListUiState.signatureSpellIds,
+            canManageSignatureSpells = spellListUiState.canManageSignatureSpells,
+            allKnownSpellsAreSignature = spellListUiState.allKnownSpellsAreSignature,
+            allowanceSummaries = spellListUiState.allowanceSummaries,
             query = spellListUiState.queryInput,
             onQueryChange = spellListViewModel::onQueryChange,
             traitQuery = spellListUiState.traitQueryInput,
@@ -268,6 +275,7 @@ private fun NavGraphBuilder.spellListDestination(
                 }
             },
             onKnownSpellToggle = spellListViewModel::toggleKnownSpell,
+            onSignatureSpellToggle = spellListViewModel::toggleSignatureSpell,
             onLearnAllKnownSpells = spellListViewModel::learnAllVisibleSpells,
             onUnlearnAllKnownSpells = spellListViewModel::unlearnAllVisibleSpells,
             onBack = {

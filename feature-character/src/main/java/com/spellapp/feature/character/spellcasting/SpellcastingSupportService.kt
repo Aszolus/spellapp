@@ -78,6 +78,11 @@ class SpellcastingSupportService(
                     rank = detail.rank,
                     castTime = detail.castTime,
                     range = detail.range,
+                    area = detail.area,
+                    target = detail.target,
+                    defense = detail.defense,
+                    duration = detail.duration,
+                    description = detail.description,
                     traits = detail.traits,
                     heightenedEntries = detail.heightenedEntries,
                 )

@@ -77,6 +77,30 @@ class RoomKnownSpellRepository(
         ) > 0
     }
 
+    override suspend fun setSignatureSpell(
+        characterId: Long,
+        trackKey: String,
+        spellId: String,
+        isSignature: Boolean,
+        knownRank: Int?,
+    ): Boolean {
+        if (knownRank != null) {
+            return dao.updateSignatureByCharacterTrackSpellAndRank(
+                characterId = characterId,
+                trackKey = trackKey,
+                spellId = spellId,
+                knownRank = knownRank.toEntityRank(),
+                isSignature = isSignature,
+            ) > 0
+        }
+        return dao.updateSignatureByCharacterTrackAndSpell(
+            characterId = characterId,
+            trackKey = trackKey,
+            spellId = spellId,
+            isSignature = isSignature,
+        ) > 0
+    }
+
     override suspend fun isKnownSpell(
         characterId: Long,
         trackKey: String,

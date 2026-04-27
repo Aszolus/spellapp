@@ -100,4 +100,38 @@ interface KnownSpellDao {
         spellId: String,
         knownRank: Int,
     ): Int
+
+    @Query(
+        """
+        UPDATE known_spells
+        SET isSignature = :isSignature
+        WHERE characterId = :characterId
+          AND trackKey = :trackKey
+          AND spellId = :spellId
+        """,
+    )
+    suspend fun updateSignatureByCharacterTrackAndSpell(
+        characterId: Long,
+        trackKey: String,
+        spellId: String,
+        isSignature: Boolean,
+    ): Int
+
+    @Query(
+        """
+        UPDATE known_spells
+        SET isSignature = :isSignature
+        WHERE characterId = :characterId
+          AND trackKey = :trackKey
+          AND spellId = :spellId
+          AND knownRank = :knownRank
+        """,
+    )
+    suspend fun updateSignatureByCharacterTrackSpellAndRank(
+        characterId: Long,
+        trackKey: String,
+        spellId: String,
+        knownRank: Int,
+        isSignature: Boolean,
+    ): Int
 }

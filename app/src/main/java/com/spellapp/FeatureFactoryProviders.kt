@@ -93,6 +93,7 @@ class AppSpellCatalogFeatureFactoryProvider(
                 spellRepository = spellRepository,
                 warningPolicy = DefaultKnownSpellWarningPolicy(classSpellcastingCatalogSource),
             ),
+            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )
     }
 
@@ -120,6 +121,7 @@ class AppPreparedCastingFeatureFactoryProvider(
     private val spellRepository: SpellRepository,
     private val characterCrudRepository: CharacterCrudRepository,
     private val characterBuildRepository: CharacterBuildRepository,
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource,
 ) : PreparedCastingFeatureFactoryProvider {
     override fun preparedSlotsFactory(characterId: Long): ViewModelProvider.Factory {
         return PreparedSlotsViewModelFactory(
@@ -133,6 +135,7 @@ class AppPreparedCastingFeatureFactoryProvider(
             spellRepository = spellRepository,
             characterCrudRepository = characterCrudRepository,
             characterBuildRepository = characterBuildRepository,
+            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )
     }
 }

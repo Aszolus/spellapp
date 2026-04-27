@@ -14,10 +14,18 @@ import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CastingStyle
 import com.spellapp.core.model.CastingTrack
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
+import com.spellapp.core.model.EmptyClassSpellcastingCatalogSource
+import com.spellapp.core.model.HeightenedEntry
 import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEventType
+import com.spellapp.core.model.SpellAllowanceKind
+import com.spellapp.core.model.SpellAllowancePolicy
+import com.spellapp.core.model.SpellAllowanceSummary
 import com.spellapp.core.model.SpellSlotSummary
+import com.spellapp.core.model.allowanceRulesForTrack
+import com.spellapp.core.model.buildSpellAllowanceSummaries
 import com.spellapp.core.model.effectiveCantripRank
 import com.spellapp.core.model.preferredSpellTradition
 import com.spellapp.feature.character.spellcasting.CastLayOnHandsUseCase
@@ -46,6 +54,7 @@ data class PreparedSlotsUiState(
     val allSlots: List<PreparedSlot> = emptyList(),
     val knownSpellSummaries: List<SpellSlotSummary> = emptyList(),
     val knownSpellCastingSummaries: List<KnownSpellCastingSummary> = emptyList(),
+    val allowanceSummaries: List<SpellAllowanceSummary> = emptyList(),
     val spellSummaryById: Map<String, SpellSlotSummary> = emptyMap(),
     val focusCurrentPoints: Int = 0,
     val focusMaxPoints: Int = 1,
@@ -61,9 +70,16 @@ data class KnownSpellCastingSummary(
     val baseRank: Int,
     val knownRank: Int,
     val isSignature: Boolean,
+    val signatureLabel: String? = null,
     val castTime: String,
     val range: String,
+    val area: String = "",
+    val target: String = "",
+    val defense: String = "",
+    val duration: String = "",
+    val description: String = "",
     val traits: List<String>,
+    val heightenedEntries: List<HeightenedEntry> = emptyList(),
 ) {
     fun canUseSlotRank(slotRank: Int): Boolean {
         return knownSpellCanUseSlotRank(
@@ -110,6 +126,8 @@ class PreparedSlotsViewModel(
     private val preparedSlotsService: PreparedSlotsService,
     private val spellcastingSupportService: SpellcastingSupportService,
     private val castLayOnHandsUseCase: CastLayOnHandsUseCase,
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource =
+        EmptyClassSpellcastingCatalogSource,
 ) : ViewModel() {
     private val selectedTrackKey = MutableStateFlow(PreparedSlot.PRIMARY_TRACK_KEY)
     private val characterProfile = MutableStateFlow(
@@ -248,6 +266,19 @@ class PreparedSlotsViewModel(
         eventContext,
         uiMetaContext,
     ) { slots, events, meta ->
+        val selectedTrack = slots.castingTracks
+            .firstOrNull { track -> track.trackKey == slots.selectedTrackKey }
+        val knownSpellBaseRanksById = events.spellSummaryById.mapValues { (_, summary) -> summary.rank }
+        val allowanceRules = selectedTrack?.let { track ->
+            classSpellcastingCatalogSource.allowanceRulesForTrack(
+                trackKey = track.trackKey,
+                sourceId = track.sourceId,
+            )
+        }.orEmpty()
+        val treatsAllKnownSpellsAsSignature = allowanceRules.any { rule ->
+            rule.kind == SpellAllowanceKind.SIGNATURE_SPELLS &&
+                rule.policy == SpellAllowancePolicy.ALL_KNOWN
+        }
         PreparedSlotsUiState(
             characterName = meta.characterName,
             characterLevel = meta.characterLevel,
@@ -280,14 +311,32 @@ class PreparedSlotsViewModel(
                         name = summary.name,
                         baseRank = summary.rank,
                         knownRank = knownSpell.knownRank ?: summary.rank,
-                        isSignature = knownSpell.isSignature,
+                        isSignature = knownSpell.isSignature || treatsAllKnownSpellsAsSignature,
+                        signatureLabel = signatureLabelForKnownSpell(
+                            baseRank = summary.rank,
+                            isExplicitSignature = knownSpell.isSignature,
+                            treatsAllKnownSpellsAsSignature = treatsAllKnownSpellsAsSignature,
+                        ),
                         castTime = summary.castTime,
                         range = summary.range,
+                        area = summary.area,
+                        target = summary.target,
+                        defense = summary.defense,
+                        duration = summary.duration,
+                        description = summary.description,
                         traits = summary.traits,
+                        heightenedEntries = summary.heightenedEntries,
                     )
                 }
             }.sortedWith(
                 compareBy<KnownSpellCastingSummary> { it.knownRank }.thenBy { it.name },
+            ),
+            allowanceSummaries = buildSpellAllowanceSummaries(
+                rules = allowanceRules,
+                characterLevel = meta.characterLevel,
+                knownSpells = slots.knownSpells,
+                knownSpellBaseRanksById = knownSpellBaseRanksById,
+                preparedSlots = slots.allSlots,
             ),
             spellSummaryById = events.spellSummaryById,
             focusCurrentPoints = meta.focusCurrentPoints,
@@ -448,13 +497,14 @@ class PreparedSlotsViewModel(
         slotRank: Int,
     ): PreparedSlot? {
         val summary = spellSummaryById.value[spellId] ?: return null
+        val treatsAllKnownSpellsAsSignature = activeTrackTreatsAllKnownSpellsAsSignature()
         val hasCompatibleKnownSpell = knownSpells.value
             .filter { knownSpell -> knownSpell.spellId == spellId }
             .any { knownSpell ->
                 knownSpellCanUseSlotRank(
                     baseRank = summary.rank,
                     knownRank = knownSpell.knownRank ?: summary.rank,
-                    isSignature = knownSpell.isSignature,
+                    isSignature = knownSpell.isSignature || treatsAllKnownSpellsAsSignature,
                     slotRank = slotRank,
                 )
             }
@@ -468,6 +518,34 @@ class PreparedSlotsViewModel(
             .filter { slot -> slot.rank == 0 || !slot.isExpended }
             .sortedBy { it.slotIndex }
             .firstOrNull()
+    }
+
+    private fun activeTrackTreatsAllKnownSpellsAsSignature(): Boolean {
+        val trackKey = activeTrackKey.value
+        val track = castingTracks.value.firstOrNull { candidate -> candidate.trackKey == trackKey }
+            ?: return false
+        return classSpellcastingCatalogSource.allowanceRulesForTrack(
+            trackKey = track.trackKey,
+            sourceId = track.sourceId,
+        ).any { rule ->
+            rule.kind == SpellAllowanceKind.SIGNATURE_SPELLS &&
+                rule.policy == SpellAllowancePolicy.ALL_KNOWN
+        }
+    }
+}
+
+private fun signatureLabelForKnownSpell(
+    baseRank: Int,
+    isExplicitSignature: Boolean,
+    treatsAllKnownSpellsAsSignature: Boolean,
+): String? {
+    if (baseRank == 0) {
+        return null
+    }
+    return when {
+        treatsAllKnownSpellsAsSignature -> "Always signature"
+        isExplicitSignature -> "Signature"
+        else -> null
     }
 }
 
@@ -496,6 +574,8 @@ class PreparedSlotsViewModelFactory(
     private val spellRepository: SpellRepository,
     private val characterCrudRepository: CharacterCrudRepository,
     private val characterBuildRepository: CharacterBuildRepository,
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource =
+        EmptyClassSpellcastingCatalogSource,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -532,6 +612,7 @@ class PreparedSlotsViewModelFactory(
             preparedSlotsService = preparedSlotsService,
             spellcastingSupportService = spellcastingSupportService,
             castLayOnHandsUseCase = castLayOnHandsUseCase,
+            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         ) as T
     }
 }

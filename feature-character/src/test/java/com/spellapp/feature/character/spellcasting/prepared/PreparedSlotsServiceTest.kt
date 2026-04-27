@@ -10,7 +10,9 @@ import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.AbilityScore
+import com.spellapp.core.model.CastingProgressionType
 import com.spellapp.core.model.CastingTrack
+import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.CharacterBuildIdentity
 import com.spellapp.core.model.CharacterBuildOption
 import com.spellapp.core.model.CharacterBuildOptionType
@@ -279,6 +281,58 @@ class PreparedSlotsServiceTest {
     }
 
     @Test
+    fun prepareRandom_usesSelectedArchetypeTrackKnownSpellsAndSlots() = runTest {
+        val archetypeTrackKey = "archetype-wizard"
+        val fixture = fixture(
+            slots = emptyList(),
+            spells = listOf(
+                spell(id = "primary-spell", rank = 1),
+                spell(id = "archetype-spell", rank = 1),
+            ),
+            details = mapOf(
+                "primary-spell" to detail(id = "primary-spell", rank = 1),
+                "archetype-spell" to detail(id = "archetype-spell", rank = 1),
+            ),
+            slotsByTrack = mapOf(
+                PreparedSlot.PRIMARY_TRACK_KEY to listOf(emptySlot(rank = 1)),
+                archetypeTrackKey to listOf(emptySlot(rank = 1)),
+            ),
+            knownSpellIdsByTrack = mapOf(
+                PreparedSlot.PRIMARY_TRACK_KEY to setOf("primary-spell"),
+                archetypeTrackKey to setOf("archetype-spell"),
+            ),
+            tracks = listOf(
+                CastingTrack(
+                    characterId = CHARACTER_ID,
+                    trackKey = archetypeTrackKey,
+                    sourceType = CastingTrackSourceType.ARCHETYPE,
+                    sourceId = "wizard",
+                    progressionType = CastingProgressionType.ARCHETYPE_PREPARED,
+                    tradition = SpellcastingTradition.ARCANE,
+                ),
+            ),
+        )
+
+        fixture.service.prepareRandom(characterId = CHARACTER_ID, trackKey = archetypeTrackKey)
+
+        assertNull(
+            fixture.preparedSlotRepository.preparedSpellIdFor(
+                rank = 1,
+                slotIndex = 0,
+                trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+            ),
+        )
+        assertEquals(
+            "archetype-spell",
+            fixture.preparedSlotRepository.preparedSpellIdFor(
+                rank = 1,
+                slotIndex = 0,
+                trackKey = archetypeTrackKey,
+            ),
+        )
+    }
+
+    @Test
     fun prepareRandom_prefers_track_tradition_when_available() = runTest {
         val fixture = fixture(
             slots = listOf(emptySlot(rank = 1)),
@@ -339,16 +393,22 @@ class PreparedSlotsServiceTest {
         spells: List<SpellListItem>,
         details: Map<String, SpellDetail>,
         knownSpellIds: Set<String> = spells.map { it.id }.toSet(),
+        slotsByTrack: Map<String, List<PreparedSlot>> = mapOf(
+            PreparedSlot.PRIMARY_TRACK_KEY to slots,
+        ),
+        knownSpellIdsByTrack: Map<String, Set<String>> = mapOf(
+            PreparedSlot.PRIMARY_TRACK_KEY to knownSpellIds,
+        ),
         tracks: List<CastingTrack> = emptyList(),
     ): TestFixture {
         val preparedSlotRepository = FakePreparedSlotRepository(
-            slotsByTrack = mapOf(
-                PreparedSlot.PRIMARY_TRACK_KEY to slots.map { slot ->
-                    slot.copy(trackKey = PreparedSlot.PRIMARY_TRACK_KEY, characterId = CHARACTER_ID)
-                },
-            ),
+            slotsByTrack = slotsByTrack.mapValues { (trackKey, trackSlots) ->
+                trackSlots.map { slot ->
+                    slot.copy(trackKey = trackKey, characterId = CHARACTER_ID)
+                }
+            },
         )
-        val knownSpellRepository = FakeKnownSpellRepository(knownSpellIds = knownSpellIds)
+        val knownSpellRepository = FakeKnownSpellRepository(knownSpellIdsByTrack = knownSpellIdsByTrack)
         val spellRepository = FakeSpellRepository(
             spells = spells,
             detailsById = details,
@@ -471,8 +531,12 @@ class PreparedSlotsServiceTest {
 
         override suspend fun undoLastCast(characterId: Long, trackKey: String?): Boolean = false
 
-        fun preparedSpellIdFor(rank: Int, slotIndex: Int): String? {
-            return slotsByTrack[PreparedSlot.PRIMARY_TRACK_KEY]
+        fun preparedSpellIdFor(
+            rank: Int,
+            slotIndex: Int,
+            trackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
+        ): String? {
+            return slotsByTrack[trackKey]
                 ?.value
                 ?.firstOrNull { slot -> slot.rank == rank && slot.slotIndex == slotIndex }
                 ?.preparedSpellId
@@ -539,25 +603,35 @@ class PreparedSlotsServiceTest {
     }
 
     private class FakeKnownSpellRepository(
-        knownSpellIds: Set<String>,
+        knownSpellIdsByTrack: Map<String, Set<String>>,
     ) : KnownSpellRepository {
         private val knownSpells = MutableStateFlow(
-            knownSpellIds.mapIndexed { index, spellId ->
+            knownSpellIdsByTrack.flatMap { (trackKey, spellIds) ->
+                spellIds.map { spellId ->
+                    trackKey to spellId
+                }
+            }.mapIndexed { index, (trackKey, spellId) ->
                 KnownSpell(
                     id = index + 1L,
                     characterId = CHARACTER_ID,
-                    trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+                    trackKey = trackKey,
                     spellId = spellId,
                 )
-            }
+            },
         )
 
         override fun observeKnownSpells(characterId: Long, trackKey: String): Flow<List<KnownSpell>> {
-            return knownSpells
+            return knownSpells.map { spells ->
+                spells.filter { knownSpell ->
+                    knownSpell.characterId == characterId && knownSpell.trackKey == trackKey
+                }
+            }
         }
 
         override fun observeKnownSpellIds(characterId: Long, trackKey: String): Flow<Set<String>> {
-            return knownSpells.map { spells -> spells.map { it.spellId }.toSet() }
+            return observeKnownSpells(characterId, trackKey).map { spells ->
+                spells.map { it.spellId }.toSet()
+            }
         }
 
         override suspend fun addKnownSpell(
@@ -589,7 +663,12 @@ class PreparedSlotsServiceTest {
             spellId: String,
             knownRank: Int?,
         ): Boolean {
-            val updated = knownSpells.value.filterNot { it.spellId == spellId }
+            val updated = knownSpells.value.filterNot {
+                it.characterId == characterId &&
+                    it.trackKey == trackKey &&
+                    it.spellId == spellId &&
+                    (knownRank == null || it.knownRank == knownRank)
+            }
             val removed = updated.size != knownSpells.value.size
             knownSpells.value = updated
             return removed
@@ -601,7 +680,12 @@ class PreparedSlotsServiceTest {
             spellId: String,
             knownRank: Int?,
         ): Boolean {
-            return knownSpells.value.any { it.spellId == spellId && (knownRank == null || it.knownRank == knownRank) }
+            return knownSpells.value.any {
+                it.characterId == characterId &&
+                    it.trackKey == trackKey &&
+                    it.spellId == spellId &&
+                    (knownRank == null || it.knownRank == knownRank)
+            }
         }
     }
 

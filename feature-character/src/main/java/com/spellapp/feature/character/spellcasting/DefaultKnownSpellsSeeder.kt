@@ -4,6 +4,7 @@ import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CastingStyle
 import com.spellapp.core.model.CharacterProfile
+import com.spellapp.core.model.ClassSpellcastingCatalog
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.EmptyClassSpellcastingCatalogSource
 import com.spellapp.core.model.KnownSpellOrigin
@@ -39,10 +40,11 @@ class DefaultKnownSpellsSeeder(
                 ?: return@forEach
             if (track.castingStyle == CastingStyle.PREPARED) {
                 seedPreparedTradition(
-                    character = character,
+                    characterId = character.id,
                     trackKey = track.trackKey,
                     tradition = tradition,
                     acceptedSourceBooks = acceptedSourceBooks,
+                    origin = KnownSpellOrigin.CLASS,
                 )
             }
         }
@@ -72,11 +74,30 @@ class DefaultKnownSpellsSeeder(
         }
     }
 
+    suspend fun seedPreparedArchetypeTrack(
+        characterId: Long,
+        trackKey: String,
+        archetypeClassId: String,
+        acceptedSourceBooks: Set<String>,
+    ) {
+        val characterClass = ClassSpellcastingCatalog.classFromId(archetypeClassId) ?: return
+        val definition = classSpellcastingCatalogSource.definitionFor(characterClass) ?: return
+        val tradition = definition.baseTradition.preferredTraditionString() ?: return
+        seedPreparedTradition(
+            characterId = characterId,
+            trackKey = trackKey,
+            tradition = tradition,
+            acceptedSourceBooks = acceptedSourceBooks,
+            origin = KnownSpellOrigin.ARCHETYPE,
+        )
+    }
+
     private suspend fun seedPreparedTradition(
-        character: CharacterProfile,
+        characterId: Long,
         trackKey: String,
         tradition: String,
         acceptedSourceBooks: Set<String>,
+        origin: KnownSpellOrigin,
     ) {
         val knownSpells = spellRepository.observeSpells(
             tradition = tradition,
@@ -87,11 +108,11 @@ class DefaultKnownSpellsSeeder(
 
         knownSpells.forEach { spell ->
             knownSpellRepository.addKnownSpell(
-                characterId = character.id,
+                characterId = characterId,
                 trackKey = trackKey,
                 spellId = spell.id,
                 knownRank = spell.rank,
-                origin = KnownSpellOrigin.CLASS,
+                origin = origin,
             )
         }
     }

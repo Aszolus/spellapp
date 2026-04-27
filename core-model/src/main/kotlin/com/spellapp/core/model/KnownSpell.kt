@@ -16,4 +16,6 @@ enum class KnownSpellOrigin {
     CLASS,
     SUBCLASS,
     ARCHETYPE,
+    GM_GRANT,
+    CUSTOM,
 }
