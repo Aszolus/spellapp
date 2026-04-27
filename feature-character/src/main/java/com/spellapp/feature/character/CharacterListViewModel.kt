@@ -10,6 +10,10 @@ import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.CharacterBuildOption
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
+import com.spellapp.core.model.EmptyClassSpellcastingCatalogSource
+import com.spellapp.core.model.managedOptionIds
+import com.spellapp.core.model.optionTypeForOptionId
 import com.spellapp.feature.character.spellcasting.RefreshSpellcastingProjectionUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,6 +42,7 @@ class CharacterListViewModel(
     private val refreshSpellcastingProjectionUseCase: RefreshSpellcastingProjectionUseCase,
     private val classDefinitionSource: CharacterClassDefinitionSource,
     private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource,
 ) : ViewModel() {
     private val editingCharacter = MutableStateFlow<CharacterProfile?>(null)
     private val editingSelectedBuildOptionIds = MutableStateFlow<Set<String>>(emptySet())
@@ -51,6 +56,10 @@ class CharacterListViewModel(
         archetypeSpellcastingCatalogSource.phaseOnePackages()
     private val managedArchetypeOptionIds: Set<String> =
         archetypeSpellcastingCatalogSource.managedOptionIds()
+    private val managedClassChoiceOptionIds: Set<String> =
+        classSpellcastingCatalogSource.managedOptionIds()
+    private val managedBuildOptionIds: Set<String> =
+        managedArchetypeOptionIds + managedClassChoiceOptionIds
     private val availableSpellSources = spellRepository.observeAvailableSources()
         .stateIn(
             scope = viewModelScope,
@@ -108,7 +117,7 @@ class CharacterListViewModel(
         viewModelScope.launch {
             val selectedOptionIds = characterBuildRepository.getBuildOptions(character.id)
                 .map { it.optionId }
-                .filter { optionId -> optionId in managedArchetypeOptionIds }
+                .filter { optionId -> optionId in managedBuildOptionIds }
                 .toSet()
             val acceptedSources = acceptedSpellSourceRepository.getAcceptedSources(character.id)
                 .ifEmpty { availableSpellSources.value.toSet() }
@@ -162,9 +171,9 @@ class CharacterListViewModel(
     ): Boolean {
         val existingOptions = characterBuildRepository.getBuildOptions(characterId)
         val existingManagedOptions = existingOptions
-            .filter { option -> option.optionId in managedArchetypeOptionIds }
+            .filter { option -> option.optionId in managedBuildOptionIds }
         val selectedManagedOptionIds = selectedBuildOptionIds
-            .filter { optionId -> optionId in managedArchetypeOptionIds }
+            .filter { optionId -> optionId in managedBuildOptionIds }
             .toSet()
         val hasManagedState = existingManagedOptions.isNotEmpty() || selectedManagedOptionIds.isNotEmpty()
         if (!hasManagedState) {
@@ -172,16 +181,18 @@ class CharacterListViewModel(
         }
 
         val retainedOptions = existingOptions
-            .filterNot { option -> option.optionId in managedArchetypeOptionIds }
+            .filterNot { option -> option.optionId in managedBuildOptionIds }
         val managedOptions = selectedManagedOptionIds
             .sorted()
             .mapNotNull { optionId ->
-                val optionType = archetypeSpellcastingCatalogSource.optionTypeForOptionId(optionId)
+                val optionType = classSpellcastingCatalogSource.optionTypeForOptionId(optionId)
+                    ?: archetypeSpellcastingCatalogSource.optionTypeForOptionId(optionId)
                     ?: return@mapNotNull null
                 CharacterBuildOption(
                     characterId = characterId,
                     optionType = optionType,
                     optionId = optionId,
+                    metadataJson = "{\"managedBy\":\"spellcasting\"}",
                 )
             }
 
@@ -209,6 +220,8 @@ class CharacterListViewModelFactory(
     private val classDefinitionSource: CharacterClassDefinitionSource = StaticCharacterClassDefinitionSource,
     private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource =
         StaticArchetypeSpellcastingCatalogSource,
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource =
+        EmptyClassSpellcastingCatalogSource,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -223,6 +236,7 @@ class CharacterListViewModelFactory(
             refreshSpellcastingProjectionUseCase = refreshSpellcastingProjectionUseCase,
             classDefinitionSource = classDefinitionSource,
             archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
+            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         ) as T
     }
 }

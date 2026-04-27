@@ -1,6 +1,7 @@
 package com.spellapp.core.model
 
 fun CastingTrack.preferredSpellTradition(): String? {
+    tradition.preferredTraditionString()?.let { return it }
     return preferredSpellTraditionForSource(
         sourceType = sourceType,
         sourceId = sourceId,
@@ -11,16 +12,30 @@ fun preferredSpellTraditionForSource(
     sourceType: CastingTrackSourceType,
     sourceId: String,
 ): String? {
-    val normalizedSourceId = sourceId.trim().lowercase()
     return when (sourceType) {
         CastingTrackSourceType.PRIMARY_CLASS,
         CastingTrackSourceType.ARCHETYPE,
-        -> when (normalizedSourceId) {
-            "wizard" -> "arcane"
-            "cleric" -> "divine"
-            "druid" -> "primal"
-            else -> null
-        }
+        -> ClassSpellcastingCatalog.classFromId(sourceId)
+            ?.let { characterClass ->
+                ClassSpellcastingCatalog.traditionFor(
+                    characterClass = characterClass,
+                    selectedOptionIds = emptySet(),
+                )
+            }
+            .preferredTraditionString()
+    }
+}
+
+fun SpellcastingTradition?.preferredTraditionString(): String? {
+    return when (this) {
+        SpellcastingTradition.ARCANE -> "arcane"
+        SpellcastingTradition.DIVINE -> "divine"
+        SpellcastingTradition.OCCULT -> "occult"
+        SpellcastingTradition.PRIMAL -> "primal"
+        SpellcastingTradition.VARIABLE,
+        SpellcastingTradition.OTHER,
+        null,
+        -> null
     }
 }
 

@@ -1,16 +1,23 @@
 package com.spellapp.feature.spells
 
+import com.spellapp.core.model.CastingStyle
 import com.spellapp.core.model.CharacterClass
+import com.spellapp.core.model.ClassSpellcastingCatalog
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SpellListItem
+import com.spellapp.core.model.SpellcastingTradition
+import com.spellapp.core.model.traditionFor
 import com.spellapp.core.rules.spellcasting.SpellTradition
 import com.spellapp.core.rules.spellcasting.TrackSpellLegalityProfile
+import com.spellapp.core.rules.spellcasting.parseSpellTradition
 import com.spellapp.core.rules.spellcasting.parseSpellTraditions
 
 data class PreparedSlotAssignmentContext(
     val characterClass: CharacterClass,
     val trackKey: String,
     val slotRank: Int,
+    val preferredTradition: String? = null,
 )
 
 interface PreparedSpellAssignmentPolicy {
@@ -69,7 +76,9 @@ fun interface PreparedTrackLegalityProfileSource {
     fun profileFor(context: PreparedSlotAssignmentContext): TrackSpellLegalityProfile
 }
 
-class DefaultPreparedTrackLegalityProfileSource : PreparedTrackLegalityProfileSource {
+class DefaultPreparedTrackLegalityProfileSource(
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource = ClassSpellcastingCatalog,
+) : PreparedTrackLegalityProfileSource {
     override fun profileFor(context: PreparedSlotAssignmentContext): TrackSpellLegalityProfile {
         val traditions = allowedTraditionsForTrack(context)
         return TrackSpellLegalityProfile(
@@ -78,6 +87,11 @@ class DefaultPreparedTrackLegalityProfileSource : PreparedTrackLegalityProfileSo
     }
 
     private fun allowedTraditionsForTrack(context: PreparedSlotAssignmentContext): Set<SpellTradition> {
+        context.preferredTradition
+            ?.let { parseSpellTradition(it) }
+            ?.takeUnless { tradition -> tradition == SpellTradition.OTHER }
+            ?.let { tradition -> return setOf(tradition) }
+
         if (context.trackKey == PreparedSlot.PRIMARY_TRACK_KEY) {
             return traditionForPrimaryClass(context.characterClass)?.let { setOf(it) }
                 ?: emptySet()
@@ -93,24 +107,35 @@ class DefaultPreparedTrackLegalityProfileSource : PreparedTrackLegalityProfileSo
     }
 
     private fun traditionForPrimaryClass(characterClass: CharacterClass): SpellTradition? {
-        return when (characterClass) {
-            CharacterClass.WIZARD -> SpellTradition.ARCANE
-            CharacterClass.CLERIC -> SpellTradition.DIVINE
-            CharacterClass.DRUID -> SpellTradition.PRIMAL
-            CharacterClass.OTHER -> null
-        }
+        return classSpellcastingCatalogSource.traditionFor(
+            characterClass = characterClass,
+            selectedOptionIds = emptySet(),
+        )?.toRulesTradition()
     }
 
     private fun traditionForArchetype(archetypeId: String): SpellTradition? {
-        return when (archetypeId.lowercase()) {
-            "wizard" -> SpellTradition.ARCANE
-            "cleric" -> SpellTradition.DIVINE
-            "druid" -> SpellTradition.PRIMAL
-            else -> null
+        val definition = ClassSpellcastingCatalog.classFromId(archetypeId)
+            ?.let(classSpellcastingCatalogSource::definitionFor)
+            ?: return null
+        if (definition.primaryTracks.none { track -> track.castingStyle == CastingStyle.PREPARED }) {
+            return null
         }
+        return definition.baseTradition?.toRulesTradition()
     }
 
     private companion object {
         private const val ARCHETYPE_TRACK_PREFIX = "archetype-"
+    }
+}
+
+private fun SpellcastingTradition.toRulesTradition(): SpellTradition? {
+    return when (this) {
+        SpellcastingTradition.ARCANE -> SpellTradition.ARCANE
+        SpellcastingTradition.DIVINE -> SpellTradition.DIVINE
+        SpellcastingTradition.OCCULT -> SpellTradition.OCCULT
+        SpellcastingTradition.PRIMAL -> SpellTradition.PRIMAL
+        SpellcastingTradition.VARIABLE,
+        SpellcastingTradition.OTHER,
+        -> null
     }
 }

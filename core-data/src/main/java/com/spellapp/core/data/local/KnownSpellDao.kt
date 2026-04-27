@@ -13,7 +13,7 @@ interface KnownSpellDao {
         SELECT * FROM known_spells
         WHERE characterId = :characterId
           AND trackKey = :trackKey
-        ORDER BY spellId ASC
+        ORDER BY spellId ASC, knownRank ASC
         """,
     )
     fun observeByCharacterAndTrack(
@@ -23,7 +23,7 @@ interface KnownSpellDao {
 
     @Query(
         """
-        SELECT spellId FROM known_spells
+        SELECT DISTINCT spellId FROM known_spells
         WHERE characterId = :characterId
           AND trackKey = :trackKey
         ORDER BY spellId ASC
@@ -40,10 +40,27 @@ interface KnownSpellDao {
         WHERE characterId = :characterId
           AND trackKey = :trackKey
           AND spellId = :spellId
+          AND knownRank = :knownRank
         LIMIT 1
         """,
     )
     suspend fun getByCharacterTrackAndSpell(
+        characterId: Long,
+        trackKey: String,
+        spellId: String,
+        knownRank: Int,
+    ): KnownSpellEntity?
+
+    @Query(
+        """
+        SELECT * FROM known_spells
+        WHERE characterId = :characterId
+          AND trackKey = :trackKey
+          AND spellId = :spellId
+        LIMIT 1
+        """,
+    )
+    suspend fun getAnyRankByCharacterTrackAndSpell(
         characterId: Long,
         trackKey: String,
         spellId: String,
@@ -58,11 +75,29 @@ interface KnownSpellDao {
         WHERE characterId = :characterId
           AND trackKey = :trackKey
           AND spellId = :spellId
+          AND isLocked = 0
         """,
     )
     suspend fun deleteByCharacterTrackAndSpell(
         characterId: Long,
         trackKey: String,
         spellId: String,
+    ): Int
+
+    @Query(
+        """
+        DELETE FROM known_spells
+        WHERE characterId = :characterId
+          AND trackKey = :trackKey
+          AND spellId = :spellId
+          AND knownRank = :knownRank
+          AND isLocked = 0
+        """,
+    )
+    suspend fun deleteByCharacterTrackSpellAndRank(
+        characterId: Long,
+        trackKey: String,
+        spellId: String,
+        knownRank: Int,
     ): Int
 }

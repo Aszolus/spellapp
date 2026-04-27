@@ -3,11 +3,14 @@ package com.spellapp.feature.character
 import android.content.Context
 import com.spellapp.core.model.AbilityScore
 import com.spellapp.core.model.CharacterClass
+import com.spellapp.core.model.ClassSpellcastingCatalog
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import org.json.JSONArray
 import org.json.JSONObject
 
 class AssetCharacterClassDefinitionSource(
     context: Context,
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource = ClassSpellcastingCatalog,
     private val fallback: CharacterClassDefinitionSource = StaticCharacterClassDefinitionSource,
 ) : CharacterClassDefinitionSource {
     private val appContext = context.applicationContext
@@ -20,12 +23,9 @@ class AssetCharacterClassDefinitionSource(
     }
 
     override fun phaseOneDefinitions(): List<CharacterClassDefinition> {
-        val phaseOneOrder = listOf(
-            CharacterClass.WIZARD,
-            CharacterClass.CLERIC,
-            CharacterClass.DRUID,
-        )
-        val fromDataset = phaseOneOrder.mapNotNull { definitionsByClass[it] }
+        val fromDataset = classSpellcastingCatalogSource.allDefinitions()
+            .map { it.characterClass }
+            .mapNotNull { definitionsByClass[it] }
         return if (fromDataset.isNotEmpty()) {
             fromDataset
         } else {
@@ -39,8 +39,17 @@ class AssetCharacterClassDefinitionSource(
 
     private fun loadDefinitions(): Map<CharacterClass, CharacterClassDefinition> {
         val fallbackMap = fallback.allDefinitions().associateBy { it.characterClass }
+        val spellcastingMap = classSpellcastingCatalogSource.allDefinitions()
+            .associate { definition ->
+                definition.characterClass to CharacterClassDefinition(
+                    characterClass = definition.characterClass,
+                    label = definition.label,
+                    defaultKeyAbility = definition.defaultKeyAbility,
+                    keyAbilityOptions = definition.keyAbilityOptions,
+                )
+            }
         val parsedMap = runCatching { parseFromAsset() }.getOrDefault(emptyMap())
-        return fallbackMap + parsedMap
+        return fallbackMap + parsedMap + spellcastingMap
     }
 
     private fun parseFromAsset(): Map<CharacterClass, CharacterClassDefinition> {
@@ -116,21 +125,12 @@ class AssetCharacterClassDefinitionSource(
     }
 
     private fun classFromId(id: String): CharacterClass? {
-        return when (id) {
-            "wizard" -> CharacterClass.WIZARD
-            "cleric" -> CharacterClass.CLERIC
-            "druid" -> CharacterClass.DRUID
-            else -> null
-        }
+        return ClassSpellcastingCatalog.classFromId(id)
     }
 
     private fun canonicalClassOrder(): List<CharacterClass> {
-        return listOf(
-            CharacterClass.WIZARD,
-            CharacterClass.CLERIC,
-            CharacterClass.DRUID,
-            CharacterClass.OTHER,
-        )
+        return classSpellcastingCatalogSource.allDefinitions()
+            .map { it.characterClass } + CharacterClass.OTHER
     }
 
     private data class ClassCandidate(

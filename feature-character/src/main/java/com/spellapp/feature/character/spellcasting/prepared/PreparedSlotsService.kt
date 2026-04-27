@@ -69,6 +69,30 @@ class PreparedSlotsService(
         )
     }
 
+    suspend fun castKnownSpell(
+        characterId: Long,
+        trackKey: String,
+        spellId: String,
+        slotRank: Int,
+        slotIndex: Int,
+    ): Boolean {
+        if (!knownSpellRepository.isKnownSpell(
+                characterId = characterId,
+                trackKey = trackKey,
+                spellId = spellId,
+            )
+        ) {
+            return false
+        }
+        return preparedSlotRepository.castKnownSpellSlot(
+            characterId = characterId,
+            rank = slotRank,
+            slotIndex = slotIndex,
+            spellId = spellId,
+            trackKey = trackKey,
+        )
+    }
+
     suspend fun uncastSlot(
         characterId: Long,
         rank: Int,

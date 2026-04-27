@@ -12,6 +12,7 @@ import com.spellapp.core.data.PreparedSlotRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
+import com.spellapp.core.model.CastingStyle
 import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.PreparedSlot
@@ -39,10 +40,12 @@ data class PreparedSlotsUiState(
     val spellAttackModifier: Int = 0,
     val selectedTrackKey: String = PreparedSlot.PRIMARY_TRACK_KEY,
     val castingTracks: List<CastingTrack> = emptyList(),
+    val selectedTrackCastingStyle: CastingStyle = CastingStyle.PREPARED,
     val selectedTrackPreferredTradition: String? = null,
     val selectedTrackSourceId: String? = null,
     val allSlots: List<PreparedSlot> = emptyList(),
     val knownSpellSummaries: List<SpellSlotSummary> = emptyList(),
+    val knownSpellCastingSummaries: List<KnownSpellCastingSummary> = emptyList(),
     val spellSummaryById: Map<String, SpellSlotSummary> = emptyMap(),
     val focusCurrentPoints: Int = 0,
     val focusMaxPoints: Int = 1,
@@ -50,6 +53,27 @@ data class PreparedSlotsUiState(
     val canUndoLastCast: Boolean = false,
     val hasBlessedOneDedication: Boolean = false,
 )
+
+data class KnownSpellCastingSummary(
+    val knownSpellId: Long,
+    val spellId: String,
+    val name: String,
+    val baseRank: Int,
+    val knownRank: Int,
+    val isSignature: Boolean,
+    val castTime: String,
+    val range: String,
+    val traits: List<String>,
+) {
+    fun canUseSlotRank(slotRank: Int): Boolean {
+        return knownSpellCanUseSlotRank(
+            baseRank = baseRank,
+            knownRank = knownRank,
+            isSignature = isSignature,
+            slotRank = slotRank,
+        )
+    }
+}
 
 private data class SlotContext(
     val selectedTrackKey: String,
@@ -232,6 +256,10 @@ class PreparedSlotsViewModel(
             spellAttackModifier = meta.spellAttackModifier,
             selectedTrackKey = slots.selectedTrackKey,
             castingTracks = slots.castingTracks,
+            selectedTrackCastingStyle = slots.castingTracks
+                .firstOrNull { track -> track.trackKey == slots.selectedTrackKey }
+                ?.castingStyle
+                ?: CastingStyle.PREPARED,
             selectedTrackPreferredTradition = slots.castingTracks
                 .firstOrNull { track -> track.trackKey == slots.selectedTrackKey }
                 ?.preferredSpellTradition(),
@@ -243,6 +271,23 @@ class PreparedSlotsViewModel(
                 events.spellSummaryById[knownSpell.spellId]
             }.sortedWith(
                 compareBy<SpellSlotSummary> { it.rank }.thenBy { it.name },
+            ),
+            knownSpellCastingSummaries = slots.knownSpells.mapNotNull { knownSpell ->
+                events.spellSummaryById[knownSpell.spellId]?.let { summary ->
+                    KnownSpellCastingSummary(
+                        knownSpellId = knownSpell.id,
+                        spellId = knownSpell.spellId,
+                        name = summary.name,
+                        baseRank = summary.rank,
+                        knownRank = knownSpell.knownRank ?: summary.rank,
+                        isSignature = knownSpell.isSignature,
+                        castTime = summary.castTime,
+                        range = summary.range,
+                        traits = summary.traits,
+                    )
+                }
+            }.sortedWith(
+                compareBy<KnownSpellCastingSummary> { it.knownRank }.thenBy { it.name },
             ),
             spellSummaryById = events.spellSummaryById,
             focusCurrentPoints = meta.focusCurrentPoints,
@@ -295,6 +340,22 @@ class PreparedSlotsViewModel(
                 rank = rank,
                 slotIndex = slotIndex,
                 trackKey = activeTrackKey.value,
+            )
+        }
+    }
+
+    fun castKnownSpell(spellId: String, slotRank: Int) {
+        val slot = compatibleKnownSpellSlot(
+            spellId = spellId,
+            slotRank = slotRank,
+        ) ?: return
+        viewModelScope.launch {
+            preparedSlotsService.castKnownSpell(
+                characterId = characterId,
+                trackKey = activeTrackKey.value,
+                spellId = spellId,
+                slotRank = slot.rank,
+                slotIndex = slot.slotIndex,
             )
         }
     }
@@ -380,6 +441,47 @@ class PreparedSlotsViewModel(
                 trackKey = activeTrackKey.value,
             )
         }
+    }
+
+    private fun compatibleKnownSpellSlot(
+        spellId: String,
+        slotRank: Int,
+    ): PreparedSlot? {
+        val summary = spellSummaryById.value[spellId] ?: return null
+        val hasCompatibleKnownSpell = knownSpells.value
+            .filter { knownSpell -> knownSpell.spellId == spellId }
+            .any { knownSpell ->
+                knownSpellCanUseSlotRank(
+                    baseRank = summary.rank,
+                    knownRank = knownSpell.knownRank ?: summary.rank,
+                    isSignature = knownSpell.isSignature,
+                    slotRank = slotRank,
+                )
+            }
+        if (!hasCompatibleKnownSpell) {
+            return null
+        }
+        return preparedSlots.value
+            .asSequence()
+            .filter { slot -> slot.trackKey == activeTrackKey.value }
+            .filter { slot -> slot.rank == slotRank }
+            .filter { slot -> slot.rank == 0 || !slot.isExpended }
+            .sortedBy { it.slotIndex }
+            .firstOrNull()
+    }
+}
+
+internal fun knownSpellCanUseSlotRank(
+    baseRank: Int,
+    knownRank: Int,
+    isSignature: Boolean,
+    slotRank: Int,
+): Boolean {
+    return when {
+        baseRank == 0 -> slotRank == 0
+        slotRank == 0 -> false
+        isSignature -> slotRank >= knownRank
+        else -> slotRank == knownRank
     }
 }
 

@@ -30,6 +30,7 @@ class RefreshSpellcastingProjectionUseCase(
         if (isNewCharacter) {
             knownSpellsSeeder.seedForCharacter(
                 character = character,
+                selectedBuildOptionIds = selectedBuildOptionIds,
                 acceptedSourceBooks = acceptedSourceBooks,
             )
         }

@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,6 +55,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.spellapp.core.model.CastingStyle
 import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.PreparedSlot
@@ -66,6 +70,7 @@ fun PreparedSlotsRoute(
     onChooseSpell: (Int, Int, String, String?) -> Unit,
     onClearSpell: (Int, Int) -> Unit,
     onCastSlot: (Int, Int) -> Unit,
+    onCastKnownSpell: (String, Int) -> Unit,
     onUncastSlot: (Int, Int) -> Unit,
     onUseFocusPoint: () -> Unit,
     onIncreaseFocusMax: () -> Unit,
@@ -90,6 +95,10 @@ fun PreparedSlotsRoute(
         uiState.allSlots
             .groupBy { it.rank }
             .toSortedMap()
+    }
+    val spontaneousRankKeys = remember(slotsByRank, uiState.knownSpellCastingSummaries) {
+        (slotsByRank.keys + uiState.knownSpellCastingSummaries.map { it.knownRank })
+            .toSortedSet()
     }
 
     Scaffold(
@@ -129,6 +138,7 @@ fun PreparedSlotsRoute(
                             )
                             DropdownMenuItem(
                                 text = { Text("Prepare Random") },
+                                enabled = uiState.selectedTrackCastingStyle == CastingStyle.PREPARED,
                                 onClick = {
                                     showOverflowMenu = false
                                     showRandomPrepareDialog = true
@@ -201,45 +211,104 @@ fun PreparedSlotsRoute(
                     .fillMaxWidth()
                     .weight(1f),
             ) {
-                item(key = "known-spells-section") {
-                    KnownSpellsSection(
-                        knownSpells = uiState.knownSpellSummaries,
-                        selectedTrackKey = uiState.selectedTrackKey,
-                        selectedTrackPreferredTradition = uiState.selectedTrackPreferredTradition,
-                        selectedTrackSourceId = uiState.selectedTrackSourceId,
-                        onManageKnownSpells = onManageKnownSpells,
-                    )
-                }
-
-                slotsByRank.forEach { (rank, slots) ->
-                    stickyHeader(key = "rank-header-$rank") {
-                        RankSectionHeader(
-                            rank = rank,
-                            slots = slots,
-                            effectiveCantripRank = uiState.effectiveCantripRank,
+                if (uiState.selectedTrackCastingStyle == CastingStyle.SPONTANEOUS) {
+                    item(key = "spontaneous-repertoire-actions") {
+                        SpontaneousRepertoireActions(
+                            knownSpellCount = uiState.knownSpellCastingSummaries.size,
+                            selectedTrackKey = uiState.selectedTrackKey,
+                            selectedTrackPreferredTradition = uiState.selectedTrackPreferredTradition,
+                            selectedTrackSourceId = uiState.selectedTrackSourceId,
+                            onManageKnownSpells = onManageKnownSpells,
                         )
                     }
-                    items(slots, key = { "${it.trackKey}-${it.rank}-${it.slotIndex}" }) { slot ->
-                        CompactSlotRow(
-                            slot = slot,
-                            summary = slot.preparedSpellId?.let { uiState.spellSummaryById[it] },
-                            effectiveCantripRank = uiState.effectiveCantripRank,
-                            onCast = { onCastSlot(slot.rank, slot.slotIndex) },
-                            onUncast = { onUncastSlot(slot.rank, slot.slotIndex) },
-                            onChooseSpell = {
-                                onChooseSpell(
-                                    slot.rank,
-                                    slot.slotIndex,
-                                    slot.trackKey,
-                                    uiState.selectedTrackPreferredTradition,
+
+                    spontaneousRankKeys.forEach { rank ->
+                        val slots = slotsByRank[rank].orEmpty()
+                        val knownSpellsForRank = uiState.knownSpellCastingSummaries
+                            .filter { spell -> spell.canUseSlotRank(rank) }
+                        val firstExpendedSlot = slots.firstOrNull { it.isExpended }
+                        stickyHeader(key = "rank-header-$rank") {
+                            RankSectionHeader(
+                                rank = rank,
+                                slots = slots,
+                                effectiveCantripRank = uiState.effectiveCantripRank,
+                                castingStyle = uiState.selectedTrackCastingStyle,
+                                onRestoreExpendedSlot = firstExpendedSlot?.let { expendedSlot ->
+                                    {
+                                        onUncastSlot(
+                                            expendedSlot.rank,
+                                            expendedSlot.slotIndex,
+                                        )
+                                    }
+                                },
+                            )
+                        }
+                        if (knownSpellsForRank.isEmpty()) {
+                            item(key = "spontaneous-empty-rank-$rank") {
+                                SpontaneousEmptyRankRow(rank)
+                            }
+                        } else {
+                            items(
+                                knownSpellsForRank,
+                                key = { spell -> "known-${spell.knownSpellId}-slot-rank-$rank" },
+                            ) { spell ->
+                                SpontaneousKnownSpellRow(
+                                    spell = spell,
+                                    slotRank = rank,
+                                    effectiveCantripRank = uiState.effectiveCantripRank,
+                                    hasAvailableSlot = rank == 0 || slots.any { !it.isExpended },
+                                    onCast = { onCastKnownSpell(spell.spellId, rank) },
+                                    onOpenSpellDetail = { spellId ->
+                                        val heightenedAt = if (rank == 0) uiState.effectiveCantripRank else rank
+                                        onOpenPreparedSpell(spellId, heightenedAt)
+                                    },
                                 )
-                            },
-                            onClearSpell = { onClearSpell(slot.rank, slot.slotIndex) },
-                            onOpenSpellDetail = { spellId ->
-                                val heightenedAt = if (slot.rank == 0) uiState.effectiveCantripRank else slot.rank
-                                onOpenPreparedSpell(spellId, heightenedAt)
-                            },
+                            }
+                        }
+                    }
+                } else {
+                    item(key = "known-spells-section") {
+                        KnownSpellsSection(
+                            knownSpells = uiState.knownSpellSummaries,
+                            selectedTrackKey = uiState.selectedTrackKey,
+                            selectedTrackPreferredTradition = uiState.selectedTrackPreferredTradition,
+                            selectedTrackSourceId = uiState.selectedTrackSourceId,
+                            onManageKnownSpells = onManageKnownSpells,
                         )
+                    }
+
+                    slotsByRank.forEach { (rank, slots) ->
+                        stickyHeader(key = "rank-header-$rank") {
+                            RankSectionHeader(
+                                rank = rank,
+                                slots = slots,
+                                effectiveCantripRank = uiState.effectiveCantripRank,
+                                castingStyle = uiState.selectedTrackCastingStyle,
+                            )
+                        }
+                        items(slots, key = { "${it.trackKey}-${it.rank}-${it.slotIndex}" }) { slot ->
+                            CompactSlotRow(
+                                slot = slot,
+                                summary = slot.preparedSpellId?.let { uiState.spellSummaryById[it] },
+                                effectiveCantripRank = uiState.effectiveCantripRank,
+                                castingStyle = uiState.selectedTrackCastingStyle,
+                                onCast = { onCastSlot(slot.rank, slot.slotIndex) },
+                                onUncast = { onUncastSlot(slot.rank, slot.slotIndex) },
+                                onChooseSpell = {
+                                    onChooseSpell(
+                                        slot.rank,
+                                        slot.slotIndex,
+                                        slot.trackKey,
+                                        uiState.selectedTrackPreferredTradition,
+                                    )
+                                },
+                                onClearSpell = { onClearSpell(slot.rank, slot.slotIndex) },
+                                onOpenSpellDetail = { spellId ->
+                                    val heightenedAt = if (slot.rank == 0) uiState.effectiveCantripRank else slot.rank
+                                    onOpenPreparedSpell(spellId, heightenedAt)
+                                },
+                            )
+                        }
                     }
                 }
 
@@ -400,6 +469,164 @@ private fun KnownSpellsSection(
 }
 
 @Composable
+private fun SpontaneousRepertoireActions(
+    knownSpellCount: Int,
+    selectedTrackKey: String,
+    selectedTrackPreferredTradition: String?,
+    selectedTrackSourceId: String?,
+    onManageKnownSpells: (String, String?, String?) -> Unit,
+) {
+    Surface(
+        tonalElevation = 1.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Repertoire",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = "$knownSpellCount known spells",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(
+                onClick = {
+                    onManageKnownSpells(
+                        selectedTrackKey,
+                        selectedTrackPreferredTradition,
+                        selectedTrackSourceId,
+                    )
+                },
+            ) {
+                Text("Manage")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@Composable
+private fun SpontaneousKnownSpellRow(
+    spell: KnownSpellCastingSummary,
+    slotRank: Int,
+    effectiveCantripRank: Int,
+    hasAvailableSlot: Boolean,
+    onCast: () -> Unit,
+    onOpenSpellDetail: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                role = Role.Button,
+                onClick = { onOpenSpellDetail(spell.spellId) },
+            )
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = spell.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (spell.castTime.isNotBlank()) {
+                    Text(
+                        text = formatActionSymbols(spell.castTime),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                val rankLabel = spontaneousCastRankLabel(
+                    spell = spell,
+                    slotRank = slotRank,
+                    effectiveCantripRank = effectiveCantripRank,
+                )
+                if (rankLabel != null) {
+                    Text(
+                        text = rankLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                if (spell.range.isNotBlank()) {
+                    Text(
+                        text = spell.range,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onCast,
+                enabled = hasAvailableSlot,
+            ) {
+                Text("Cast", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+        if (spell.traits.isNotEmpty() || spell.isSignature) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (spell.isSignature) {
+                    Text(
+                        text = "signature",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                spell.traits.forEach { trait ->
+                    Text(
+                        text = trait,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+}
+
+@Composable
+private fun SpontaneousEmptyRankRow(rank: Int) {
+    val label = if (rank == 0) {
+        "No cantrips known."
+    } else {
+        "No known rank $rank spells."
+    }
+    Text(
+        text = label,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+    )
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+}
+
+@Composable
 private fun CombatStatsBar(
     spellDc: Int,
     spellAttackModifier: Int,
@@ -505,12 +732,18 @@ private fun RankSectionHeader(
     rank: Int,
     slots: List<PreparedSlot>,
     effectiveCantripRank: Int,
+    castingStyle: CastingStyle,
+    onRestoreExpendedSlot: (() -> Unit)? = null,
 ) {
     val rankLabel = if (rank == 0) "Cantrips" else "Rank $rank"
     val subtitle = if (rank == 0) {
         "Heightened to rank $effectiveCantripRank"
     } else {
-        val unexpended = slots.count { it.preparedSpellId != null && !it.isExpended }
+        val unexpended = if (castingStyle == CastingStyle.SPONTANEOUS) {
+            slots.count { !it.isExpended }
+        } else {
+            slots.count { it.preparedSpellId != null && !it.isExpended }
+        }
         "$unexpended/${slots.size} remaining"
     }
 
@@ -531,11 +764,31 @@ private fun RankSectionHeader(
                     text = rankLabel,
                     style = MaterialTheme.typography.titleSmall,
                 )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (onRestoreExpendedSlot != null) {
+                        TextButton(
+                            onClick = onRestoreExpendedSlot,
+                            modifier = Modifier.height(28.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        ) {
+                            Text(
+                                text = "Restore Slot",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -547,6 +800,7 @@ private fun CompactSlotRow(
     slot: PreparedSlot,
     summary: SpellSlotSummary?,
     effectiveCantripRank: Int,
+    castingStyle: CastingStyle,
     onCast: () -> Unit,
     onUncast: () -> Unit,
     onChooseSpell: () -> Unit,
@@ -668,6 +922,25 @@ private fun CompactSlotRow(
                     },
                 )
             }
+        } else if (castingStyle == CastingStyle.SPONTANEOUS) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = if (isExpended) "Expended spell slot" else "Available spell slot",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (isExpended) {
+                    OutlinedButton(onClick = onUncast) {
+                        Text("Restore", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
         } else {
             Row(
                 modifier = Modifier
@@ -702,6 +975,19 @@ private fun formatActionSymbols(castTime: String): String {
     }
 }
 
+private fun spontaneousCastRankLabel(
+    spell: KnownSpellCastingSummary,
+    slotRank: Int,
+    effectiveCantripRank: Int,
+): String? {
+    return when {
+        slotRank == 0 -> "R$effectiveCantripRank"
+        spell.isSignature && slotRank > spell.knownRank -> "${ordinalRank(slotRank)} (+${slotRank - spell.knownRank})"
+        spell.knownRank != spell.baseRank -> "Known ${ordinalRank(spell.knownRank)}"
+        else -> null
+    }
+}
+
 private enum class DayCycleAction(
     val title: String,
     val message: String,
@@ -725,6 +1011,9 @@ private enum class DayCycleAction(
 }
 
 private fun CastingTrack.displayName(): String {
+    if (displayName.isNotBlank()) {
+        return displayName
+    }
     return when (sourceType) {
         CastingTrackSourceType.PRIMARY_CLASS -> "Primary"
         CastingTrackSourceType.ARCHETYPE -> sourceId.ifBlank { trackKey }

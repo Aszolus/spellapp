@@ -12,6 +12,7 @@ import com.spellapp.core.data.RulesReferenceRepository
 import com.spellapp.core.data.SessionEventRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.data.SpellRulesTextRepository
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
 import com.spellapp.feature.character.CharacterClassDefinitionSource
 import com.spellapp.feature.character.CharacterListViewModelFactory
@@ -49,6 +50,7 @@ class AppCharacterFeatureFactoryProvider(
     private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
     private val classDefinitionSource: CharacterClassDefinitionSource,
     private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource,
 ) : CharacterFeatureFactoryProvider {
     override fun characterListFactory(): ViewModelProvider.Factory {
         return CharacterListViewModelFactory(
@@ -62,11 +64,13 @@ class AppCharacterFeatureFactoryProvider(
                 knownSpellsSeeder = DefaultKnownSpellsSeeder(
                     spellRepository = spellRepository,
                     knownSpellRepository = knownSpellRepository,
+                    classSpellcastingCatalogSource = classSpellcastingCatalogSource,
                 ),
                 archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
             ),
             classDefinitionSource = classDefinitionSource,
             archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
+            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )
     }
 }
@@ -77,6 +81,7 @@ class AppSpellCatalogFeatureFactoryProvider(
     private val knownSpellRepository: KnownSpellRepository,
     private val rulesReferenceRepository: RulesReferenceRepository,
     private val spellRulesTextRepository: SpellRulesTextRepository,
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource,
 ) : SpellCatalogFeatureFactoryProvider {
     override fun spellListFactory(): ViewModelProvider.Factory {
         return SpellListViewModelFactory(
@@ -86,7 +91,7 @@ class AppSpellCatalogFeatureFactoryProvider(
             toggleKnownSpellUseCase = ToggleKnownSpellUseCase(
                 knownSpellRepository = knownSpellRepository,
                 spellRepository = spellRepository,
-                warningPolicy = DefaultKnownSpellWarningPolicy(),
+                warningPolicy = DefaultKnownSpellWarningPolicy(classSpellcastingCatalogSource),
             ),
         )
     }

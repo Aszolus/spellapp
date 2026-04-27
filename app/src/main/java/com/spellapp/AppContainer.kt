@@ -7,6 +7,7 @@ import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.RulesReferenceRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.data.SpellRulesTextRepository
+import com.spellapp.core.data.local.AssetClassSpellcastingCatalogSource
 import com.spellapp.core.data.local.AssetRulesReferenceRepository
 import com.spellapp.core.data.local.AssetSpellRulesTextRepository
 import com.spellapp.core.data.local.RoomAcceptedSpellSourceRepository
@@ -14,6 +15,8 @@ import com.spellapp.core.data.local.RoomCharacterRepository
 import com.spellapp.core.data.local.RoomKnownSpellRepository
 import com.spellapp.core.data.local.RoomSpellRepository
 import com.spellapp.core.data.local.SpellDatabase
+import com.spellapp.core.model.ClassSpellcastingCatalog
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
 import com.spellapp.feature.character.AssetArchetypeSpellcastingCatalogSource
 import com.spellapp.feature.character.AssetCharacterClassDefinitionSource
@@ -32,6 +35,10 @@ class AppContainer(
         RoomSpellRepository(spellDatabase.spellDao())
     }
 
+    val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource by lazy {
+        AssetClassSpellcastingCatalogSource(appContext).also(ClassSpellcastingCatalog::install)
+    }
+
     val characterRepository: CharacterRepository by lazy {
         RoomCharacterRepository(
             database = spellDatabase,
@@ -42,6 +49,7 @@ class AppContainer(
             castingTrackDao = spellDatabase.castingTrackDao(),
             focusStateDao = spellDatabase.focusStateDao(),
             sessionEventDao = spellDatabase.sessionEventDao(),
+            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )
     }
 
@@ -62,7 +70,10 @@ class AppContainer(
     }
 
     val characterClassDefinitionSource: CharacterClassDefinitionSource by lazy {
-        AssetCharacterClassDefinitionSource(appContext)
+        AssetCharacterClassDefinitionSource(
+            context = appContext,
+            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
+        )
     }
 
     val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource by lazy {
@@ -80,6 +91,7 @@ class AppContainer(
             preparedSlotSyncRepository = characterRepository,
             classDefinitionSource = characterClassDefinitionSource,
             archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
+            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )
     }
 
@@ -90,6 +102,7 @@ class AppContainer(
             knownSpellRepository = knownSpellRepository,
             rulesReferenceRepository = rulesReferenceRepository,
             spellRulesTextRepository = spellRulesTextRepository,
+            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )
     }
 

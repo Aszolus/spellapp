@@ -1,5 +1,7 @@
 package com.spellapp.feature.spells
 
+import com.spellapp.core.model.ClassSpellcastingCatalog
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.spellSupportsTradition
 
@@ -11,7 +13,9 @@ interface KnownSpellWarningPolicy {
     ): PendingKnownSpellWarning?
 }
 
-class DefaultKnownSpellWarningPolicy : KnownSpellWarningPolicy {
+class DefaultKnownSpellWarningPolicy(
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource = ClassSpellcastingCatalog,
+) : KnownSpellWarningPolicy {
     override fun warningFor(
         detail: SpellDetail,
         preferredTradition: String?,
@@ -20,6 +24,7 @@ class DefaultKnownSpellWarningPolicy : KnownSpellWarningPolicy {
         detail = detail,
         preferredTradition = preferredTradition,
         trackSourceId = trackSourceId,
+        classTraitMarkers = classSpellcastingCatalogSource.spellcastingClassTraitMarkers(),
     )
 }
 
@@ -49,6 +54,7 @@ internal fun knownSpellWarningFor(
     detail: SpellDetail,
     preferredTradition: String?,
     trackSourceId: String?,
+    classTraitMarkers: Set<String>,
 ): PendingKnownSpellWarning? {
     val normalizedPreferredTradition = preferredTradition?.trim()?.lowercase().orEmpty()
     val explicitTraditions = detail.tradition.split(',')
@@ -107,33 +113,9 @@ internal fun knownSpellWarningFor(
     )
 }
 
-// Derived from the dev-time PF2e class pack filenames under D:\pf2e\packs\pf2e\classes.
-private val classTraitMarkers = setOf(
-    "alchemist",
-    "animist",
-    "barbarian",
-    "bard",
-    "champion",
-    "cleric",
-    "commander",
-    "druid",
-    "exemplar",
-    "fighter",
-    "guardian",
-    "gunslinger",
-    "inventor",
-    "investigator",
-    "kineticist",
-    "magus",
-    "monk",
-    "oracle",
-    "psychic",
-    "ranger",
-    "rogue",
-    "sorcerer",
-    "summoner",
-    "swashbuckler",
-    "thaumaturge",
-    "witch",
-    "wizard",
-)
+private fun ClassSpellcastingCatalogSource.spellcastingClassTraitMarkers(): Set<String> {
+    return allDefinitions()
+        .map { definition -> definition.classId.trim().lowercase() }
+        .filter { classId -> classId.isNotBlank() }
+        .toSet()
+}

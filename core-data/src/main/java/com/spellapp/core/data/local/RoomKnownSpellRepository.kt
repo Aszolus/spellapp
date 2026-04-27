@@ -2,6 +2,7 @@ package com.spellapp.core.data.local
 
 import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.model.KnownSpell
+import com.spellapp.core.model.KnownSpellOrigin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -37,12 +38,20 @@ class RoomKnownSpellRepository(
         characterId: Long,
         trackKey: String,
         spellId: String,
+        knownRank: Int?,
+        origin: KnownSpellOrigin,
+        isLocked: Boolean,
+        isSignature: Boolean,
     ): Long {
         return dao.insert(
             KnownSpellEntity(
                 characterId = characterId,
                 trackKey = trackKey,
                 spellId = spellId,
+                knownRank = knownRank.toEntityRank(),
+                origin = origin.name,
+                isLocked = isLocked,
+                isSignature = isSignature,
             ),
         )
     }
@@ -51,7 +60,16 @@ class RoomKnownSpellRepository(
         characterId: Long,
         trackKey: String,
         spellId: String,
+        knownRank: Int?,
     ): Boolean {
+        if (knownRank != null) {
+            return dao.deleteByCharacterTrackSpellAndRank(
+                characterId = characterId,
+                trackKey = trackKey,
+                spellId = spellId,
+                knownRank = knownRank.toEntityRank(),
+            ) > 0
+        }
         return dao.deleteByCharacterTrackAndSpell(
             characterId = characterId,
             trackKey = trackKey,
@@ -63,11 +81,20 @@ class RoomKnownSpellRepository(
         characterId: Long,
         trackKey: String,
         spellId: String,
+        knownRank: Int?,
     ): Boolean {
+        if (knownRank == null) {
+            return dao.getAnyRankByCharacterTrackAndSpell(
+                characterId = characterId,
+                trackKey = trackKey,
+                spellId = spellId,
+            ) != null
+        }
         return dao.getByCharacterTrackAndSpell(
             characterId = characterId,
             trackKey = trackKey,
             spellId = spellId,
+            knownRank = knownRank.toEntityRank(),
         ) != null
     }
 
@@ -77,6 +104,25 @@ class RoomKnownSpellRepository(
             characterId = characterId,
             trackKey = trackKey,
             spellId = spellId,
+            knownRank = knownRank.toDomainRank(),
+            origin = enumValueOrDefault(origin, KnownSpellOrigin.MANUAL),
+            isLocked = isLocked,
+            isSignature = isSignature,
         )
+    }
+
+    private inline fun <reified T : Enum<T>> enumValueOrDefault(
+        rawValue: String,
+        defaultValue: T,
+    ): T {
+        return runCatching { enumValueOf<T>(rawValue) }.getOrDefault(defaultValue)
+    }
+
+    private fun Int?.toEntityRank(): Int = this ?: UNSPECIFIED_RANK
+
+    private fun Int.toDomainRank(): Int? = takeUnless { it == UNSPECIFIED_RANK }
+
+    private companion object {
+        private const val UNSPECIFIED_RANK = -1
     }
 }

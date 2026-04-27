@@ -7,6 +7,7 @@ import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.PreparedSlotSyncRepository
 import com.spellapp.core.data.SpellRepository
+import com.spellapp.core.data.local.ClassSpellcastingCatalogJsonParser
 import com.spellapp.core.model.AbilityScore
 import com.spellapp.core.model.CastingProgressionType
 import com.spellapp.core.model.CastingTrack
@@ -16,6 +17,8 @@ import com.spellapp.core.model.CharacterBuildOption
 import com.spellapp.core.model.CharacterBuildOptionType
 import com.spellapp.core.model.CharacterClass
 import com.spellapp.core.model.CharacterProfile
+import com.spellapp.core.model.ClassSpellcastingCatalog
+import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.KnownSpell
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
@@ -40,11 +43,20 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class CharacterListViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
+
+    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource =
+        ClassSpellcastingCatalogJsonParser.parse(readClassSpellcastingAsset()).also { source ->
+            ClassSpellcastingCatalog.install(source)
+        }
 
     @Test
     fun saveCharacter_createsArchetypeTracksFromSelectedDedications_and_preservesNonManagedOptions() = runTest {
@@ -432,12 +444,24 @@ class CharacterListViewModelTest {
                 knownSpellsSeeder = DefaultKnownSpellsSeeder(
                     spellRepository = spellRepository,
                     knownSpellRepository = knownSpellRepository,
+                    classSpellcastingCatalogSource = classSpellcastingCatalogSource,
                 ),
                 archetypeSpellcastingCatalogSource = StaticArchetypeSpellcastingCatalogSource,
             ),
             classDefinitionSource = StaticCharacterClassDefinitionSource,
             archetypeSpellcastingCatalogSource = StaticArchetypeSpellcastingCatalogSource,
+            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )
+    }
+
+    private fun readClassSpellcastingAsset(): String {
+        val candidates = listOf(
+            File("app/src/main/assets/class-spellcasting.normalized.json"),
+            File("../app/src/main/assets/class-spellcasting.normalized.json"),
+            File("../../app/src/main/assets/class-spellcasting.normalized.json"),
+        )
+        return candidates.firstOrNull { it.isFile }?.readText()
+            ?: error("class-spellcasting.normalized.json not found from ${File(".").absolutePath}")
     }
 
     private fun sampleCharacter(
@@ -676,9 +700,17 @@ private class FakeKnownSpellRepository : KnownSpellRepository {
         }
     }
 
-    override suspend fun addKnownSpell(characterId: Long, trackKey: String, spellId: String): Long {
+    override suspend fun addKnownSpell(
+        characterId: Long,
+        trackKey: String,
+        spellId: String,
+        knownRank: Int?,
+        origin: com.spellapp.core.model.KnownSpellOrigin,
+        isLocked: Boolean,
+        isSignature: Boolean,
+    ): Long {
         val flow = knownSpellsByCharacter.getOrPut(characterId) { MutableStateFlow(emptyList()) }
-        if (flow.value.any { it.trackKey == trackKey && it.spellId == spellId }) {
+        if (flow.value.any { it.trackKey == trackKey && it.spellId == spellId && it.knownRank == knownRank }) {
             return -1L
         }
         val id = nextId++
@@ -687,11 +719,20 @@ private class FakeKnownSpellRepository : KnownSpellRepository {
             characterId = characterId,
             trackKey = trackKey,
             spellId = spellId,
+            knownRank = knownRank,
+            origin = origin,
+            isLocked = isLocked,
+            isSignature = isSignature,
         )
         return id
     }
 
-    override suspend fun removeKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean {
+    override suspend fun removeKnownSpell(
+        characterId: Long,
+        trackKey: String,
+        spellId: String,
+        knownRank: Int?,
+    ): Boolean {
         val flow = knownSpellsByCharacter[characterId] ?: return false
         val updated = flow.value.filterNot { it.trackKey == trackKey && it.spellId == spellId }
         val removed = updated.size != flow.value.size
@@ -699,9 +740,14 @@ private class FakeKnownSpellRepository : KnownSpellRepository {
         return removed
     }
 
-    override suspend fun isKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean {
+    override suspend fun isKnownSpell(
+        characterId: Long,
+        trackKey: String,
+        spellId: String,
+        knownRank: Int?,
+    ): Boolean {
         return knownSpellsByCharacter[characterId]?.value?.any {
-            it.trackKey == trackKey && it.spellId == spellId
+            it.trackKey == trackKey && it.spellId == spellId && (knownRank == null || it.knownRank == knownRank)
         } == true
     }
 

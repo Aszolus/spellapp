@@ -118,26 +118,48 @@ class ToggleKnownSpellUseCaseTest {
             return knownSpells.map { spells -> spells.map { it.spellId }.toSet() }
         }
 
-        override suspend fun addKnownSpell(characterId: Long, trackKey: String, spellId: String): Long {
+        override suspend fun addKnownSpell(
+            characterId: Long,
+            trackKey: String,
+            spellId: String,
+            knownRank: Int?,
+            origin: com.spellapp.core.model.KnownSpellOrigin,
+            isLocked: Boolean,
+            isSignature: Boolean,
+        ): Long {
             addedSpellIds += spellId
             knownSpells.value = knownSpells.value + KnownSpell(
                 id = knownSpells.value.size + 1L,
                 characterId = characterId,
                 trackKey = trackKey,
                 spellId = spellId,
+                knownRank = knownRank,
+                origin = origin,
+                isLocked = isLocked,
+                isSignature = isSignature,
             )
             return knownSpells.value.last().id
         }
 
-        override suspend fun removeKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean {
+        override suspend fun removeKnownSpell(
+            characterId: Long,
+            trackKey: String,
+            spellId: String,
+            knownRank: Int?,
+        ): Boolean {
             removedSpellIds += spellId
             val before = knownSpells.value.size
             knownSpells.value = knownSpells.value.filterNot { it.spellId == spellId }
             return knownSpells.value.size != before
         }
 
-        override suspend fun isKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean {
-            return knownSpells.value.any { it.spellId == spellId }
+        override suspend fun isKnownSpell(
+            characterId: Long,
+            trackKey: String,
+            spellId: String,
+            knownRank: Int?,
+        ): Boolean {
+            return knownSpells.value.any { it.spellId == spellId && (knownRank == null || it.knownRank == knownRank) }
         }
     }
 

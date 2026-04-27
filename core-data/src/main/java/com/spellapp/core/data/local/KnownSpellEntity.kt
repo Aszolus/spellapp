@@ -17,7 +17,7 @@ import androidx.room.PrimaryKey
     ],
     indices = [
         Index("characterId"),
-        Index(value = ["characterId", "trackKey", "spellId"], unique = true),
+        Index(value = ["characterId", "trackKey", "spellId", "knownRank"], unique = true),
     ],
 )
 data class KnownSpellEntity(
@@ -26,4 +26,8 @@ data class KnownSpellEntity(
     val characterId: Long,
     val trackKey: String,
     val spellId: String,
+    val knownRank: Int,
+    val origin: String,
+    val isLocked: Boolean,
+    val isSignature: Boolean,
 )

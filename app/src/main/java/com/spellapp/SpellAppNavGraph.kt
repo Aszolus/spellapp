@@ -151,6 +151,9 @@ private fun NavGraphBuilder.preparedSlotsDestination(
             },
             onClearSpell = preparedSlotsViewModel::clearSpell,
             onCastSlot = preparedSlotsViewModel::castSlot,
+            onCastKnownSpell = { spellId, slotRank ->
+                preparedSlotsViewModel.castKnownSpell(spellId, slotRank)
+            },
             onUncastSlot = preparedSlotsViewModel::uncastSlot,
             onUseFocusPoint = preparedSlotsViewModel::useFocusPoint,
             onIncreaseFocusMax = preparedSlotsViewModel::increaseFocusMax,

@@ -24,6 +24,7 @@ import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEvent
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
+import com.spellapp.core.model.SpellcastingTradition
 import com.spellapp.feature.character.spellcasting.SpellcastingSupportService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -296,6 +297,7 @@ class PreparedSlotsServiceTest {
                     sourceType = com.spellapp.core.model.CastingTrackSourceType.PRIMARY_CLASS,
                     sourceId = "DRUID",
                     progressionType = com.spellapp.core.model.CastingProgressionType.FULL_PREPARED,
+                    tradition = SpellcastingTradition.PRIMAL,
                 ),
             ),
         )
@@ -322,6 +324,7 @@ class PreparedSlotsServiceTest {
                     sourceType = com.spellapp.core.model.CastingTrackSourceType.PRIMARY_CLASS,
                     sourceId = "DRUID",
                     progressionType = com.spellapp.core.model.CastingProgressionType.FULL_PREPARED,
+                    tradition = SpellcastingTradition.PRIMAL,
                 ),
             ),
         )
@@ -557,26 +560,48 @@ class PreparedSlotsServiceTest {
             return knownSpells.map { spells -> spells.map { it.spellId }.toSet() }
         }
 
-        override suspend fun addKnownSpell(characterId: Long, trackKey: String, spellId: String): Long {
+        override suspend fun addKnownSpell(
+            characterId: Long,
+            trackKey: String,
+            spellId: String,
+            knownRank: Int?,
+            origin: com.spellapp.core.model.KnownSpellOrigin,
+            isLocked: Boolean,
+            isSignature: Boolean,
+        ): Long {
             val nextId = (knownSpells.value.maxOfOrNull { it.id } ?: 0L) + 1L
             knownSpells.value = knownSpells.value + KnownSpell(
                 id = nextId,
                 characterId = characterId,
                 trackKey = trackKey,
                 spellId = spellId,
+                knownRank = knownRank,
+                origin = origin,
+                isLocked = isLocked,
+                isSignature = isSignature,
             )
             return nextId
         }
 
-        override suspend fun removeKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean {
+        override suspend fun removeKnownSpell(
+            characterId: Long,
+            trackKey: String,
+            spellId: String,
+            knownRank: Int?,
+        ): Boolean {
             val updated = knownSpells.value.filterNot { it.spellId == spellId }
             val removed = updated.size != knownSpells.value.size
             knownSpells.value = updated
             return removed
         }
 
-        override suspend fun isKnownSpell(characterId: Long, trackKey: String, spellId: String): Boolean {
-            return knownSpells.value.any { it.spellId == spellId }
+        override suspend fun isKnownSpell(
+            characterId: Long,
+            trackKey: String,
+            spellId: String,
+            knownRank: Int?,
+        ): Boolean {
+            return knownSpells.value.any { it.spellId == spellId && (knownRank == null || it.knownRank == knownRank) }
         }
     }
 
