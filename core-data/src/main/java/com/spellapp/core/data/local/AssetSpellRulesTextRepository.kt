@@ -31,6 +31,20 @@ class AssetSpellRulesTextRepository(
         )
     }
 
+    override suspend fun getSpellHeightenedRulesText(
+        spellId: String,
+        spellRank: Int?,
+    ): List<RulesTextDocument> {
+        val source = loadSpellDescriptions()[spellId] ?: return emptyList()
+        return HeightenedRulesTextParser.parse(
+            descriptionRaw = source.descriptionRaw,
+            description = source.description,
+            localizationResolver = localizationResolver,
+            itemLevel = spellRank,
+            itemRank = spellRank,
+        )
+    }
+
     private fun loadSpellDescriptions(): Map<String, SpellRulesSource> {
         cachedSpellDescriptions?.let { return it }
         return synchronized(this) {

@@ -16,7 +16,7 @@ internal object HeightenedDescriptionParser {
     private val ABSOLUTE_PATTERN = Regex("^(\\d+)(st|nd|rd|th)$")
     private val TAG_PATTERN = Regex("<[^>]+>")
     private val INLINE_UUID_PATTERN = Regex("@UUID\\[[^\\]]*\\]\\{([^}]*)\\}")
-    private val INLINE_UUID_BARE_PATTERN = Regex("@UUID\\[[^\\]]*\\]")
+    private val INLINE_UUID_BARE_PATTERN = Regex("@UUID\\[([^\\]]*)\\]")
     private val INLINE_DAMAGE_PATTERN = Regex("@Damage\\[([^\\]]*)\\]")
     private val INLINE_CHECK_PATTERN = Regex("@Check\\[[^\\]]*\\]\\{([^}]*)\\}")
     private val INLINE_CHECK_BARE_PATTERN = Regex("@Check\\[[^\\]]*\\]")
@@ -73,7 +73,7 @@ internal object HeightenedDescriptionParser {
     private fun cleanText(raw: String): String {
         var text = raw
         text = INLINE_UUID_PATTERN.replace(text) { it.groupValues[1] }
-        text = INLINE_UUID_BARE_PATTERN.replace(text, "")
+        text = INLINE_UUID_BARE_PATTERN.replace(text) { bareUuidLabel(it.groupValues[1]) }
         text = INLINE_CHECK_PATTERN.replace(text) { it.groupValues[1] }
         text = INLINE_CHECK_BARE_PATTERN.replace(text, "")
         text = INLINE_DAMAGE_PATTERN.replace(text) { it.groupValues[1] }
@@ -85,5 +85,9 @@ internal object HeightenedDescriptionParser {
             .replace("&gt;", ">")
             .replace(Regex("\\s+"), " ")
             .trim()
+    }
+
+    private fun bareUuidLabel(uuid: String): String {
+        return uuid.substringAfterLast(".").trim()
     }
 }

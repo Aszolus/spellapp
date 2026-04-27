@@ -64,6 +64,7 @@ import com.spellapp.core.model.CastingTrack
 import com.spellapp.core.model.CastingTrackSourceType
 import com.spellapp.core.model.HeightenTrigger
 import com.spellapp.core.model.HeightenedEntry
+import com.spellapp.core.model.KnownSpellOrigin
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SpellAllowanceKind
 import com.spellapp.core.model.SpellAllowancePolicy
@@ -81,6 +82,7 @@ fun PreparedSlotsRoute(
     onClearSpell: (Int, Int) -> Unit,
     onCastSlot: (Int, Int) -> Unit,
     onCastKnownSpell: (String, Int) -> Unit,
+    onRemoveKnownSpellFromRepertoire: (Long) -> Unit,
     onUncastSlot: (Int, Int) -> Unit,
     onUseFocusPoint: () -> Unit,
     onIncreaseFocusMax: () -> Unit,
@@ -290,6 +292,9 @@ fun PreparedSlotsRoute(
                                         slotsByRank = slotsByRank,
                                     ),
                                     onCast = { slotRank -> onCastKnownSpell(spell.spellId, slotRank) },
+                                    onRemoveFromRepertoire = {
+                                        onRemoveKnownSpellFromRepertoire(spell.knownSpellId)
+                                    },
                                     onOpenSpellDetail = { spellId, heightenedAt ->
                                         onOpenPreparedSpell(spellId, heightenedAt)
                                     },
@@ -793,10 +798,12 @@ private fun SpontaneousKnownSpellRow(
     hasAvailableSlot: Boolean,
     signatureSlotRankOptions: List<SignatureSlotRankOption>,
     onCast: (Int) -> Unit,
+    onRemoveFromRepertoire: () -> Unit,
     onOpenSpellDetail: (String, Int) -> Unit,
     onOpenKnownRankSpellDetail: (String) -> Unit,
 ) {
     var showCastSheet by remember { mutableStateOf(false) }
+    var showContextMenu by remember { mutableStateOf(false) }
     val hasSignatureSlotChoices = spell.isSignature && spell.baseRank > 0
     val rankPresentations = remember(spell, signatureSlotRankOptions) {
         signatureCastRankPresentations(
@@ -805,96 +812,135 @@ private fun SpontaneousKnownSpellRow(
         )
     }
     val hasAvailableSignatureSlot = rankPresentations.any { presentation -> presentation.isAvailable }
-    Column(
+    val repertoireStatusLabel = spell.origin.repertoireStatusLabel(spell.isLocked)
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                role = Role.Button,
-                onClick = { onOpenKnownRankSpellDetail(spell.spellId) },
-            )
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .fillMaxWidth(),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    role = Role.Button,
+                    onClick = { onOpenKnownRankSpellDetail(spell.spellId) },
+                    onLongClick = { showContextMenu = true },
+                )
+                .padding(horizontal = 12.dp, vertical = 6.dp),
         ) {
             Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = spell.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                if (spell.castTime.isNotBlank()) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
-                        text = formatActionSymbols(spell.castTime),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = spell.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
+                    if (spell.castTime.isNotBlank()) {
+                        Text(
+                            text = formatActionSymbols(spell.castTime),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    val rankLabel = spontaneousCastRankLabel(
+                        spell = spell,
+                        slotRank = slotRank,
+                        effectiveCantripRank = effectiveCantripRank,
+                    )
+                    if (rankLabel != null) {
+                        Text(
+                            text = rankLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    if (spell.range.isNotBlank()) {
+                        Text(
+                            text = spell.range,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-                val rankLabel = spontaneousCastRankLabel(
-                    spell = spell,
-                    slotRank = slotRank,
-                    effectiveCantripRank = effectiveCantripRank,
-                )
-                if (rankLabel != null) {
-                    Text(
-                        text = rankLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                if (spell.range.isNotBlank()) {
-                    Text(
-                        text = spell.range,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = {
+                        if (hasSignatureSlotChoices) {
+                            showCastSheet = true
+                        } else {
+                            onCast(slotRank)
+                        }
+                    },
+                    enabled = if (hasSignatureSlotChoices) {
+                        hasAvailableSignatureSlot
+                    } else {
+                        hasAvailableSlot
+                    },
+                ) {
+                    Text("Cast", style = MaterialTheme.typography.labelMedium)
                 }
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(
-                onClick = {
-                    if (hasSignatureSlotChoices) {
-                        showCastSheet = true
-                    } else {
-                        onCast(slotRank)
+            if (spell.traits.isNotEmpty() || spell.signatureLabel != null || repertoireStatusLabel != null) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    spell.signatureLabel?.let { label ->
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     }
-                },
-                enabled = if (hasSignatureSlotChoices) {
-                    hasAvailableSignatureSlot
-                } else {
-                    hasAvailableSlot
-                },
-            ) {
-                Text("Cast", style = MaterialTheme.typography.labelMedium)
+                    repertoireStatusLabel?.let { label ->
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (spell.isLocked) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
+                    spell.traits.forEach { trait ->
+                        Text(
+                            text = trait,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
-        if (spell.traits.isNotEmpty() || spell.signatureLabel != null) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                spell.signatureLabel?.let { label ->
+        DropdownMenu(
+            expanded = showContextMenu,
+            onDismissRequest = { showContextMenu = false },
+        ) {
+            DropdownMenuItem(
+                text = {
                     Text(
-                        text = label,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        if (spell.canRemoveFromRepertoire) {
+                            "Remove from Repertoire"
+                        } else {
+                            repertoireStatusLabelForLockedSpell(spell.origin)
+                        },
                     )
-                }
-                spell.traits.forEach { trait ->
-                    Text(
-                        text = trait,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+                },
+                enabled = spell.canRemoveFromRepertoire,
+                onClick = {
+                    showContextMenu = false
+                    onRemoveFromRepertoire()
+                },
+            )
         }
     }
     HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
@@ -1485,6 +1531,21 @@ private fun signatureRankSummary(spell: KnownSpellCastingSummary): String {
     } else {
         "$knownRank - $baseRank"
     }
+}
+
+private fun KnownSpellOrigin.repertoireStatusLabel(isLocked: Boolean): String? {
+    return when (this) {
+        KnownSpellOrigin.CLASS -> if (isLocked) "Always known (class)" else "Class access"
+        KnownSpellOrigin.SUBCLASS -> if (isLocked) "Always known (subclass)" else "Subclass granted"
+        KnownSpellOrigin.ARCHETYPE -> if (isLocked) "Always known (archetype)" else "Archetype access"
+        KnownSpellOrigin.GM_GRANT -> if (isLocked) "Locked GM grant" else "GM grant"
+        KnownSpellOrigin.CUSTOM -> "Custom"
+        KnownSpellOrigin.MANUAL -> if (isLocked) "Locked" else null
+    }
+}
+
+private fun repertoireStatusLabelForLockedSpell(origin: KnownSpellOrigin): String {
+    return origin.repertoireStatusLabel(isLocked = true) ?: "Locked"
 }
 
 private fun signatureDetailFacts(spell: KnownSpellCastingSummary): List<SignatureSpellFact> {

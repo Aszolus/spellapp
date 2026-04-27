@@ -32,6 +32,10 @@ interface KnownSpellRepository {
         knownRank: Int? = null,
     ): Boolean
 
+    suspend fun removeKnownSpellById(
+        knownSpellId: Long,
+    ): Boolean = false
+
     suspend fun setSignatureSpell(
         characterId: Long,
         trackKey: String,

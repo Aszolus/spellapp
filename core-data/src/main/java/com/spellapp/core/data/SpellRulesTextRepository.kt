@@ -7,4 +7,9 @@ interface SpellRulesTextRepository {
         spellId: String,
         spellRank: Int? = null,
     ): RulesTextDocument?
+
+    suspend fun getSpellHeightenedRulesText(
+        spellId: String,
+        spellRank: Int? = null,
+    ): List<RulesTextDocument> = emptyList()
 }

@@ -30,6 +30,7 @@ import com.spellapp.core.model.SpellcastingTradition
 import com.spellapp.feature.character.spellcasting.SpellcastingSupportService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
@@ -281,6 +282,61 @@ class PreparedSlotsServiceTest {
     }
 
     @Test
+    fun removeKnownSpellFromRepertoire_removesUnlockedKnownSpellById() = runTest {
+        val knownSpell = KnownSpell(
+            id = 42L,
+            characterId = CHARACTER_ID,
+            trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+            spellId = "spell-1",
+        )
+        val fixture = fixture(
+            slots = emptyList(),
+            spells = emptyList(),
+            details = emptyMap(),
+            initialKnownSpells = listOf(knownSpell),
+        )
+
+        val removed = fixture.service.removeKnownSpellFromRepertoire(knownSpell.id)
+
+        assertEquals(true, removed)
+        assertEquals(
+            emptySet<String>(),
+            fixture.knownSpellRepository.observeKnownSpellIds(
+                characterId = CHARACTER_ID,
+                trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+            ).first(),
+        )
+    }
+
+    @Test
+    fun removeKnownSpellFromRepertoire_keepsLockedKnownSpell() = runTest {
+        val knownSpell = KnownSpell(
+            id = 42L,
+            characterId = CHARACTER_ID,
+            trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+            spellId = "spell-1",
+            isLocked = true,
+        )
+        val fixture = fixture(
+            slots = emptyList(),
+            spells = emptyList(),
+            details = emptyMap(),
+            initialKnownSpells = listOf(knownSpell),
+        )
+
+        val removed = fixture.service.removeKnownSpellFromRepertoire(knownSpell.id)
+
+        assertEquals(false, removed)
+        assertEquals(
+            setOf("spell-1"),
+            fixture.knownSpellRepository.observeKnownSpellIds(
+                characterId = CHARACTER_ID,
+                trackKey = PreparedSlot.PRIMARY_TRACK_KEY,
+            ).first(),
+        )
+    }
+
+    @Test
     fun prepareRandom_usesSelectedArchetypeTrackKnownSpellsAndSlots() = runTest {
         val archetypeTrackKey = "archetype-wizard"
         val fixture = fixture(
@@ -399,6 +455,7 @@ class PreparedSlotsServiceTest {
         knownSpellIdsByTrack: Map<String, Set<String>> = mapOf(
             PreparedSlot.PRIMARY_TRACK_KEY to knownSpellIds,
         ),
+        initialKnownSpells: List<KnownSpell>? = null,
         tracks: List<CastingTrack> = emptyList(),
     ): TestFixture {
         val preparedSlotRepository = FakePreparedSlotRepository(
@@ -408,7 +465,10 @@ class PreparedSlotsServiceTest {
                 }
             },
         )
-        val knownSpellRepository = FakeKnownSpellRepository(knownSpellIdsByTrack = knownSpellIdsByTrack)
+        val knownSpellRepository = FakeKnownSpellRepository(
+            knownSpellIdsByTrack = knownSpellIdsByTrack,
+            initialKnownSpells = initialKnownSpells,
+        )
         val spellRepository = FakeSpellRepository(
             spells = spells,
             detailsById = details,
@@ -440,12 +500,14 @@ class PreparedSlotsServiceTest {
         return TestFixture(
             service = service,
             preparedSlotRepository = preparedSlotRepository,
+            knownSpellRepository = knownSpellRepository,
         )
     }
 
     private data class TestFixture(
         val service: PreparedSlotsService,
         val preparedSlotRepository: FakePreparedSlotRepository,
+        val knownSpellRepository: FakeKnownSpellRepository,
     )
 
     private class FakePreparedSlotRepository(
@@ -604,9 +666,10 @@ class PreparedSlotsServiceTest {
 
     private class FakeKnownSpellRepository(
         knownSpellIdsByTrack: Map<String, Set<String>>,
+        initialKnownSpells: List<KnownSpell>? = null,
     ) : KnownSpellRepository {
         private val knownSpells = MutableStateFlow(
-            knownSpellIdsByTrack.flatMap { (trackKey, spellIds) ->
+            initialKnownSpells ?: knownSpellIdsByTrack.flatMap { (trackKey, spellIds) ->
                 spellIds.map { spellId ->
                     trackKey to spellId
                 }
@@ -668,6 +731,15 @@ class PreparedSlotsServiceTest {
                     it.trackKey == trackKey &&
                     it.spellId == spellId &&
                     (knownRank == null || it.knownRank == knownRank)
+            }
+            val removed = updated.size != knownSpells.value.size
+            knownSpells.value = updated
+            return removed
+        }
+
+        override suspend fun removeKnownSpellById(knownSpellId: Long): Boolean {
+            val updated = knownSpells.value.filterNot {
+                it.id == knownSpellId && !it.isLocked
             }
             val removed = updated.size != knownSpells.value.size
             knownSpells.value = updated

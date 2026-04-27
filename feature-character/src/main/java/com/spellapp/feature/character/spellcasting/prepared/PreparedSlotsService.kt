@@ -93,6 +93,12 @@ class PreparedSlotsService(
         )
     }
 
+    suspend fun removeKnownSpellFromRepertoire(
+        knownSpellId: Long,
+    ): Boolean {
+        return knownSpellRepository.removeKnownSpellById(knownSpellId)
+    }
+
     suspend fun uncastSlot(
         characterId: Long,
         rank: Int,

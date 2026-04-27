@@ -77,6 +77,12 @@ class RoomKnownSpellRepository(
         ) > 0
     }
 
+    override suspend fun removeKnownSpellById(
+        knownSpellId: Long,
+    ): Boolean {
+        return dao.deleteByIdIfUnlocked(knownSpellId) > 0
+    }
+
     override suspend fun setSignatureSpell(
         characterId: Long,
         trackKey: String,

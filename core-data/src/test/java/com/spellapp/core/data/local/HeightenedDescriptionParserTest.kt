@@ -36,6 +36,22 @@ class HeightenedDescriptionParserTest {
     }
 
     @Test
+    fun parse_preservesBareUuidItemNamesFromHtml() {
+        val raw = """
+            <p><strong>Heightened (4th)</strong> Add @UUID[Compendium.pf2e.conditionitems.Item.Confused], @UUID[Compendium.pf2e.conditionitems.Item.Controlled], and @UUID[Compendium.pf2e.conditionitems.Item.Slowed] to the list of conditions.</p>
+            <p><strong>Heightened (6th)</strong> As 4th rank, plus add @UUID[Compendium.pf2e.conditionitems.Item.Doomed].</p>
+            <p><strong>Heightened (8th)</strong> As 4th rank, plus add doomed and @UUID[Compendium.pf2e.conditionitems.Item.Stunned].</p>
+        """.trimIndent()
+
+        val entries = HeightenedDescriptionParser.parse(descriptionRaw = raw, description = null)
+
+        assertEquals(3, entries.size)
+        assertEquals("Add Confused, Controlled, and Slowed to the list of conditions.", entries[0].text)
+        assertEquals("As 4th rank, plus add Doomed.", entries[1].text)
+        assertEquals("As 4th rank, plus add doomed and Stunned.", entries[2].text)
+    }
+
+    @Test
     fun parse_returnsEmptyWhenNoHeightenBlocks() {
         val raw = "<p>Plain description with no heighten text.</p>"
 

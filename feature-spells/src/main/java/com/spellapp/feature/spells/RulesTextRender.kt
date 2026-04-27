@@ -27,19 +27,19 @@ internal fun RulesTextDocumentText(
     referenceLookups: Map<RulesReferenceKey, SpellReferenceLookupUiState>,
     modifier: Modifier = Modifier,
     enableLookups: Boolean = true,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+    linkColor: Color = MaterialTheme.colorScheme.primary,
     onLookupClick: (SpellLookupDialogState) -> Unit = {},
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
-    val rendered = remember(document, referenceLookups, enableLookups, primaryColor) {
+    val rendered = remember(document, referenceLookups, enableLookups, linkColor) {
         renderRulesTextDocument(
             document = document,
             referenceLookups = referenceLookups,
             enableLookups = enableLookups,
-            primaryColor = primaryColor,
+            linkColor = linkColor,
         )
     }
-    val style = MaterialTheme.typography.bodyMedium.copy(color = onSurfaceColor)
+    val style = MaterialTheme.typography.bodyMedium.copy(color = color)
     if (rendered.lookupTargets.isEmpty()) {
         Text(
             text = rendered.text,
@@ -73,7 +73,7 @@ private fun renderRulesTextDocument(
     document: RulesTextDocument,
     referenceLookups: Map<RulesReferenceKey, SpellReferenceLookupUiState>,
     enableLookups: Boolean,
-    primaryColor: Color,
+    linkColor: Color,
 ): RenderedRulesText {
     val lookupTargets = mutableListOf<SpellLookupDialogState>()
     val annotated = buildAnnotatedString {
@@ -81,7 +81,7 @@ private fun renderRulesTextDocument(
             blocks = document.blocks,
             referenceLookups = referenceLookups,
             enableLookups = enableLookups,
-            primaryColor = primaryColor,
+            linkColor = linkColor,
             lookupTargets = lookupTargets,
             indent = "",
         )
@@ -96,7 +96,7 @@ private fun AnnotatedString.Builder.appendBlocks(
     blocks: List<RulesTextBlock>,
     referenceLookups: Map<RulesReferenceKey, SpellReferenceLookupUiState>,
     enableLookups: Boolean,
-    primaryColor: Color,
+    linkColor: Color,
     lookupTargets: MutableList<SpellLookupDialogState>,
     indent: String,
 ) {
@@ -111,7 +111,7 @@ private fun AnnotatedString.Builder.appendBlocks(
                     inlines = block.inlines,
                     referenceLookups = referenceLookups,
                     enableLookups = enableLookups,
-                    primaryColor = primaryColor,
+                    linkColor = linkColor,
                     lookupTargets = lookupTargets,
                 )
             }
@@ -123,7 +123,7 @@ private fun AnnotatedString.Builder.appendBlocks(
                         inlines = block.inlines,
                         referenceLookups = referenceLookups,
                         enableLookups = enableLookups,
-                        primaryColor = primaryColor,
+                        linkColor = linkColor,
                         lookupTargets = lookupTargets,
                     )
                 }
@@ -137,7 +137,7 @@ private fun AnnotatedString.Builder.appendBlocks(
                         prefix = if (block.ordered) "${itemIndex + 1}. " else "- ",
                         referenceLookups = referenceLookups,
                         enableLookups = enableLookups,
-                        primaryColor = primaryColor,
+                        linkColor = linkColor,
                         lookupTargets = lookupTargets,
                         indent = indent,
                     )
@@ -157,7 +157,7 @@ private fun AnnotatedString.Builder.appendListItem(
     prefix: String,
     referenceLookups: Map<RulesReferenceKey, SpellReferenceLookupUiState>,
     enableLookups: Boolean,
-    primaryColor: Color,
+    linkColor: Color,
     lookupTargets: MutableList<SpellLookupDialogState>,
     indent: String,
 ) {
@@ -174,7 +174,7 @@ private fun AnnotatedString.Builder.appendListItem(
                 inlines = childBlock.inlines,
                 referenceLookups = referenceLookups,
                 enableLookups = enableLookups,
-                primaryColor = primaryColor,
+                linkColor = linkColor,
                 lookupTargets = lookupTargets,
             )
 
@@ -183,7 +183,7 @@ private fun AnnotatedString.Builder.appendListItem(
                     inlines = childBlock.inlines,
                     referenceLookups = referenceLookups,
                     enableLookups = enableLookups,
-                    primaryColor = primaryColor,
+                    linkColor = linkColor,
                     lookupTargets = lookupTargets,
                 )
             }
@@ -192,7 +192,7 @@ private fun AnnotatedString.Builder.appendListItem(
                 blocks = listOf(childBlock),
                 referenceLookups = referenceLookups,
                 enableLookups = enableLookups,
-                primaryColor = primaryColor,
+                linkColor = linkColor,
                 lookupTargets = lookupTargets,
                 indent = "$indent  ",
             )
@@ -206,7 +206,7 @@ private fun AnnotatedString.Builder.appendInlines(
     inlines: List<RulesTextInline>,
     referenceLookups: Map<RulesReferenceKey, SpellReferenceLookupUiState>,
     enableLookups: Boolean,
-    primaryColor: Color,
+    linkColor: Color,
     lookupTargets: MutableList<SpellLookupDialogState>,
 ) {
     inlines.forEach { inline ->
@@ -218,7 +218,7 @@ private fun AnnotatedString.Builder.appendInlines(
                     inlines = inline.children,
                     referenceLookups = referenceLookups,
                     enableLookups = enableLookups,
-                    primaryColor = primaryColor,
+                    linkColor = linkColor,
                     lookupTargets = lookupTargets,
                 )
             }
@@ -228,7 +228,7 @@ private fun AnnotatedString.Builder.appendInlines(
                     inlines = inline.children,
                     referenceLookups = referenceLookups,
                     enableLookups = enableLookups,
-                    primaryColor = primaryColor,
+                    linkColor = linkColor,
                     lookupTargets = lookupTargets,
                 )
             }
@@ -249,7 +249,7 @@ private fun AnnotatedString.Builder.appendInlines(
                     val end = length
                     addStyle(
                         style = SpanStyle(
-                            color = primaryColor,
+                            color = linkColor,
                             fontWeight = FontWeight.Medium,
                             textDecoration = TextDecoration.Underline,
                         ),

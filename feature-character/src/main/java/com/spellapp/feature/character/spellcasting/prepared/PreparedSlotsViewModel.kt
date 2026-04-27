@@ -18,6 +18,7 @@ import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.EmptyClassSpellcastingCatalogSource
 import com.spellapp.core.model.HeightenedEntry
 import com.spellapp.core.model.KnownSpell
+import com.spellapp.core.model.KnownSpellOrigin
 import com.spellapp.core.model.PreparedSlot
 import com.spellapp.core.model.SessionEventType
 import com.spellapp.core.model.SpellAllowanceKind
@@ -69,6 +70,8 @@ data class KnownSpellCastingSummary(
     val name: String,
     val baseRank: Int,
     val knownRank: Int,
+    val origin: KnownSpellOrigin = KnownSpellOrigin.MANUAL,
+    val isLocked: Boolean = false,
     val isSignature: Boolean,
     val signatureLabel: String? = null,
     val castTime: String,
@@ -81,6 +84,9 @@ data class KnownSpellCastingSummary(
     val traits: List<String>,
     val heightenedEntries: List<HeightenedEntry> = emptyList(),
 ) {
+    val canRemoveFromRepertoire: Boolean
+        get() = !isLocked
+
     fun canUseSlotRank(slotRank: Int): Boolean {
         return knownSpellCanUseSlotRank(
             baseRank = baseRank,
@@ -311,6 +317,8 @@ class PreparedSlotsViewModel(
                         name = summary.name,
                         baseRank = summary.rank,
                         knownRank = knownSpell.knownRank ?: summary.rank,
+                        origin = knownSpell.origin,
+                        isLocked = knownSpell.isLocked,
                         isSignature = knownSpell.isSignature || treatsAllKnownSpellsAsSignature,
                         signatureLabel = signatureLabelForKnownSpell(
                             baseRank = summary.rank,
@@ -406,6 +414,12 @@ class PreparedSlotsViewModel(
                 slotRank = slot.rank,
                 slotIndex = slot.slotIndex,
             )
+        }
+    }
+
+    fun removeKnownSpellFromRepertoire(knownSpellId: Long) {
+        viewModelScope.launch {
+            preparedSlotsService.removeKnownSpellFromRepertoire(knownSpellId)
         }
     }
 

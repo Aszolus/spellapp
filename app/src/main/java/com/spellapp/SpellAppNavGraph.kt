@@ -154,6 +154,7 @@ private fun NavGraphBuilder.preparedSlotsDestination(
             onCastKnownSpell = { spellId, slotRank ->
                 preparedSlotsViewModel.castKnownSpell(spellId, slotRank)
             },
+            onRemoveKnownSpellFromRepertoire = preparedSlotsViewModel::removeKnownSpellFromRepertoire,
             onUncastSlot = preparedSlotsViewModel::uncastSlot,
             onUseFocusPoint = preparedSlotsViewModel::useFocusPoint,
             onIncreaseFocusMax = preparedSlotsViewModel::increaseFocusMax,
@@ -325,6 +326,7 @@ private fun NavGraphBuilder.spellDetailDestination(
             isLoading = spellDetailUiState.isLoading,
             traitLookups = spellDetailUiState.traitLookups,
             rulesDocument = spellDetailUiState.rulesDocument,
+            heightenedEntryDocuments = spellDetailUiState.heightenedEntryDocuments,
             referenceLookups = spellDetailUiState.referenceLookups,
             heightenedAt = spellDetailUiState.heightenedAt,
             onBack = { navController.popBackStackIfResumed() },

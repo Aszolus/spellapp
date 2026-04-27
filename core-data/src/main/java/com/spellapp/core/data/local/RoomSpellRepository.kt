@@ -94,9 +94,29 @@ class RoomSpellRepository(
         }
         if (populatedHeightenCount == 0 && importedHeightenCount > 0) {
             spellDao.replaceAll(entities)
+            return
+        }
+
+        // One-time repair path for datasets parsed before bare @UUID references kept their item names.
+        if (needsBareUuidHeightenedTextRepair()) {
+            spellDao.replaceAll(entities)
+        }
+    }
+
+    private suspend fun needsBareUuidHeightenedTextRepair(): Boolean {
+        val clearMind = spellDao.getSpellById(CLEAR_MIND_SPELL_ID) ?: return false
+        return CLEAR_MIND_BARE_UUID_REPAIR_MARKERS.any { marker ->
+            clearMind.heightenedEntriesJson.contains(marker)
         }
     }
 }
+
+private const val CLEAR_MIND_SPELL_ID = "clear-mind"
+private val CLEAR_MIND_BARE_UUID_REPAIR_MARKERS = listOf(
+    "Add , , and",
+    "plus add .",
+    "plus add doomed and .",
+)
 
 internal fun normalizeTraitCatalog(rows: List<String>): List<String> {
     return rows.asSequence()

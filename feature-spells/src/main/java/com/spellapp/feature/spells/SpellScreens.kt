@@ -649,6 +649,7 @@ fun SpellDetailRoute(
     isLoading: Boolean,
     traitLookups: List<SpellTraitLookupUiState>,
     rulesDocument: RulesTextDocument,
+    heightenedEntryDocuments: List<RulesTextDocument>,
     referenceLookups: Map<RulesReferenceKey, SpellReferenceLookupUiState>,
     heightenedAt: Int? = null,
     onBack: () -> Unit,
@@ -739,8 +740,11 @@ fun SpellDetailRoute(
                 if (spell.heightenedEntries.isNotEmpty()) {
                     HeightenSection(
                         entries = spell.heightenedEntries,
+                        entryDocuments = heightenedEntryDocuments,
                         baseRank = if (spell.rank == 0) 1 else spell.rank,
                         heightenedAt = heightenedAt,
+                        referenceLookups = referenceLookups,
+                        onLookupClick = { lookup -> activeLookup = lookup },
                     )
                 }
                 MarginNote(label = "License", value = spell.license)
@@ -898,8 +902,11 @@ private fun MarginNote(
 @Composable
 private fun HeightenSection(
     entries: List<HeightenedEntry>,
+    entryDocuments: List<RulesTextDocument>,
     baseRank: Int,
     heightenedAt: Int?,
+    referenceLookups: Map<RulesReferenceKey, SpellReferenceLookupUiState>,
+    onLookupClick: (SpellLookupDialogState) -> Unit,
 ) {
     Text(
         text = "Heightened",
@@ -919,9 +926,17 @@ private fun HeightenSection(
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        entries.forEach { entry ->
+        entries.forEachIndexed { index, entry ->
             val active = heightenedAt != null && isEntryActive(entry, baseRank, heightenedAt)
-            HeightenBlock(entry = entry, active = active)
+            val document = entryDocuments.getOrNull(index).takeUnless { it?.isEmpty == true }
+                ?: RulesTextDocument.fromPlainText(entry.text)
+            HeightenBlock(
+                entry = entry,
+                document = document,
+                active = active,
+                referenceLookups = referenceLookups,
+                onLookupClick = onLookupClick,
+            )
         }
     }
 }
@@ -929,7 +944,10 @@ private fun HeightenSection(
 @Composable
 private fun HeightenBlock(
     entry: HeightenedEntry,
+    document: RulesTextDocument,
     active: Boolean,
+    referenceLookups: Map<RulesReferenceKey, SpellReferenceLookupUiState>,
+    onLookupClick: (SpellLookupDialogState) -> Unit,
 ) {
     val bg = if (active) {
         MaterialTheme.colorScheme.primaryContainer
@@ -940,6 +958,11 @@ private fun HeightenBlock(
         MaterialTheme.colorScheme.onPrimaryContainer
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val linkFg = if (active) {
+        fg
+    } else {
+        MaterialTheme.colorScheme.primary
     }
     Surface(
         color = bg,
@@ -960,10 +983,12 @@ private fun HeightenBlock(
                 color = fg,
                 fontWeight = FontWeight.SemiBold,
             )
-            Text(
-                text = entry.text,
-                style = MaterialTheme.typography.bodyMedium,
+            RulesTextDocumentText(
+                document = document,
+                referenceLookups = referenceLookups,
                 color = fg,
+                linkColor = linkFg,
+                onLookupClick = onLookupClick,
             )
         }
     }

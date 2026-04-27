@@ -103,6 +103,17 @@ interface KnownSpellDao {
 
     @Query(
         """
+        DELETE FROM known_spells
+        WHERE id = :knownSpellId
+          AND isLocked = 0
+        """,
+    )
+    suspend fun deleteByIdIfUnlocked(
+        knownSpellId: Long,
+    ): Int
+
+    @Query(
+        """
         UPDATE known_spells
         SET isSignature = :isSignature
         WHERE characterId = :characterId

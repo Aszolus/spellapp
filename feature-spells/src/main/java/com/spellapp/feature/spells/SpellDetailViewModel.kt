@@ -25,6 +25,7 @@ data class SpellDetailUiState(
     val heightenedAt: Int? = null,
     val traitLookups: List<SpellTraitLookupUiState> = emptyList(),
     val rulesDocument: RulesTextDocument = RulesTextDocument(),
+    val heightenedEntryDocuments: List<RulesTextDocument> = emptyList(),
     val referenceLookups: Map<RulesReferenceKey, SpellReferenceLookupUiState> = emptyMap(),
 )
 
@@ -66,6 +67,7 @@ class SpellDetailViewModel(
                     isLoading = true,
                     traitLookups = emptyList(),
                     rulesDocument = RulesTextDocument(),
+                    heightenedEntryDocuments = emptyList(),
                     referenceLookups = emptyMap(),
                 )
             }
@@ -82,12 +84,23 @@ class SpellDetailViewModel(
             } else {
                 RulesTextDocument()
             }
+            val heightenedEntryDocuments = if (spell != null) {
+                spellRulesTextRepository.getSpellHeightenedRulesText(
+                    spellId = spellId,
+                    spellRank = spellRank,
+                )
+            } else {
+                emptyList()
+            }
             val lookupEntries = if (spell != null) {
                 val keys = buildSet {
                     spell.traits.forEach { trait ->
                         add(TraitReferenceKey.fromSlug(trait))
                     }
                     addAll(parsedRulesText.referenceKeys())
+                    heightenedEntryDocuments.forEach { document ->
+                        addAll(document.referenceKeys())
+                    }
                 }
                 rulesReferenceRepository.getEntries(keys)
             } else {
@@ -106,6 +119,7 @@ class SpellDetailViewModel(
                         )
                     },
                     rulesDocument = parsedRulesText,
+                    heightenedEntryDocuments = heightenedEntryDocuments,
                     referenceLookups = lookupEntries
                         .filterKeys { it is CompendiumReferenceKey }
                         .mapValues { (key, entry) ->
