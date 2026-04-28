@@ -62,6 +62,9 @@ data class CharacterBuilderUiState(
     val selectedSkillChoices: Map<String, String> = emptyMap(),
     val skillChoiceSlots: List<BuilderSkillChoiceSlot> = emptyList(),
     val skillIssues: List<BuilderIssue> = emptyList(),
+    val selectedPromptChoices: Map<String, String> = emptyMap(),
+    val promptSlots: List<BuilderPromptSlot> = emptyList(),
+    val promptIssues: List<BuilderIssue> = emptyList(),
     val selectedFeatSlotOptions: Map<String, String> = emptyMap(),
     val selectedFeatOverrideReasons: Map<String, String> = emptyMap(),
     val keyAbility: AbilityScore = AbilityScore.INTELLIGENCE,
@@ -74,6 +77,7 @@ data class CharacterBuilderUiState(
     val availableSpellSources: List<String> = emptyList(),
     val classDefinitionsByClass: Map<String, CharacterClassDefinition> = emptyMap(),
     val availableClasses: List<CharacterClassDefinition> = emptyList(),
+    val availableClassRecords: List<BuilderClassRecord> = emptyList(),
     val availableAncestries: List<BuilderAncestryRecord> = emptyList(),
     val availableHeritages: List<BuilderHeritageRecord> = emptyList(),
     val availableBackgrounds: List<BuilderBackgroundRecord> = emptyList(),
@@ -126,10 +130,7 @@ enum class CharacterBuilderSectionId {
     FEATS,
     ABILITY_SCORES,
     SKILLS,
-    CASTING_STATS,
     SPELL_SOURCES,
-    ARCHETYPE_SPELLCASTING,
-    PREFERENCES,
 }
 
 enum class CharacterBuilderSectionStatus {
@@ -242,12 +243,7 @@ class CharacterBuilderViewModel(
     fun setVoluntaryFlawEnabled(enabled: Boolean) {
         updateState { current ->
             current.copy(
-                voluntaryFlawEnabled = enabled,
-                selectedAbilityBoosts = if (enabled) {
-                    current.selectedAbilityBoosts
-                } else {
-                    current.selectedAbilityBoosts.filterKeys { key -> !key.startsWith("ability/voluntary-flaw/") }
-                },
+                voluntaryFlawEnabled = false,
                 saveError = null,
             )
         }
@@ -274,6 +270,20 @@ class CharacterBuilderViewModel(
         val normalized = loreName.trim()
         if (normalized.isBlank()) return
         selectSkillChoice(slotId, BuilderRules.loreKey(normalized))
+    }
+
+    fun selectPromptChoice(
+        slotId: String,
+        choice: String?,
+    ) {
+        updateState { current ->
+            current.copy(
+                selectedPromptChoices = current.selectedPromptChoices.toMutableMap().apply {
+                    if (choice.isNullOrBlank()) remove(slotId) else put(slotId, choice)
+                },
+                saveError = null,
+            )
+        }
     }
 
     fun selectFeatForSlot(
@@ -427,7 +437,7 @@ class CharacterBuilderViewModel(
     }
 
     fun setLegacyTerminologyEnabled(enabled: Boolean) {
-        updateState { it.copy(legacyTerminologyEnabled = enabled, saveError = null) }
+        updateState { it.copy(legacyTerminologyEnabled = false, saveError = null) }
     }
 
     fun setAcceptedSourceBooks(sources: Set<String>) {
@@ -512,7 +522,7 @@ class CharacterBuilderViewModel(
                     keyAbility = attempted.keyAbility,
                     spellDc = attempted.spellDc ?: 10,
                     spellAttackModifier = attempted.spellAttack ?: 0,
-                    legacyTerminologyEnabled = attempted.legacyTerminologyEnabled,
+                    legacyTerminologyEnabled = false,
                 )
                 val isNew = profile.id == 0L
                 val savedCharacterId = characterCrudRepository.upsertCharacter(profile)
@@ -533,6 +543,7 @@ class CharacterBuilderViewModel(
                     selectedBuildOptionIds = attempted.selectedBuildOptionIds,
                     selectedAbilityBoosts = attempted.selectedAbilityBoosts,
                     selectedSkillChoices = attempted.selectedSkillChoices,
+                    selectedPromptChoices = attempted.selectedPromptChoices,
                     selectedFeatSlotOptions = attempted.selectedFeatSlotOptions,
                     selectedFeatOverrideReasons = attempted.selectedFeatOverrideReasons,
                     selectedAncestryId = attempted.selectedAncestryId,
@@ -549,10 +560,25 @@ class CharacterBuilderViewModel(
                 savedCharacterId
             }.onSuccess { savedCharacterId ->
                 updateState {
+                    val generatedAbilitySlotIds = it.abilityBoostSlots.map { slot -> slot.slotId }.toSet()
+                    val generatedSkillSlotIds = it.skillChoiceSlots.map { slot -> slot.slotId }.toSet()
+                    val generatedPromptSlotIds = it.promptSlots.map { slot -> slot.slotId }.toSet()
+                    val generatedFeatSlotIds = it.expectedFeatSlots.map { slot -> slot.slotId }.toSet()
                     val savedState = it.copy(
                         characterId = savedCharacterId,
                         isNewCharacter = false,
                         isSaving = false,
+                        voluntaryFlawEnabled = false,
+                        selectedAbilityBoosts = it.selectedAbilityBoosts
+                            .filterKeys { slotId -> slotId in generatedAbilitySlotIds },
+                        selectedSkillChoices = it.selectedSkillChoices
+                            .filterKeys { slotId -> slotId in generatedSkillSlotIds },
+                        selectedPromptChoices = it.selectedPromptChoices
+                            .filterKeys { slotId -> slotId in generatedPromptSlotIds },
+                        selectedFeatSlotOptions = it.selectedFeatSlotOptions
+                            .filterKeys { slotId -> slotId in generatedFeatSlotIds },
+                        selectedFeatOverrideReasons = it.selectedFeatOverrideReasons
+                            .filterKeys { slotId -> slotId in generatedFeatSlotIds },
                     )
                     initialSnapshot = snapshot(savedState)
                     savedState
@@ -628,6 +654,9 @@ class CharacterBuilderViewModel(
         val selectedSkillChoices = existingOptions
             .mapNotNull(::skillChoiceSelectionFromOption)
             .toMap()
+        val selectedPromptChoices = existingOptions
+            .mapNotNull(::promptChoiceSelectionFromOption)
+            .toMap()
         val acceptedSources = if (isNew) {
             availableSourceBooks.toSet()
         } else {
@@ -648,15 +677,16 @@ class CharacterBuilderViewModel(
             selectedHeritageId = existingIdentity?.heritageId,
             selectedBackgroundId = existingIdentity?.backgroundId,
             selectedAbilityBoosts = selectedAbilityBoosts,
-            voluntaryFlawEnabled = selectedAbilityBoosts.keys.any { it.startsWith("ability/voluntary-flaw/") },
+            voluntaryFlawEnabled = false,
             selectedSkillChoices = selectedSkillChoices,
+            selectedPromptChoices = selectedPromptChoices,
             selectedFeatSlotOptions = selectedFeatSlotOptions,
             selectedFeatOverrideReasons = selectedFeatOverrideReasons,
             keyAbility = existingCharacter?.keyAbility
                 ?: defaultKeyAbility(initialClassId, classDefinitionsByClass),
             spellDcText = (existingCharacter?.spellDc ?: 10).toString(),
             spellAttackText = (existingCharacter?.spellAttackModifier ?: 0).toString(),
-            legacyTerminologyEnabled = existingCharacter?.legacyTerminologyEnabled ?: false,
+            legacyTerminologyEnabled = false,
             selectedBuildOptionIds = selectedOptionIds,
             acceptedSourceBooks = acceptedSources,
             availableSpellSources = availableSourceBooks,
@@ -709,6 +739,7 @@ class CharacterBuilderViewModel(
                 },
                 classDefinitionsByClass = classDefinitionsByClass,
                 availableClasses = availableClasses,
+                availableClassRecords = sourceCatalog.classes,
                 availableAncestries = sourceCatalog.ancestries,
                 availableHeritages = sourceCatalog.heritagesForAncestry(latestState.selectedAncestryId),
                 availableBackgrounds = sourceCatalog.backgrounds,
@@ -758,6 +789,7 @@ class CharacterBuilderViewModel(
         selectedBuildOptionIds: Set<String>,
         selectedAbilityBoosts: Map<String, AbilityScore>,
         selectedSkillChoices: Map<String, String>,
+        selectedPromptChoices: Map<String, String>,
         selectedFeatSlotOptions: Map<String, String>,
         selectedFeatOverrideReasons: Map<String, String>,
         selectedAncestryId: String?,
@@ -792,6 +824,7 @@ class CharacterBuilderViewModel(
             characterId = characterId,
             selectedAbilityBoosts = selectedAbilityBoosts,
             selectedSkillChoices = selectedSkillChoices,
+            selectedPromptChoices = selectedPromptChoices,
             selectedFeatSlotOptions = selectedFeatSlotOptions,
             selectedFeatOverrideReasons = selectedFeatOverrideReasons,
             selectedAncestryId = selectedAncestryId,
@@ -838,6 +871,17 @@ class CharacterBuilderViewModel(
         return slotId to option.optionId
     }
 
+    private fun promptChoiceSelectionFromOption(option: CharacterBuildOption): Pair<String, String>? {
+        if (!option.isBuilderManaged()) {
+            return null
+        }
+        val metadata = runCatching { JSONObject(option.metadataJson) }.getOrNull() ?: return null
+        if (metadata.optString("slotKind") != "prompt") return null
+        val slotId = metadata.optString("slotId").takeIf { it.isNotBlank() } ?: return null
+        val selectedValue = metadata.optString("selectedValue").takeIf { it.isNotBlank() } ?: return null
+        return slotId to selectedValue
+    }
+
     private fun featOverrideSelectionFromOption(option: CharacterBuildOption): Pair<String, String>? {
         if (!option.isBuilderManaged() || option.optionType != CharacterBuildOptionType.OVERRIDE) {
             return null
@@ -853,6 +897,7 @@ class CharacterBuilderViewModel(
         characterId: Long,
         selectedAbilityBoosts: Map<String, AbilityScore>,
         selectedSkillChoices: Map<String, String>,
+        selectedPromptChoices: Map<String, String>,
         selectedFeatSlotOptions: Map<String, String>,
         selectedFeatOverrideReasons: Map<String, String>,
         selectedAncestryId: String?,
@@ -867,10 +912,20 @@ class CharacterBuilderViewModel(
             backgroundId = selectedBackgroundId,
             classId = currentState.selectedClassId,
             keyAbility = currentState.keyAbility,
-            voluntaryFlawEnabled = currentState.voluntaryFlawEnabled,
+            voluntaryFlawEnabled = false,
         ).associateBy { it.slotId }
         val skillSlotsById = BuilderRules.skillChoiceSlots(
             catalog = catalog,
+            classId = currentState.selectedClassId,
+            ancestryId = selectedAncestryId,
+            heritageId = selectedHeritageId,
+            backgroundId = selectedBackgroundId,
+        ).associateBy { it.slotId }
+        val promptSlotsById = BuilderRules.promptSlots(
+            catalog = catalog,
+            ancestryId = selectedAncestryId,
+            heritageId = selectedHeritageId,
+            backgroundId = selectedBackgroundId,
             classId = currentState.selectedClassId,
         ).associateBy { it.slotId }
         val abilityOptions = selectedAbilityBoosts.mapNotNull { (slotId, ability) ->
@@ -899,6 +954,27 @@ class CharacterBuilderViewModel(
                     "slotId" to slot.slotId,
                     "slotKind" to slot.kind.name.lowercase(),
                     "slotLevel" to slot.level.toString(),
+                    "grantOrigin" to "player",
+                ),
+            )
+        }
+        val promptOptions = selectedPromptChoices.mapNotNull { (slotId, selectedValue) ->
+            val slot = promptSlotsById[slotId] ?: return@mapNotNull null
+            val selectedLabel = slot.choices.firstOrNull { choice -> choice.value == selectedValue }?.label
+                ?: selectedValue
+            CharacterBuildOption(
+                characterId = characterId,
+                optionType = slot.source.optionType(),
+                optionId = "prompt/${slot.slotId}/$selectedValue",
+                levelAcquired = slot.level,
+                metadataJson = builderMetadataJson(
+                    "slotId" to slot.slotId,
+                    "slotKind" to "prompt",
+                    "slotLevel" to slot.level.toString(),
+                    "promptSource" to slot.source.name.lowercase(),
+                    "sourceLabel" to slot.sourceLabel,
+                    "selectedValue" to selectedValue,
+                    "selectedLabel" to selectedLabel,
                     "grantOrigin" to "player",
                 ),
             )
@@ -976,7 +1052,7 @@ class CharacterBuilderViewModel(
                     )
                 }
         }
-        return (abilityOptions + skillOptions + featOptions + featOverrideOptions + grantOptions)
+        return (abilityOptions + skillOptions + promptOptions + featOptions + featOverrideOptions + grantOptions)
             .distinctBy { option -> option.optionType to option.optionId }
             .sortedWith(compareBy<CharacterBuildOption> { it.levelAcquired ?: 0 }.thenBy { it.optionId })
     }
@@ -1055,7 +1131,7 @@ class CharacterBuilderViewModel(
             backgroundId = state.selectedBackgroundId,
             classId = state.selectedClassId,
             keyAbility = state.keyAbility,
-            voluntaryFlawEnabled = state.voluntaryFlawEnabled,
+            voluntaryFlawEnabled = false,
         )
         val abilityIssues = BuilderRules.abilityIssues(
             slots = abilityBoostSlots,
@@ -1065,10 +1141,30 @@ class CharacterBuilderViewModel(
         val skillChoiceSlots = BuilderRules.skillChoiceSlots(
             catalog = sourceCatalog,
             classId = state.selectedClassId,
+            ancestryId = state.selectedAncestryId,
+            heritageId = state.selectedHeritageId,
+            backgroundId = state.selectedBackgroundId,
         )
         val skillIssues = BuilderRules.skillIssues(
             slots = skillChoiceSlots,
             selectedSkillChoices = state.selectedSkillChoices,
+            activeLevel = activeLevel,
+            initialTrainedSkills = BuilderRules.initialTrainedSkillIds(
+                catalog = sourceCatalog,
+                classId = state.selectedClassId,
+                backgroundId = state.selectedBackgroundId,
+            ),
+        )
+        val promptSlots = BuilderRules.promptSlots(
+            catalog = sourceCatalog,
+            ancestryId = state.selectedAncestryId,
+            heritageId = state.selectedHeritageId,
+            backgroundId = state.selectedBackgroundId,
+            classId = state.selectedClassId,
+        )
+        val promptIssues = BuilderRules.promptIssues(
+            slots = promptSlots,
+            selectedPromptChoices = state.selectedPromptChoices,
             activeLevel = activeLevel,
         )
         val buildFacts = BuilderRules.buildFacts(
@@ -1111,15 +1207,15 @@ class CharacterBuilderViewModel(
             selectedAncestryAvailable &&
             selectedHeritageAvailable &&
             selectedBackgroundAvailable &&
-            !state.spellDcInvalid &&
-            !state.spellAttackInvalid &&
             missingRequiredChoices.isEmpty() &&
             abilityIssues.none { it.active } &&
             skillIssues.none { it.active } &&
+            promptIssues.none { it.active } &&
             activeMissingFeatSlots == 0 &&
             activeBlockedFeatSelections == 0
 
         val derived = state.copy(
+            voluntaryFlawEnabled = false,
             classChoiceGroups = choiceGroups,
             missingRequiredClassChoices = missingRequiredChoices,
             selectedClassChoices = selectedChoices,
@@ -1135,6 +1231,7 @@ class CharacterBuilderViewModel(
             selectedArchetypePackages = selectedArchetypes,
             availableArchetypePackages = availableArchetypes,
             availableClasses = availableClassDefinitions,
+            availableClassRecords = sourceCatalog?.classes.orEmpty(),
             availableAncestries = sourceCatalog?.ancestries.orEmpty(),
             availableHeritages = sourceCatalog?.heritagesForAncestry(state.selectedAncestryId).orEmpty(),
             availableBackgrounds = sourceCatalog?.backgrounds.orEmpty(),
@@ -1144,6 +1241,8 @@ class CharacterBuilderViewModel(
             abilityIssues = abilityIssues,
             skillChoiceSlots = skillChoiceSlots,
             skillIssues = skillIssues,
+            promptSlots = promptSlots,
+            promptIssues = promptIssues,
             expectedFeatSlots = expectedFeatSlots,
             featCandidatesBySlotId = state.featCandidatesBySlotId.filterKeys { slotId ->
                 state.activeFeatPickerSlotId == slotId
@@ -1159,6 +1258,8 @@ class CharacterBuilderViewModel(
                     availableBackgrounds = sourceCatalog?.backgrounds.orEmpty(),
                     abilityIssues = abilityIssues,
                     skillIssues = skillIssues,
+                    promptSlots = promptSlots,
+                    promptIssues = promptIssues,
                     featLegalityBySlotId = featLegalityBySlotId,
                 ),
                 sourceCatalog,
@@ -1195,6 +1296,9 @@ class CharacterBuilderViewModel(
 
     private fun buildSections(state: CharacterBuilderUiState): List<CharacterBuilderSectionSummary> {
         val sections = mutableListOf<CharacterBuilderSectionSummary>()
+        val ancestryPromptIssues = state.activePromptIssueCount(BuilderPromptSource.ANCESTRY, BuilderPromptSource.HERITAGE)
+        val backgroundPromptIssues = state.activePromptIssueCount(BuilderPromptSource.BACKGROUND)
+        val classPromptIssues = state.activePromptIssueCount(BuilderPromptSource.CLASS)
         sections += CharacterBuilderSectionSummary(
             id = CharacterBuilderSectionId.SPELL_SOURCES,
             title = "Sources",
@@ -1240,7 +1344,8 @@ class CharacterBuilderViewModel(
             status = if (state.selectedAncestryId == null ||
                 state.selectedHeritageId == null ||
                 state.availableAncestries.none { it.id == state.selectedAncestryId } ||
-                state.availableHeritages.none { it.id == state.selectedHeritageId }
+                state.availableHeritages.none { it.id == state.selectedHeritageId } ||
+                ancestryPromptIssues > 0
             ) {
                 CharacterBuilderSectionStatus.NEEDS_REVIEW
             } else {
@@ -1253,6 +1358,7 @@ class CharacterBuilderViewModel(
                     state.availableAncestries.none { it.id == state.selectedAncestryId } -> "Choose an ancestry from the selected sources."
                 state.selectedHeritageId == null ||
                     state.availableHeritages.none { it.id == state.selectedHeritageId } -> "Choose a heritage from the selected sources."
+                ancestryPromptIssues > 0 -> state.firstPromptIssueMessage(BuilderPromptSource.ANCESTRY, BuilderPromptSource.HERITAGE)
                 else -> null
             },
         )
@@ -1260,7 +1366,8 @@ class CharacterBuilderViewModel(
             id = CharacterBuilderSectionId.BACKGROUND,
             title = "Background",
             status = if (state.selectedBackgroundId == null ||
-                state.availableBackgrounds.none { it.id == state.selectedBackgroundId }
+                state.availableBackgrounds.none { it.id == state.selectedBackgroundId } ||
+                backgroundPromptIssues > 0
             ) {
                 CharacterBuilderSectionStatus.NEEDS_REVIEW
             } else {
@@ -1270,13 +1377,12 @@ class CharacterBuilderViewModel(
                 .firstOrNull { background -> background.id == state.selectedBackgroundId }
                 ?.name
                 ?: "Choose a background",
-            validationMessage = if (state.saveAttempted &&
-                (state.selectedBackgroundId == null ||
-                    state.availableBackgrounds.none { it.id == state.selectedBackgroundId })
-            ) {
-                "Choose a background from the selected sources."
-            } else {
-                null
+            validationMessage = when {
+                !state.saveAttempted -> null
+                state.selectedBackgroundId == null ||
+                    state.availableBackgrounds.none { it.id == state.selectedBackgroundId } -> "Choose a background from the selected sources."
+                backgroundPromptIssues > 0 -> state.firstPromptIssueMessage(BuilderPromptSource.BACKGROUND)
+                else -> null
             },
         )
         sections += CharacterBuilderSectionSummary(
@@ -1286,6 +1392,7 @@ class CharacterBuilderViewModel(
                 state.availableClasses.isEmpty() -> CharacterBuilderSectionStatus.BLOCKED
                 state.availableClasses.none { normalizeClassId(it.classId) == normalizeClassId(state.selectedClassId) } -> CharacterBuilderSectionStatus.NEEDS_REVIEW
                 state.missingRequiredClassChoices.isNotEmpty() -> CharacterBuilderSectionStatus.NEEDS_REVIEW
+                classPromptIssues > 0 -> CharacterBuilderSectionStatus.NEEDS_REVIEW
                 else -> CharacterBuilderSectionStatus.COMPLETE
             },
             summary = classSpellcastingSummary(state),
@@ -1298,29 +1405,30 @@ class CharacterBuilderViewModel(
                 state.saveAttempted && state.missingRequiredClassChoices.isNotEmpty() -> {
                     "Choose ${state.missingRequiredClassChoices.joinToString { it.label.lowercase() }}."
                 }
+                state.saveAttempted && classPromptIssues > 0 -> state.firstPromptIssueMessage(BuilderPromptSource.CLASS)
                 else -> null
             },
         )
-        val activeAbilityIssues = state.abilityIssues.count { it.active }
+        val activeAbilityIssues = state.abilityIssues.count { it.active && it.isLevelOneIssue() }
         sections += CharacterBuilderSectionSummary(
             id = CharacterBuilderSectionId.ABILITY_SCORES,
-            title = "Ability Scores",
+            title = "Attribute Modifiers",
             status = if (activeAbilityIssues > 0) {
                 CharacterBuilderSectionStatus.NEEDS_REVIEW
             } else {
                 CharacterBuilderSectionStatus.COMPLETE
             },
-            summary = state.buildFacts?.abilityScores
+            summary = state.buildFacts?.abilityModifiers
                 ?.entries
-                ?.joinToString { (ability, score) -> "${ability.label()} $score" }
+                ?.joinToString { (ability, modifier) -> "${ability.label()} ${modifier.withSign()}" }
                 ?: "Boosts and flaws",
             validationMessage = if (state.saveAttempted && activeAbilityIssues > 0) {
-                "$activeAbilityIssues active ability choice${if (activeAbilityIssues == 1) "" else "s"} need review."
+                "$activeAbilityIssues attribute choice${if (activeAbilityIssues == 1) "" else "s"} need review."
             } else {
                 null
             },
         )
-        val activeSkillIssues = state.skillIssues.count { it.active }
+        val activeSkillIssues = state.skillIssues.count { it.active && it.isLevelOneIssue() }
         sections += CharacterBuilderSectionSummary(
             id = CharacterBuilderSectionId.SKILLS,
             title = "Skills",
@@ -1340,68 +1448,39 @@ class CharacterBuilderViewModel(
                 null
             },
         )
+        val workbenchChoiceCount = state.expectedFeatSlots.size +
+            state.abilityBoostSlots.count { it.level > 1 } +
+            state.skillChoiceSlots.count { it.level > 1 }
+        val workbenchPlannedCount = state.selectedFeatSlotOptions.count { (slotId, _) ->
+            state.expectedFeatSlots.any { slot -> slot.slotId == slotId }
+        } + state.selectedAbilityBoosts.count { (slotId, _) ->
+            state.abilityBoostSlots.any { slot -> slot.slotId == slotId && slot.level > 1 }
+        } + state.selectedSkillChoices.count { (slotId, _) ->
+            state.skillChoiceSlots.any { slot -> slot.slotId == slotId && slot.level > 1 }
+        }
+        val activeWorkbenchIssueCount = state.abilityIssues.count { it.active && !it.isLevelOneIssue() } +
+            state.skillIssues.count { it.active && !it.isLevelOneIssue() }
         sections += CharacterBuilderSectionSummary(
             id = CharacterBuilderSectionId.FEATS,
             title = "Level Workbench",
-            status = if (state.expectedFeatSlots.isEmpty()) {
+            status = if (workbenchChoiceCount == 0) {
                 CharacterBuilderSectionStatus.OPTIONAL
-            } else if (activeMissingFeatSlotCount(state) > 0 || activeBlockedFeatSelectionCount(state) > 0) {
+            } else if (activeMissingFeatSlotCount(state) > 0 || activeBlockedFeatSelectionCount(state) > 0 || activeWorkbenchIssueCount > 0) {
                 CharacterBuilderSectionStatus.NEEDS_REVIEW
             } else {
                 CharacterBuilderSectionStatus.COMPLETE
             },
-            summary = if (state.expectedFeatSlots.isEmpty()) {
-                "No feat slots"
+            summary = if (workbenchChoiceCount == 0) {
+                "No tracked level choices"
             } else {
-                "${state.selectedFeatSlotOptions.size} of ${state.expectedFeatSlots.size} planned"
+                "$workbenchPlannedCount of $workbenchChoiceCount planned"
             },
             validationMessage = when {
                 !state.saveAttempted -> null
                 activeMissingFeatSlotCount(state) > 0 -> "${activeMissingFeatSlotCount(state)} active feat slot${if (activeMissingFeatSlotCount(state) == 1) "" else "s"} unfilled."
                 activeBlockedFeatSelectionCount(state) > 0 -> "${activeBlockedFeatSelectionCount(state)} active feat selection${if (activeBlockedFeatSelectionCount(state) == 1) "" else "s"} need an override or a different feat."
+                activeWorkbenchIssueCount > 0 -> "$activeWorkbenchIssueCount active level choice${if (activeWorkbenchIssueCount == 1) "" else "s"} need review."
                 else -> null
-            },
-        )
-        sections += CharacterBuilderSectionSummary(
-            id = CharacterBuilderSectionId.CASTING_STATS,
-            title = "Casting Stats",
-            status = if (state.spellDcInvalid || state.spellAttackInvalid) {
-                CharacterBuilderSectionStatus.NEEDS_REVIEW
-            } else {
-                CharacterBuilderSectionStatus.COMPLETE
-            },
-            summary = "DC ${state.spellDcText.ifBlank { "?" }} · Attack ${state.spellAttack?.withSign() ?: "?"}",
-            validationMessage = when {
-                !state.saveAttempted -> null
-                state.spellDcInvalid -> "Enter a spell DC between 0 and 99."
-                state.spellAttackInvalid -> "Enter an attack modifier between -99 and 99."
-                else -> null
-            },
-        )
-        if (state.archetypeSpellcastingPackages.isNotEmpty()) {
-            sections += CharacterBuilderSectionSummary(
-                id = CharacterBuilderSectionId.ARCHETYPE_SPELLCASTING,
-                title = "Archetype Spellcasting",
-                status = if (state.selectedArchetypePackages.isEmpty()) {
-                    CharacterBuilderSectionStatus.OPTIONAL
-                } else {
-                    CharacterBuilderSectionStatus.COMPLETE
-                },
-                summary = if (state.selectedArchetypePackages.isEmpty()) {
-                    "No spellcasting archetypes"
-                } else {
-                    state.selectedArchetypePackages.joinToString { it.label }
-                },
-            )
-        }
-        sections += CharacterBuilderSectionSummary(
-            id = CharacterBuilderSectionId.PREFERENCES,
-            title = "Preferences",
-            status = CharacterBuilderSectionStatus.OPTIONAL,
-            summary = if (state.legacyTerminologyEnabled) {
-                "Pre-remaster spell names shown"
-            } else {
-                "Remaster spell names"
             },
         )
         return sections
@@ -1446,6 +1525,10 @@ class CharacterBuilderViewModel(
             .take(2)
             .forEach { issue -> warnings += issue.message }
         state.skillIssues
+            .filter { it.active }
+            .take(2)
+            .forEach { issue -> warnings += issue.message }
+        state.promptIssues
             .filter { it.active }
             .take(2)
             .forEach { issue -> warnings += issue.message }
@@ -1494,6 +1577,28 @@ class CharacterBuilderViewModel(
             val legality = state.featLegalityBySlotId[slot.slotId]?.get(selectedFeatId) ?: return@count false
             legality.requiresOverride && state.selectedFeatOverrideReasons[slot.slotId].isNullOrBlank()
         }
+    }
+
+    private fun CharacterBuilderUiState.activePromptIssueCount(vararg sources: BuilderPromptSource): Int {
+        val sourceSet = sources.toSet()
+        val slotIds = promptSlots
+            .filter { slot -> slot.source in sourceSet }
+            .map { slot -> slot.slotId }
+            .toSet()
+        return promptIssues.count { issue -> issue.active && issue.slotId in slotIds }
+    }
+
+    private fun CharacterBuilderUiState.firstPromptIssueMessage(vararg sources: BuilderPromptSource): String? {
+        val sourceSet = sources.toSet()
+        val slotIds = promptSlots
+            .filter { slot -> slot.source in sourceSet }
+            .map { slot -> slot.slotId }
+            .toSet()
+        return promptIssues.firstOrNull { issue -> issue.active && issue.slotId in slotIds }?.message
+    }
+
+    private fun BuilderIssue.isLevelOneIssue(): Boolean {
+        return (level ?: 1) <= 1
     }
 
     private fun buildClassPreviewLines(
@@ -1593,6 +1698,7 @@ class CharacterBuilderViewModel(
             selectedAbilityBoosts = state.selectedAbilityBoosts,
             voluntaryFlawEnabled = state.voluntaryFlawEnabled,
             selectedSkillChoices = state.selectedSkillChoices,
+            selectedPromptChoices = state.selectedPromptChoices,
             selectedFeatSlotOptions = state.selectedFeatSlotOptions,
             selectedFeatOverrideReasons = state.selectedFeatOverrideReasons,
             selectedBuildOptionIds = state.selectedBuildOptionIds,
@@ -1615,6 +1721,7 @@ class CharacterBuilderViewModel(
         val selectedAbilityBoosts: Map<String, AbilityScore>,
         val voluntaryFlawEnabled: Boolean,
         val selectedSkillChoices: Map<String, String>,
+        val selectedPromptChoices: Map<String, String>,
         val selectedFeatSlotOptions: Map<String, String>,
         val selectedFeatOverrideReasons: Map<String, String>,
         val selectedBuildOptionIds: Set<String>,
@@ -1627,6 +1734,13 @@ private fun ArchetypeSpellcastingPackage.optionIdFor(tier: ArchetypeTier): Strin
     ArchetypeTier.BASIC -> basicSpellcastingOptionId
     ArchetypeTier.EXPERT -> expertSpellcastingOptionId
     ArchetypeTier.MASTER -> masterSpellcastingOptionId
+}
+
+private fun BuilderPromptSource.optionType(): CharacterBuildOptionType = when (this) {
+    BuilderPromptSource.ANCESTRY -> CharacterBuildOptionType.ANCESTRY
+    BuilderPromptSource.HERITAGE -> CharacterBuildOptionType.HERITAGE
+    BuilderPromptSource.BACKGROUND -> CharacterBuildOptionType.BACKGROUND
+    BuilderPromptSource.CLASS -> CharacterBuildOptionType.CLASS
 }
 
 private fun String.featIdFromOptionId(): String {

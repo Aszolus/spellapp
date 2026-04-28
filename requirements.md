@@ -1,155 +1,193 @@
-# Pathfinder 2e Spell List Manager (Android)
+# Pathfinder 2e Character Builder and Table Companion (Android)
 
 ## 1. Objective
-Create an Android app to manage Pathfinder 2e spell lists during live play, with fast access, low friction, and rules-aware behavior for multiple classes and spellcasting traditions.
+
+Create an Android app for building and managing Pathfinder 2e characters during character creation, leveling, and live play. The app must be rules-aware, fast at the table, and fully usable without network access.
+
+Spell browsing and spellcasting support remain part of the product, but the primary product boundary is now the whole character, not only spell lists.
 
 ## 2. Primary Use Cases
-1. Build and maintain spell lists for one or more characters.
-2. View all currently available spells during combat in a few taps.
-3. Track prepared slots, spontaneous slots, cantrips, focus points, and expend/recover state.
-4. Filter spells quickly by level, action cost, tradition, traits, school, and current tactical needs.
-5. Open a spell detail view with full text and key mechanics while at the table.
+
+1. Create a level-one PF2e Remaster character by following the documented character creation steps.
+2. See what each ancestry, heritage, background, and class grants before selecting it.
+3. Choose attribute modifiers, trained skills, feats, and required prompts with clear validation.
+4. Plan and complete post-level-one choices in the Level Workbench.
+5. View derived character facts such as HP, attribute modifiers, skills, Perception, saves, and class or spell DCs.
+6. Browse spell data locally and use spell information in character context.
+7. Keep character data available during live play without internet access.
 
 ## 3. Target Users
-1. Single player managing one or more PF2e spellcasters.
-2. GM managing NPC spellcasters.
-3. Offline-first users playing at tables without reliable internet.
+
+1. PF2e players creating and maintaining one or more characters.
+2. Players using a phone or tablet at the table while a session is running.
+3. GMs building or referencing NPC-style characters.
+4. Offline-first users playing in locations without reliable internet.
 
 ## 4. Platform and Constraints
-1. Android-first (phone priority, tablet supported).
-2. Usable with one hand, large touch targets, minimal text entry.
-3. Offline-first: all spell browsing/filtering/detail/casting features must work without internet.
-4. Fast startup and low-latency filtering (target: sub-200ms perceived response for common filters on modern devices).
 
-## 5. In Scope (MVP)
-1. Local character profiles with:
-   - Name, level, class/archetype spellcasting profile.
-   - Key casting ability and spell DC/attack modifiers (editable).
-2. Spell database import from `foundryvtt/pf2e` (`packs/data/spells`) with preserved source/license metadata.
-3. Spell list management:
-   - Add/remove spells known or in spellbook/repertoire.
-   - Mark prepared spells and quantities where relevant.
-   - Spontaneous-only features (e.g., signature spells) are deferred to Phase 2.
-4. Session tracking:
-   - Spend/restore spell slots by rank.
-   - Track focus points and recharge.
-   - Mark active durations and sustained spells.
-5. Search and filter:
-   - Name, rank, tradition, traits, rarity, school, cast actions, damage/heal tags.
-6. Spell detail page:
-   - Cast actions, components, targets, range, save/attack, duration, heightened entries, traits, and full rules text.
-7. Data persistence and backup:
-   - Local storage.
-   - Export/import character data (JSON file).
+1. Android-first, with phone priority and tablet support.
+2. One-handed use should remain practical for common at-table tasks.
+3. All runtime features must work offline.
+4. The app must not request network permission, include HTTP client dependencies, require an account, or use cloud sync.
+5. Rules and content updates happen through bundled assets, migrations, or explicit local import/export workflows.
 
-## 6. Out of Scope (MVP)
-1. Full character builder (ancestry/skills/equipment automation).
-2. Encounter tracking for all party members.
-3. VTT sync or cloud account system.
-4. Homebrew rule engine automation beyond basic custom notes/tags.
+## 5. In Scope (Current MVP)
+
+1. Local character profiles:
+   - Name and level.
+   - Ancestry and heritage.
+   - Background.
+   - Class.
+   - Attribute modifiers.
+   - Trained skills.
+   - Feat and prompt selections.
+2. Level-one creation workflow:
+   - Main builder sections focus on level-one choices only.
+   - `docs/CharacterCreation.md` is the source of truth for required steps and validation.
+   - Errors identify the exact missing, duplicate, stale, or invalid choice and appear near the relevant control.
+3. Level Workbench:
+   - All feat slots live here, including level-one feats.
+   - Post-level-one ability boosts, skill increases, and later choices live here.
+   - Future choices can be edited but should not block saving until the character reaches that level.
+4. Rules derivation:
+   - Attribute modifiers start at +0.
+   - Boosts add +1 and flaws subtract -1.
+   - Level-one free boosts must be four different attributes.
+   - Derived facts should consume modifiers directly rather than score-style math.
+5. Local rules/data sources:
+   - Character creation and leveling docs in `docs/`.
+   - Bundled spell, class, and rules catalog assets.
+   - Source/license metadata preserved for imported content.
+6. Spell support:
+   - Local spell browsing and details.
+   - Spell-related character context where supported by the builder.
+   - Spell preparation/casting workflows remain a product goal after the builder foundation is stable.
+7. Persistence:
+   - Local Room storage.
+   - Forward migrations for schema changes.
+   - Future local export/import for character backup.
+
+## 6. Out of Scope (Current MVP)
+
+1. Optional rules, including voluntary flaws and alternate ancestry boost handling.
+2. Legacy or pre-remaster terminology toggles.
+3. Full equipment, AC, Bulk, strikes, deity details, and complete sheet-finalization automation.
+4. Encounter tracking for full parties.
+5. VTT sync, cloud accounts, online content lookup, telemetry, ads, or remote config.
+6. Open-ended homebrew rule automation beyond future custom notes or overrides.
 
 ## 7. Functional Requirements
 
-### 7.1 Character and Class Rules Model
-1. Must support multiple spellcasting paradigms:
-   - Prepared (e.g., Wizard, Cleric, Druid) in MVP.
-   - Spontaneous (e.g., Sorcerer, Bard, Oracle) in Phase 2.
-   - Bounded/partial casters where relevant.
-2. Must support traditions (arcane/divine/occult/primal), including class-specific restrictions.
-3. Must support rank-based spell slots and cantrip auto-scaling behavior (display at character rank context).
-4. Must allow per-character overrides for unusual feats/class features.
+### 7.1 Character Creation Workflow
 
-### 7.2 Spell Lifecycle in Play
-1. User can cast a spell in <= 2 taps from list view.
-2. Casting updates available slots/focus and logs an entry in current session history.
-3. User can undo last cast action quickly.
-4. User can perform "refocus", "rest", and "new day preparation" workflows with confirmation.
+1. The builder must guide the user through the required level-one choices from `docs/CharacterCreation.md`.
+2. Section boundaries must match where the user can act:
+   - Ancestry and heritage selection shows ancestry/heritage information and ancestry/heritage errors.
+   - Background selection shows background information and background errors.
+   - Attribute Modifiers shows only active level-one boost/flaw choices and their modifier effects.
+   - Skills shows level-one trained skill choices and current trained results.
+   - Level Workbench shows feats and post-level-one planning.
+3. Selection lists must include enough rules information to make a choice without leaving the screen.
+4. Required prompts must be represented as builder-managed choices and must block saving when active and unanswered.
 
-### 7.3 Prepared vs Spontaneous Handling
-1. MVP (prepared casters):
-   - Assign spells to specific slots/ranks.
-   - Consume exactly prepared entries unless flexible options are enabled.
-2. Phase 2 (spontaneous casters):
-   - Consume slot by rank and choose known spell at cast time.
-   - Handle signature spell behavior in heightened selection UI.
-3. Hybrid edge cases should be configurable with toggles and notes.
+### 7.2 Validation and Errors
 
-### 7.4 Rules Validation Mode
-1. MVP validation mode is permissive helper (warn-only).
-2. App should surface warnings for likely illegal actions but allow user override.
-3. Strict lockout mode is out of scope for MVP.
+1. Missing active choices must name the exact step and requested action.
+2. Duplicate active choices must name the duplicate and the rule being violated.
+3. Stale selections must explain that the source changed and ask the user to choose from listed options.
+4. Future-level issues must not block saving for lower-level characters.
+5. Save blockers must be visible in a top-level summary and beside the affected control.
 
-### 7.5 Focus Spells
-1. Track focus pool max/current.
-2. Mark focus spell cast and decrement pool.
-3. Support refocus actions and limits per table rules.
+### 7.3 Attribute Modifiers
 
-### 7.6 Heightening and Variants
-1. Display all heightened effects clearly.
-2. At cast time, select cast rank; app shows resulting text/stat changes.
-3. Allow custom spell notes for house rules or remastered text differences.
+1. Visible language must use PF2e Remaster "attribute modifiers" rather than score-first terminology.
+2. Every attribute starts at +0.
+3. Ancestry flaws subtract 1, ancestry boosts add 1, background boosts add 1, class key boosts add 1, and free boosts add 1.
+4. Level-one active modifiers must not be below -1 or above +4.
+5. Each modifier should be explainable by source with before/after or equivalent source breakdown data.
+
+### 7.4 Level Workbench
+
+1. The workbench owns all feat slots, including level-one ancestry, class, and skill feats.
+2. Empty levels with no tracked choices should be hidden.
+3. Active and future choices must be labeled clearly.
+4. Future choices become active blockers only when the character level reaches that level.
+
+### 7.5 Spell Support
+
+1. Spell content is bundled locally and browsable without internet.
+2. Spell details must show rules text and key mechanics clearly.
+3. Spellcasting-derived values should come from character choices when the rules layer supports them.
+4. Manual casting-stat controls are not part of the current builder direction.
 
 ## 8. Non-Functional Requirements
+
 1. Performance:
-   - Open app to usable state in < 2 seconds on mid-range devices.
+   - Open app to usable state in under 2 seconds on mid-range devices.
+   - Keep common builder interactions responsive.
 2. Reliability:
-   - No data loss on app restart/crash.
+   - No data loss on app restart or crash.
+   - Save and migration paths must be tested.
 3. UX:
    - Dark and light themes.
-   - High-contrast option for table lighting.
+   - High contrast and legibility in dim table lighting.
+   - Clear labels, dense but readable layouts, and no hidden critical rules information.
 4. Privacy:
-   - No required account for core features.
+   - No required account.
+   - No user data leaves the device.
 5. Maintainability:
    - Rules/data updates must be separable from app code.
-6. Defaults:
-   - Default terminology/data presentation is remaster.
-   - Legacy terminology/rules view is available as an optional toggle.
+   - Derived facts should be deterministic and testable.
 
 ## 9. Data and Content Requirements
-1. Primary candidate source: `foundryvtt/pf2e` spell JSON (`packs/data/spells`), ingested through a local build script.
-2. Dataset ingestion must preserve per-spell metadata:
-   - `source` (book + page).
-   - `license` (e.g., `ORC Notice`, `OGL`).
-3. Content policy for MVP:
-   - Include both `ORC Notice` and `OGL` spells.
-   - Keep license metadata visible and queryable so users can filter by license if needed.
-4. Legal gating requirement:
-   - Build must fail if any included spell is missing a recognized license field.
-   - Generate an attribution file from included sources/licenses at build time.
-5. Update strategy:
-   - Pin a specific upstream commit hash for reproducible imports.
-   - Re-run import tool on demand and produce a changelog of added/changed/removed spells.
-   - Runtime app behavior must not make any network calls.
-   - Data refreshes occur only via shipping a new app build or local on-device file import.
-6. Store spell data in versioned local format (e.g., JSON + schema version).
-7. Include migration strategy for app updates that alter data structure.
+
+1. Primary imported sources are local Foundry PF2e data exports for spells, classes, and rules catalog inputs.
+2. Import tooling must preserve source and license metadata.
+3. Build/runtime assets must include normalized data, attribution, and changelog files.
+4. Runtime app behavior must not make network calls.
+5. Data refreshes occur only through a new app build, a local development update script, or future explicit local import.
+6. Character creation and leveling behavior is governed by local documentation in `docs/` until a richer rules-data pipeline covers the same behavior.
 
 ## 10. Proposed MVP Screens
-1. Character List.
-2. Character Dashboard (slots/focus summary + quick actions).
-3. Spell Browser/Search.
-4. Prepared/Repertoire Manager.
-5. Cast Flow modal/page.
-6. Session Log and Undo.
-7. Settings (rules toggles, backup/export).
 
-## 11. Acceptance Criteria (MVP)
-1. User can create Wizard and Cleric profiles and cast prepared spells with correct slot handling.
-2. User can complete a full combat encounter using only app controls without manual paper tracking.
-3. User can close/reopen app and session state remains intact.
-4. User can export one character and import it on another device.
-5. In Android airplane mode, user can search, view, and cast spells with no errors or missing spell text.
-6. App defaults to remaster presentation and can switch to a legacy terminology toggle.
+1. Character List.
+2. Character Builder:
+   - Identity.
+   - Ancestry and Heritage.
+   - Background.
+   - Class.
+   - Attribute Modifiers.
+   - Skills.
+   - Level Workbench.
+3. Character Summary.
+4. Spell Browser/Search.
+5. Spell Detail.
+6. Future Prepared/Repertoire Manager.
+7. Future Session Log and Undo.
+8. Future Settings and local backup/export.
+
+## 11. Acceptance Criteria (Current MVP)
+
+1. A user can create and save a valid level-one character that satisfies `docs/CharacterCreation.md`.
+2. Invalid level-one choices are blocked with source-specific, fixable errors.
+3. Ancestry, heritage, background, and class choices show rules detail before selection.
+4. Attribute modifiers are understandable as modifier-first PF2e Remaster choices.
+5. Future choices are editable in the Level Workbench and do not block lower-level saves.
+6. Spell browsing remains available offline.
+7. In Android airplane mode, character creation and local spell lookup work with no missing runtime dependency.
 
 ## 12. Locked Decisions
-1. Technical spell source is `foundryvtt/pf2e` (`packs/data/spells`).
-2. Rules behavior is permissive helper (warn-only) for MVP.
-3. Class rollout is prepared casters first, spontaneous casters in Phase 2.
-4. App defaults to remaster with an optional legacy toggle.
-5. Sync strategy is fully local-only (no network sync).
+
+1. Runtime app behavior is fully local-only.
+2. The current rules presentation defaults to Remaster terminology.
+3. Optional rules are deliberately excluded until the required creation workflow is solid.
+4. Level-one creation and post-level-one planning are separate UX surfaces.
+5. Stored build choices remain the compatibility boundary; derived facts can change as rules improve.
 
 ## 13. Suggested Delivery Phases
-1. Phase 0: Data model + local spell dataset + read-only browsing.
-2. Phase 1: Prepared caster workflows (profiles, prepared slots, cast flow, focus, undo/session log).
-3. Phase 2: Spontaneous caster workflows (repertoire, signature spells, heightened spontaneous casting UX).
-4. Phase 3: Backup/import-export + polish + accessibility pass.
+
+1. Builder Foundation: level-one character creation, validation, and derived facts.
+2. Leveling Foundation: Level Workbench coverage for levels 2-20.
+3. Sheet Completion: equipment, AC, Bulk, strikes, deity/details, and final character summary.
+4. Spell Integration: spell preparation, spellcasting context, cast flow, focus, undo/session log.
+5. Backup and Polish: local export/import, accessibility pass, theming, and performance cleanup.

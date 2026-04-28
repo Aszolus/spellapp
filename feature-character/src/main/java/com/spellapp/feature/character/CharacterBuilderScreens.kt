@@ -27,7 +27,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -72,15 +71,12 @@ fun CharacterBuilderRoute(
     onVoluntaryFlawEnabledChange: (Boolean) -> Unit,
     onSkillChoiceSelected: (String, String?) -> Unit,
     onLoreSkillChoiceSelected: (String, String) -> Unit,
+    onPromptChoiceSelected: (String, String?) -> Unit,
     onFeatSelected: (String, String?, String?) -> Unit,
     onFeatPickerOpen: (String) -> Unit,
     onFeatPickerDismiss: () -> Unit,
-    onSpellDcChange: (String) -> Unit,
-    onSpellAttackChange: (String) -> Unit,
     onAcceptedSourcesChange: (Set<String>) -> Unit,
     onSourceBookToggle: (String, Boolean) -> Unit,
-    onArchetypeTierToggle: (ArchetypeSpellcastingPackage, ArchetypeTier, Boolean) -> Unit,
-    onLegacyTerminologyChange: (Boolean) -> Unit,
     onSectionToggle: (CharacterBuilderSectionId) -> Unit,
     onSave: () -> Unit,
     onBack: () -> Unit,
@@ -134,15 +130,12 @@ fun CharacterBuilderRoute(
             onVoluntaryFlawEnabledChange = onVoluntaryFlawEnabledChange,
             onSkillChoiceSelected = onSkillChoiceSelected,
             onLoreSkillChoiceSelected = onLoreSkillChoiceSelected,
+            onPromptChoiceSelected = onPromptChoiceSelected,
             onFeatSelected = onFeatSelected,
             onFeatPickerOpen = onFeatPickerOpen,
             onFeatPickerDismiss = onFeatPickerDismiss,
-            onSpellDcChange = onSpellDcChange,
-            onSpellAttackChange = onSpellAttackChange,
             onAcceptedSourcesChange = onAcceptedSourcesChange,
             onSourceBookToggle = onSourceBookToggle,
-            onArchetypeTierToggle = onArchetypeTierToggle,
-            onLegacyTerminologyChange = onLegacyTerminologyChange,
             onSectionToggle = onSectionToggle,
             modifier = Modifier.padding(innerPadding),
         )
@@ -192,15 +185,12 @@ private fun CharacterBuilderContent(
     onVoluntaryFlawEnabledChange: (Boolean) -> Unit,
     onSkillChoiceSelected: (String, String?) -> Unit,
     onLoreSkillChoiceSelected: (String, String) -> Unit,
+    onPromptChoiceSelected: (String, String?) -> Unit,
     onFeatSelected: (String, String?, String?) -> Unit,
     onFeatPickerOpen: (String) -> Unit,
     onFeatPickerDismiss: () -> Unit,
-    onSpellDcChange: (String) -> Unit,
-    onSpellAttackChange: (String) -> Unit,
     onAcceptedSourcesChange: (Set<String>) -> Unit,
     onSourceBookToggle: (String, Boolean) -> Unit,
-    onArchetypeTierToggle: (ArchetypeSpellcastingPackage, ArchetypeTier, Boolean) -> Unit,
-    onLegacyTerminologyChange: (Boolean) -> Unit,
     onSectionToggle: (CharacterBuilderSectionId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -261,11 +251,13 @@ private fun CharacterBuilderContent(
                         uiState = uiState,
                         onAncestrySelected = onAncestrySelected,
                         onHeritageSelected = onHeritageSelected,
+                        onPromptChoiceSelected = onPromptChoiceSelected,
                     )
 
                     CharacterBuilderSectionId.BACKGROUND -> BackgroundSection(
                         uiState = uiState,
                         onBackgroundSelected = onBackgroundSelected,
+                        onPromptChoiceSelected = onPromptChoiceSelected,
                     )
 
                     CharacterBuilderSectionId.CLASS_SPELLCASTING -> ClassSpellcastingSection(
@@ -273,12 +265,12 @@ private fun CharacterBuilderContent(
                         onClassSelected = onClassSelected,
                         onClassChoiceSelected = onClassChoiceSelected,
                         onKeyAbilitySelected = onKeyAbilitySelected,
+                        onPromptChoiceSelected = onPromptChoiceSelected,
                     )
 
                     CharacterBuilderSectionId.ABILITY_SCORES -> AbilityScoresSection(
                         uiState = uiState,
                         onAbilityBoostSelected = onAbilityBoostSelected,
-                        onVoluntaryFlawEnabledChange = onVoluntaryFlawEnabledChange,
                     )
 
                     CharacterBuilderSectionId.SKILLS -> SkillsSection(
@@ -292,28 +284,15 @@ private fun CharacterBuilderContent(
                         onFeatSelected = onFeatSelected,
                         onFeatPickerOpen = onFeatPickerOpen,
                         onFeatPickerDismiss = onFeatPickerDismiss,
-                    )
-
-                    CharacterBuilderSectionId.CASTING_STATS -> CastingStatsSection(
-                        uiState = uiState,
-                        onSpellDcChange = onSpellDcChange,
-                        onSpellAttackChange = onSpellAttackChange,
+                        onAbilityBoostSelected = onAbilityBoostSelected,
+                        onSkillChoiceSelected = onSkillChoiceSelected,
+                        onLoreSkillChoiceSelected = onLoreSkillChoiceSelected,
                     )
 
                     CharacterBuilderSectionId.SPELL_SOURCES -> SpellSourcesSection(
                         uiState = uiState,
                         onAcceptedSourcesChange = onAcceptedSourcesChange,
                         onSourceBookToggle = onSourceBookToggle,
-                    )
-
-                    CharacterBuilderSectionId.ARCHETYPE_SPELLCASTING -> ArchetypeSpellcastingBuilderSection(
-                        uiState = uiState,
-                        onArchetypeTierToggle = onArchetypeTierToggle,
-                    )
-
-                    CharacterBuilderSectionId.PREFERENCES -> PreferencesSection(
-                        uiState = uiState,
-                        onLegacyTerminologyChange = onLegacyTerminologyChange,
                     )
                 }
             }
@@ -409,6 +388,7 @@ private fun IdentitySection(
         } else {
             null
         },
+        keyboardOptions = KeyboardOptions(autoCorrectEnabled = false),
         modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(
@@ -422,7 +402,10 @@ private fun IdentitySection(
         } else {
             null
         },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardOptions = KeyboardOptions(
+            autoCorrectEnabled = false,
+            keyboardType = KeyboardType.Number,
+        ),
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -432,6 +415,7 @@ private fun AncestryHeritageSection(
     uiState: CharacterBuilderUiState,
     onAncestrySelected: (String) -> Unit,
     onHeritageSelected: (String) -> Unit,
+    onPromptChoiceSelected: (String, String?) -> Unit,
 ) {
     var picker by remember { mutableStateOf<BuilderPickerKind?>(null) }
     val selectedAncestry = uiState.selectedAncestryId
@@ -451,23 +435,31 @@ private fun AncestryHeritageSection(
         onChoose = { picker = BuilderPickerKind.HERITAGE },
     )
     selectedAncestry?.let { ancestry ->
-        Text(
-            text = listOfNotNull(
-                ancestry.hp?.let { "HP $it" },
-                ancestry.size.ifBlank { null },
-                ancestry.traits.rarity.takeIf { it != "common" },
-            ).joinToString(" · ").ifBlank { ancestry.source.title.orEmpty() },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        BuilderDetailBlock(
+            lines = ancestry.detailLines(),
+            description = ancestry.description,
         )
     }
-    BuilderWarnings(uiState.builderWarningLines)
+    selectedHeritage?.let { heritage ->
+        BuilderDetailBlock(
+            lines = heritage.detailLines(),
+            description = heritage.description,
+        )
+    }
+    PromptChoices(
+        slots = uiState.promptSlots.filter {
+            it.source == BuilderPromptSource.ANCESTRY || it.source == BuilderPromptSource.HERITAGE
+        },
+        selectedPromptChoices = uiState.selectedPromptChoices,
+        issues = uiState.promptIssues,
+        onPromptChoiceSelected = onPromptChoiceSelected,
+    )
 
     when (picker) {
         BuilderPickerKind.ANCESTRY -> BuilderPickerDialog(
             title = "Choose Ancestry",
             items = uiState.availableAncestries.map {
-                BuilderPickerItem(it.id, it.name, it.source.title.orEmpty())
+                BuilderPickerItem(it.id, it.name, it.pickerSubtitle())
             },
             onPick = { item ->
                 onAncestrySelected(item.id)
@@ -479,7 +471,7 @@ private fun AncestryHeritageSection(
         BuilderPickerKind.HERITAGE -> BuilderPickerDialog(
             title = "Choose Heritage",
             items = uiState.availableHeritages.map {
-                BuilderPickerItem(it.id, it.name, it.source.title.orEmpty())
+                BuilderPickerItem(it.id, it.name, it.pickerSubtitle())
             },
             onPick = { item ->
                 onHeritageSelected(item.id)
@@ -496,6 +488,7 @@ private fun AncestryHeritageSection(
 private fun BackgroundSection(
     uiState: CharacterBuilderUiState,
     onBackgroundSelected: (String) -> Unit,
+    onPromptChoiceSelected: (String, String?) -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }
     val selectedBackground = uiState.selectedBackgroundId
@@ -506,27 +499,102 @@ private fun BackgroundSection(
         onChoose = { showPicker = true },
     )
     selectedBackground?.let { background ->
-        Text(
-            text = listOf(
-                background.source.title.orEmpty(),
-                background.grants.mapNotNull { it.name }.take(2).joinToString(prefix = "Grants: "),
-            ).filter { it.isNotBlank() }.joinToString(" · "),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        BuilderDetailBlock(
+            lines = background.detailLines(),
+            description = background.description,
         )
+        BackgroundGrantedResults(background)
     }
-    BuilderWarnings(uiState.builderWarningLines)
+    PromptChoices(
+        slots = uiState.promptSlots.filter { it.source == BuilderPromptSource.BACKGROUND },
+        selectedPromptChoices = uiState.selectedPromptChoices,
+        issues = uiState.promptIssues,
+        onPromptChoiceSelected = onPromptChoiceSelected,
+    )
     if (showPicker) {
         BuilderPickerDialog(
             title = "Choose Background",
             items = uiState.availableBackgrounds.map {
-                BuilderPickerItem(it.id, it.name, it.source.title.orEmpty())
+                BuilderPickerItem(it.id, it.name, it.pickerSubtitle())
             },
             onPick = { item ->
                 onBackgroundSelected(item.id)
                 showPicker = false
             },
             onDismiss = { showPicker = false },
+        )
+    }
+}
+
+@Composable
+private fun BackgroundGrantedResults(background: BuilderBackgroundRecord) {
+    val grantedLines = buildList {
+        if (background.trainedSkills.value.isNotEmpty()) {
+            add("Skill: ${background.trainedSkills.value.joinToString { BuilderRules.displaySkillName(it) }}")
+        }
+        if (background.trainedSkills.lore.isNotEmpty()) {
+            add("Lore: ${background.trainedSkills.lore.joinToString()}")
+        }
+        val grantNames = background.grants.mapNotNull { grant -> grant.displayName() }
+        if (grantNames.isNotEmpty()) {
+            add("Skill feat: ${grantNames.joinToString()}")
+        }
+    }
+    if (grantedLines.isEmpty()) return
+    SectionLabel("Granted at Level 1")
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        grantedLines.forEach { line ->
+            Text(
+                text = line,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PromptChoices(
+    slots: List<BuilderPromptSlot>,
+    selectedPromptChoices: Map<String, String>,
+    issues: List<BuilderIssue>,
+    onPromptChoiceSelected: (String, String?) -> Unit,
+) {
+    if (slots.isEmpty()) return
+    var activeSlot by remember { mutableStateOf<BuilderPromptSlot?>(null) }
+    SectionLabel("Required Choices")
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        slots.forEach { slot ->
+            val selectedValue = selectedPromptChoices[slot.slotId]
+            val selectedLabel = slot.choices.firstOrNull { choice -> choice.value == selectedValue }?.label
+                ?: "No choice selected"
+            BuilderSelectionRow(
+                label = slot.label,
+                value = selectedLabel,
+                enabled = slot.choices.isNotEmpty(),
+                onChoose = { activeSlot = slot },
+            )
+            issues
+                .filter { issue -> issue.slotId == slot.slotId }
+                .forEach { issue -> BuilderIssueText(issue) }
+        }
+    }
+    activeSlot?.let { slot ->
+        BuilderPickerDialog(
+            title = slot.label,
+            items = slot.choices.map { choice ->
+                BuilderPickerItem(choice.value, choice.label, slot.sourceLabel)
+            },
+            allowClear = true,
+            onClear = {
+                onPromptChoiceSelected(slot.slotId, null)
+                activeSlot = null
+            },
+            onPick = { item ->
+                onPromptChoiceSelected(slot.slotId, item.id)
+                activeSlot = null
+            },
+            onDismiss = { activeSlot = null },
         )
     }
 }
@@ -538,20 +606,32 @@ private fun ClassSpellcastingSection(
     onClassSelected: (String) -> Unit,
     onClassChoiceSelected: (ClassChoiceGroup, ClassChoice) -> Unit,
     onKeyAbilitySelected: (AbilityScore) -> Unit,
+    onPromptChoiceSelected: (String, String?) -> Unit,
 ) {
+    var showClassPicker by remember { mutableStateOf(false) }
+    val selectedClass = uiState.availableClasses.firstOrNull { definition ->
+        definition.classId == uiState.selectedClassId
+    }
+    val selectedClassRecord = uiState.availableClassRecords.firstOrNull { record ->
+        record.id == uiState.selectedClassId
+    }
     SectionLabel("Class")
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        uiState.availableClasses.forEach { definition ->
-            FilterChip(
-                selected = uiState.selectedClassId == definition.classId,
-                onClick = { onClassSelected(definition.classId) },
-                label = { Text(definition.label) },
-            )
-        }
+    BuilderSelectionRow(
+        label = "Class",
+        value = selectedClass?.label ?: "None selected",
+        enabled = uiState.availableClasses.isNotEmpty(),
+        onChoose = { showClassPicker = true },
+    )
+    selectedClassRecord?.let { record ->
+        BuilderDetailBlock(
+            lines = record.detailLines(selectedClass),
+            description = record.description,
+        )
+    } ?: selectedClass?.let { definition ->
+        BuilderDetailBlock(
+            lines = definition.detailLines(),
+            description = "",
+        )
     }
 
     uiState.classChoiceGroups.forEach { group ->
@@ -570,6 +650,13 @@ private fun ClassSpellcastingSection(
             }
         }
     }
+
+    PromptChoices(
+        slots = uiState.promptSlots.filter { it.source == BuilderPromptSource.CLASS },
+        selectedPromptChoices = uiState.selectedPromptChoices,
+        issues = uiState.promptIssues,
+        onPromptChoiceSelected = onPromptChoiceSelected,
+    )
 
     SectionLabel("Key Ability")
     FlowRow(
@@ -601,6 +688,21 @@ private fun ClassSpellcastingSection(
             }
         }
     }
+
+    if (showClassPicker) {
+        BuilderPickerDialog(
+            title = "Choose Class",
+            items = uiState.availableClasses.map { definition ->
+                val record = uiState.availableClassRecords.firstOrNull { it.id == definition.classId }
+                BuilderPickerItem(definition.classId, definition.label, record?.pickerSubtitle(definition) ?: definition.pickerSubtitle())
+            },
+            onPick = { item ->
+                onClassSelected(item.id)
+                showClassPicker = false
+            },
+            onDismiss = { showClassPicker = false },
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -608,101 +710,298 @@ private fun ClassSpellcastingSection(
 private fun AbilityScoresSection(
     uiState: CharacterBuilderUiState,
     onAbilityBoostSelected: (String, AbilityScore?) -> Unit,
-    onVoluntaryFlawEnabledChange: (Boolean) -> Unit,
 ) {
-    val activeLevel = uiState.level ?: 1
+    val activeIssues = uiState.abilityIssues.filter { it.active && (it.level ?: 1) <= 1 }
+    val activeChoiceIssues = activeIssues.filterNot { issue -> issue.isModifierIssue() }
+    val activeSlots = uiState.abilityBoostSlots.filter { it.level == 1 }
+
     uiState.buildFacts?.let { facts ->
-        FlowRow(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            facts.abilityScores.forEach { (ability, score) ->
-                Text(
-                    text = "${ability.label()} $score (${facts.abilityModifiers[ability]?.withSign() ?: "+0"})",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            SectionLabel("Level 1")
+            facts.hp?.let { hp -> ModifierChip("HP $hp", ChipTone.NEUTRAL) }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            AbilityScore.entries.forEach { ability ->
+                AttributeModifierRow(
+                    ability = ability,
+                    modifier = facts.abilityModifiers[ability] ?: 0,
+                    adjustments = facts.abilityAdjustments.filter { adjustment ->
+                        adjustment.level == 1 && adjustment.ability == ability
+                    },
+                    issues = activeIssues.filter { issue -> issue.slotId == ability.modifierIssueSlotId() },
                 )
             }
         }
-        facts.hp?.let { hp ->
-            Text(
-                text = "HP $hp",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text("Voluntary flaw", style = MaterialTheme.typography.titleSmall)
-            Text(
-                text = "Adds optional flaw/boost slots at level 1.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(
-            checked = uiState.voluntaryFlawEnabled,
-            onCheckedChange = onVoluntaryFlawEnabledChange,
-        )
-    }
-    val slotsByLevel = uiState.abilityBoostSlots.groupBy { it.level }
-    slotsByLevel.keys.sorted().forEach { level ->
-        SectionLabel(if (level <= activeLevel) "Level $level active boosts" else "Level $level planned boosts")
-        slotsByLevel.getValue(level).forEach { slot ->
-            AbilityBoostSlotRow(
-                slot = slot,
-                selected = slot.fixedChoice ?: uiState.selectedAbilityBoosts[slot.slotId],
-                enabled = slot.fixedChoice == null,
-                onAbilityBoostSelected = onAbilityBoostSelected,
-            )
-        }
-    }
-    uiState.abilityIssues.take(4).forEach { issue ->
-        Text(
-            text = issue.message,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (issue.active) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+
+    if (activeSlots.isNotEmpty()) {
+        SectionLabel("Choices")
+        AbilityBoostGroups(
+            slots = activeSlots,
+            issues = activeChoiceIssues,
+            selectedAbilityBoosts = uiState.selectedAbilityBoosts,
+            onAbilityBoostSelected = onAbilityBoostSelected,
         )
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AbilityBoostSlotRow(
+private fun AttributeModifierRow(
+    ability: AbilityScore,
+    modifier: Int,
+    adjustments: List<BuilderAbilityAdjustment>,
+    issues: List<BuilderIssue>,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = ability.label(),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    ModifierChip("+0", ChipTone.NEUTRAL)
+                    adjustments.forEach { adjustment ->
+                        ModifierChip(
+                            text = "${adjustment.sourceShortLabel()} ${adjustment.delta.withSign()}",
+                            tone = if (adjustment.delta < 0) ChipTone.ERROR else ChipTone.POSITIVE,
+                        )
+                    }
+                }
+            }
+            Text(
+                text = modifier.withSign(),
+                style = MaterialTheme.typography.titleMedium,
+                color = if (issues.any { it.active }) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+            )
+        }
+        issues.forEach { issue -> CompactAbilityIssueText(issue) }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+@Composable
+private fun ModifierChip(
+    text: String,
+    tone: ChipTone,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val containerColor = when (tone) {
+        ChipTone.NEUTRAL -> colorScheme.surfaceVariant
+        ChipTone.POSITIVE -> colorScheme.secondaryContainer
+        ChipTone.ERROR -> colorScheme.errorContainer
+    }
+    val contentColor = when (tone) {
+        ChipTone.NEUTRAL -> colorScheme.onSurfaceVariant
+        ChipTone.POSITIVE -> colorScheme.onSecondaryContainer
+        ChipTone.ERROR -> colorScheme.onErrorContainer
+    }
+    Surface(
+        color = containerColor,
+        contentColor = contentColor,
+        shape = MaterialTheme.shapes.extraSmall,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+        )
+    }
+}
+
+private enum class ChipTone {
+    NEUTRAL,
+    POSITIVE,
+    ERROR,
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AbilityBoostGroups(
+    slots: List<BuilderAbilityBoostSlot>,
+    issues: List<BuilderIssue>,
+    selectedAbilityBoosts: Map<String, AbilityScore>,
+    missingChoicesAreErrors: Boolean = true,
+    onAbilityBoostSelected: (String, AbilityScore?) -> Unit,
+) {
+    slots
+        .groupBy { it.groupId }
+        .values
+        .forEach { groupSlots ->
+            val group = groupSlots.first()
+            val groupIssues = issues
+                .filter { issue -> issue.slotId == group.groupId }
+                .filterNot { issue -> issue.isMissingAbilityChoiceIssue() }
+            val selectedCount = groupSlots.count { slot ->
+                slot.fixedChoice != null || selectedAbilityBoosts[slot.slotId]?.let { selected ->
+                    selected in slot.choices
+                } == true
+            }
+            val groupHasError = (missingChoicesAreErrors && selectedCount < groupSlots.size) ||
+                groupIssues.any { it.active }
+            val slotIssues = groupSlots.flatMap { slot ->
+                issues.filter { issue ->
+                    issue.slotId == slot.slotId &&
+                        !issue.isMissingAbilityChoiceIssue() &&
+                        slot.slotId !in issue.relatedSlotIds
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = group.compactGroupTitle(),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = "$selectedCount/${groupSlots.size}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (groupHasError) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    groupSlots.forEachIndexed { index, slot ->
+                        val selected = slot.fixedChoice ?: selectedAbilityBoosts[slot.slotId]
+                        val hasIssue = slotIssues.any { issue -> issue.slotId == slot.slotId && issue.active }
+                        AbilityBoostSlotChip(
+                            slot = slot,
+                            slotNumber = index + 1,
+                            groupSize = groupSlots.size,
+                            selected = selected,
+                            missing = missingChoicesAreErrors && slot.required && selected == null,
+                            hasIssue = hasIssue,
+                            enabled = slot.fixedChoice == null,
+                            onAbilityBoostSelected = onAbilityBoostSelected,
+                        )
+                    }
+                }
+                (groupIssues + slotIssues)
+                    .distinctBy { issue -> issue.slotId + issue.message }
+                    .forEach { issue -> CompactAbilityIssueText(issue) }
+            }
+        }
+}
+
+@Composable
+private fun AbilityBoostSlotChip(
     slot: BuilderAbilityBoostSlot,
+    slotNumber: Int,
+    groupSize: Int,
     selected: AbilityScore?,
+    missing: Boolean,
+    hasIssue: Boolean,
     enabled: Boolean,
     onAbilityBoostSelected: (String, AbilityScore?) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = slot.label,
-            style = MaterialTheme.typography.titleSmall,
-        )
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            slot.choices.forEach { ability ->
-                FilterChip(
-                    selected = selected == ability,
-                    onClick = { onAbilityBoostSelected(slot.slotId, ability) },
-                    enabled = enabled,
-                    label = { Text(ability.label()) },
-                )
-            }
-        }
+    var showPicker by remember(slot.slotId) { mutableStateOf(false) }
+    val fixedChoice = slot.fixedChoice
+    val interactive = fixedChoice == null && enabled
+    val tone = when {
+        missing || hasIssue -> ChipTone.ERROR
+        slot.isFlaw -> ChipTone.ERROR
+        selected != null -> ChipTone.POSITIVE
+        else -> ChipTone.NEUTRAL
     }
+    val colorScheme = MaterialTheme.colorScheme
+    val containerColor = when (tone) {
+        ChipTone.NEUTRAL -> colorScheme.surfaceVariant
+        ChipTone.POSITIVE -> colorScheme.secondaryContainer
+        ChipTone.ERROR -> colorScheme.errorContainer
+    }
+    val contentColor = when (tone) {
+        ChipTone.NEUTRAL -> colorScheme.onSurfaceVariant
+        ChipTone.POSITIVE -> colorScheme.onSecondaryContainer
+        ChipTone.ERROR -> colorScheme.onErrorContainer
+    }
+    Surface(
+        color = containerColor,
+        contentColor = contentColor,
+        shape = MaterialTheme.shapes.extraSmall,
+        modifier = Modifier.clickable(
+            enabled = interactive,
+            role = Role.Button,
+        ) { showPicker = true },
+    ) {
+        Text(
+            text = slot.compactChipLabel(slotNumber, groupSize, selected),
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+        )
+    }
+    if (showPicker) {
+        BuilderPickerDialog(
+            title = slot.label,
+            items = slot.choices.map { ability ->
+                BuilderPickerItem(
+                    id = ability.name,
+                    label = "${ability.fullLabel()} (${ability.label()})",
+                    subtitle = if (slot.isFlaw) "-1" else "+1",
+                )
+            },
+            onPick = { item ->
+                AbilityScore.entries.firstOrNull { ability -> ability.name == item.id }?.let { ability ->
+                    onAbilityBoostSelected(slot.slotId, ability)
+                }
+                showPicker = false
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+}
+@Composable
+private fun BuilderIssueText(issue: BuilderIssue) {
+    Text(
+        text = issue.message,
+        style = MaterialTheme.typography.bodySmall,
+        color = if (issue.active) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    issue.details?.let { details ->
+        Text(
+            text = details,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (issue.active) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun CompactAbilityIssueText(issue: BuilderIssue) {
+    Text(
+        text = issue.compactAbilityMessage(),
+        style = MaterialTheme.typography.bodySmall,
+        color = if (issue.active) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
@@ -711,7 +1010,6 @@ private fun SkillsSection(
     onSkillChoiceSelected: (String, String?) -> Unit,
     onLoreSkillChoiceSelected: (String, String) -> Unit,
 ) {
-    val activeLevel = uiState.level ?: 1
     var activeSlot by remember { mutableStateOf<BuilderSkillChoiceSlot?>(null) }
     uiState.buildFacts?.let { facts ->
         SectionLabel("Current Skill Totals")
@@ -737,9 +1035,11 @@ private fun SkillsSection(
             }
         }
     }
-    val slotsByLevel = uiState.skillChoiceSlots.groupBy { it.level }
+    val slotsByLevel = uiState.skillChoiceSlots
+        .filter { it.level == 1 }
+        .groupBy { it.level }
     slotsByLevel.keys.sorted().forEach { level ->
-        SectionLabel(if (level <= activeLevel) "Level $level active skill choices" else "Level $level planned skill choices")
+        SectionLabel("Level $level Skill Choices")
         slotsByLevel.getValue(level).forEach { slot ->
             val selected = uiState.selectedSkillChoices[slot.slotId]
             BuilderSelectionRow(
@@ -747,14 +1047,10 @@ private fun SkillsSection(
                 value = selected?.let(BuilderRules::displaySkillName) ?: "No skill selected",
                 onChoose = { activeSlot = slot },
             )
+            uiState.skillIssues
+                .filter { issue -> issue.slotId == slot.slotId || slot.slotId in issue.relatedSlotIds }
+                .forEach { issue -> BuilderIssueText(issue) }
         }
-    }
-    uiState.skillIssues.take(4).forEach { issue ->
-        Text(
-            text = issue.message,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (issue.active) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
     activeSlot?.let { slot ->
         SkillChoicePickerDialog(
@@ -782,16 +1078,28 @@ private fun FeatsSection(
     onFeatSelected: (String, String?, String?) -> Unit,
     onFeatPickerOpen: (String) -> Unit,
     onFeatPickerDismiss: () -> Unit,
+    onAbilityBoostSelected: (String, AbilityScore?) -> Unit,
+    onSkillChoiceSelected: (String, String?) -> Unit,
+    onLoreSkillChoiceSelected: (String, String) -> Unit,
 ) {
-    if (uiState.expectedFeatSlots.isEmpty()) {
+    val activeLevel = uiState.level ?: 1
+    val futureAbilitySlots = uiState.abilityBoostSlots.filter { it.level > 1 }
+    val futureSkillSlots = uiState.skillChoiceSlots.filter { it.level > 1 }
+    val trackedLevels = (
+        uiState.expectedFeatSlots.map { it.level } +
+            futureAbilitySlots.map { it.level } +
+            futureSkillSlots.map { it.level }
+        ).distinct().sorted()
+    var activeSkillSlot by remember { mutableStateOf<BuilderSkillChoiceSlot?>(null) }
+
+    if (trackedLevels.isEmpty()) {
         Text(
-            text = "No feat slots are expected for the selected class.",
+            text = "No level choices are expected for the selected class.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         return
     }
-    val activeLevel = uiState.level ?: 1
     if (uiState.isLoadingFeatDetails) {
         Text(
             text = "Loading feat details...",
@@ -799,9 +1107,16 @@ private fun FeatsSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+    Text(
+        text = "Level 1 feats stay here with later advancement. Future choices can be planned now and start blocking saves when that level is active.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        (1..20).forEach { level ->
-            val slots = uiState.expectedFeatSlots.filter { it.level == level }
+        trackedLevels.forEach { level ->
+            val featSlots = uiState.expectedFeatSlots.filter { it.level == level }
+            val abilitySlots = futureAbilitySlots.filter { it.level == level }
+            val skillSlots = futureSkillSlots.filter { it.level == level }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = if (level <= activeLevel) "Level $level" else "Level $level planned",
@@ -812,57 +1127,40 @@ private fun FeatsSection(
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
                 )
-                if (slots.isEmpty()) {
-                    Text(
-                        text = "No tracked builder choices.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                featSlots.forEach { slot ->
+                    FeatSlotRow(
+                        slot = slot,
+                        uiState = uiState,
+                        onFeatPickerOpen = onFeatPickerOpen,
                     )
-                } else {
-                    slots.forEach { slot ->
-                        val selectedFeatId = uiState.selectedFeatSlotOptions[slot.slotId]
-                        val selectedFeat = selectedFeatId?.let(uiState.featsById::get)
-                        val selectedLegality = selectedFeatId
-                            ?.let { uiState.featLegalityBySlotId[slot.slotId]?.get(it) }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
-                                Text(
-                                    text = "${slot.kind.replaceFirstChar { it.uppercase() }} feat",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                                Text(
-                                    text = listOfNotNull(
-                                        selectedFeat?.name ?: "No feat selected",
-                                        selectedLegality?.status?.label()?.takeIf { selectedFeat != null },
-                                    ).joinToString(" - "),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = when (selectedLegality?.status) {
-                                        BuilderLegalityStatus.UNAVAILABLE -> MaterialTheme.colorScheme.error
-                                        BuilderLegalityStatus.NEEDS_REVIEW -> MaterialTheme.colorScheme.tertiary
-                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                )
-                            }
-                            TextButton(
-                                onClick = { onFeatPickerOpen(slot.slotId) },
-                                enabled = !uiState.isLoadingFeatDetails,
-                            ) {
-                                Text(if (selectedFeat == null) "Choose" else "Change")
-                            }
-                        }
+                }
+                if (abilitySlots.isNotEmpty()) {
+                    SectionLabel("Attribute Boosts")
+                    AbilityBoostGroups(
+                        slots = abilitySlots,
+                        issues = uiState.abilityIssues.filter { issue -> issue.level == level },
+                        selectedAbilityBoosts = uiState.selectedAbilityBoosts,
+                        missingChoicesAreErrors = level <= (uiState.level ?: 1),
+                        onAbilityBoostSelected = onAbilityBoostSelected,
+                    )
+                }
+                if (skillSlots.isNotEmpty()) {
+                    SectionLabel("Skill Increases")
+                    skillSlots.forEach { slot ->
+                        val selected = uiState.selectedSkillChoices[slot.slotId]
+                        BuilderSelectionRow(
+                            label = slot.label,
+                            value = selected?.let(BuilderRules::displaySkillName) ?: "No skill selected",
+                            onChoose = { activeSkillSlot = slot },
+                        )
+                        uiState.skillIssues
+                            .filter { issue -> issue.slotId == slot.slotId || slot.slotId in issue.relatedSlotIds }
+                            .forEach { issue -> BuilderIssueText(issue) }
                     }
                 }
             }
         }
     }
-    BuilderWarnings(uiState.builderWarningLines)
     uiState.activeFeatPickerSlotId
         ?.let { slotId -> uiState.expectedFeatSlots.firstOrNull { it.slotId == slotId } }
         ?.let { slot ->
@@ -882,47 +1180,69 @@ private fun FeatsSection(
             onDismiss = onFeatPickerDismiss,
         )
     }
+    activeSkillSlot?.let { slot ->
+        SkillChoicePickerDialog(
+            slot = slot,
+            onPick = { skillId ->
+                onSkillChoiceSelected(slot.slotId, skillId)
+                activeSkillSlot = null
+            },
+            onLorePick = { loreName ->
+                onLoreSkillChoiceSelected(slot.slotId, loreName)
+                activeSkillSlot = null
+            },
+            onClear = {
+                onSkillChoiceSelected(slot.slotId, null)
+                activeSkillSlot = null
+            },
+            onDismiss = { activeSkillSlot = null },
+        )
+    }
 }
 
 @Composable
-private fun CastingStatsSection(
+private fun FeatSlotRow(
+    slot: BuilderFeatSlot,
     uiState: CharacterBuilderUiState,
-    onSpellDcChange: (String) -> Unit,
-    onSpellAttackChange: (String) -> Unit,
+    onFeatPickerOpen: (String) -> Unit,
 ) {
-    Text(
-        text = "Use the current values from the player's character sheet.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    OutlinedTextField(
-        value = uiState.spellDcText,
-        onValueChange = onSpellDcChange,
-        label = { Text("Spell DC") },
-        singleLine = true,
-        isError = uiState.saveAttempted && uiState.spellDcInvalid,
-        supportingText = if (uiState.saveAttempted && uiState.spellDcInvalid) {
-            { Text("Enter a DC between 0 and 99.") }
-        } else {
-            null
-        },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+    val selectedFeatId = uiState.selectedFeatSlotOptions[slot.slotId]
+    val selectedFeat = selectedFeatId?.let(uiState.featsById::get)
+    val selectedLegality = selectedFeatId
+        ?.let { uiState.featLegalityBySlotId[slot.slotId]?.get(it) }
+    Row(
         modifier = Modifier.fillMaxWidth(),
-    )
-    OutlinedTextField(
-        value = uiState.spellAttackText,
-        onValueChange = onSpellAttackChange,
-        label = { Text("Spell Attack Modifier") },
-        singleLine = true,
-        isError = uiState.saveAttempted && uiState.spellAttackInvalid,
-        supportingText = if (uiState.saveAttempted && uiState.spellAttackInvalid) {
-            { Text("Enter a modifier between -99 and 99.") }
-        } else {
-            null
-        },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier.fillMaxWidth(),
-    )
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = "${slot.kind.replaceFirstChar { it.uppercase() }} feat",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = listOfNotNull(
+                    selectedFeat?.name ?: "No feat selected",
+                    selectedLegality?.status?.label()?.takeIf { selectedFeat != null },
+                ).joinToString(" - "),
+                style = MaterialTheme.typography.bodySmall,
+                color = when (selectedLegality?.status) {
+                    BuilderLegalityStatus.UNAVAILABLE -> MaterialTheme.colorScheme.error
+                    BuilderLegalityStatus.NEEDS_REVIEW -> MaterialTheme.colorScheme.tertiary
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+        TextButton(
+            onClick = { onFeatPickerOpen(slot.slotId) },
+            enabled = !uiState.isLoadingFeatDetails,
+        ) {
+            Text(if (selectedFeat == null) "Choose" else "Change")
+        }
+    }
 }
 
 @Composable
@@ -960,167 +1280,6 @@ private fun SpellSourcesSection(
             onAcceptedSourcesChange = onAcceptedSourcesChange,
             onSourceBookToggle = onSourceBookToggle,
             onDismiss = { showSourcePicker = false },
-        )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ArchetypeSpellcastingBuilderSection(
-    uiState: CharacterBuilderUiState,
-    onArchetypeTierToggle: (ArchetypeSpellcastingPackage, ArchetypeTier, Boolean) -> Unit,
-) {
-    var showPicker by remember { mutableStateOf(false) }
-    if (uiState.selectedArchetypePackages.isEmpty()) {
-        Text(
-            text = "No spellcasting archetypes selected.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    } else {
-        uiState.selectedArchetypePackages.forEach { packageDef ->
-            SelectedBuilderArchetypeRow(
-                uiState = uiState,
-                packageDef = packageDef,
-                onArchetypeTierToggle = onArchetypeTierToggle,
-            )
-        }
-    }
-    if (uiState.availableArchetypePackages.isNotEmpty()) {
-        OutlinedButton(
-            onClick = { showPicker = true },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(if (uiState.selectedArchetypePackages.isEmpty()) "Add Archetype" else "Add Another Archetype")
-        }
-    }
-
-    if (showPicker) {
-        BuilderArchetypePickerDialog(
-            available = uiState.availableArchetypePackages,
-            onPick = { picked ->
-                onArchetypeTierToggle(picked, ArchetypeTier.DEDICATION, true)
-                showPicker = false
-            },
-            onDismiss = { showPicker = false },
-        )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SelectedBuilderArchetypeRow(
-    uiState: CharacterBuilderUiState,
-    packageDef: ArchetypeSpellcastingPackage,
-    onArchetypeTierToggle: (ArchetypeSpellcastingPackage, ArchetypeTier, Boolean) -> Unit,
-) {
-    val basicSelected = packageDef.basicSpellcastingOptionId
-        ?.let { it in uiState.selectedBuildOptionIds } ?: false
-    val expertSelected = packageDef.expertSpellcastingOptionId
-        ?.let { it in uiState.selectedBuildOptionIds } ?: false
-    val masterSelected = packageDef.masterSpellcastingOptionId
-        ?.let { it in uiState.selectedBuildOptionIds } ?: false
-    val slotSummary = summarizeArchetypeSlotsForLevel(
-        level = uiState.level ?: 1,
-        hasBasic = basicSelected,
-        hasExpert = expertSelected,
-        hasMaster = masterSelected,
-    )
-    val hasAnyUpgrade = packageDef.basicSpellcastingOptionId != null ||
-        packageDef.expertSpellcastingOptionId != null ||
-        packageDef.masterSpellcastingOptionId != null
-
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = packageDef.label,
-                style = MaterialTheme.typography.titleSmall,
-            )
-            TextButton(
-                onClick = {
-                    onArchetypeTierToggle(packageDef, ArchetypeTier.DEDICATION, false)
-                },
-            ) {
-                Text(
-                    text = "Remove",
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-        }
-        Text(
-            text = slotSummary,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (hasAnyUpgrade) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (packageDef.basicSpellcastingOptionId != null) {
-                    FilterChip(
-                        selected = basicSelected,
-                        onClick = {
-                            onArchetypeTierToggle(packageDef, ArchetypeTier.BASIC, !basicSelected)
-                        },
-                        label = { Text("Basic") },
-                    )
-                }
-                if (packageDef.expertSpellcastingOptionId != null) {
-                    FilterChip(
-                        selected = expertSelected,
-                        onClick = {
-                            onArchetypeTierToggle(packageDef, ArchetypeTier.EXPERT, !expertSelected)
-                        },
-                        label = { Text("Expert") },
-                    )
-                }
-                if (packageDef.masterSpellcastingOptionId != null) {
-                    FilterChip(
-                        selected = masterSelected,
-                        onClick = {
-                            onArchetypeTierToggle(packageDef, ArchetypeTier.MASTER, !masterSelected)
-                        },
-                        label = { Text("Master") },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PreferencesSection(
-    uiState: CharacterBuilderUiState,
-    onLegacyTerminologyChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = "Pre-remaster Names",
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(
-                text = "Show legacy spell names when the dataset provides them.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(
-            checked = uiState.legacyTerminologyEnabled,
-            onCheckedChange = onLegacyTerminologyChange,
         )
     }
 }
@@ -1329,20 +1488,6 @@ private fun BuilderSelectionRow(
             enabled = enabled,
         ) {
             Text("Choose")
-        }
-    }
-}
-
-@Composable
-private fun BuilderWarnings(lines: List<String>) {
-    if (lines.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        lines.take(4).forEach { line ->
-            Text(
-                text = line,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
         }
     }
 }
@@ -1676,37 +1821,6 @@ private fun BuilderPickerDialog(
     )
 }
 
-@Composable
-private fun BuilderArchetypePickerDialog(
-    available: List<ArchetypeSpellcastingPackage>,
-    onPick: (ArchetypeSpellcastingPackage) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add Archetype") },
-        text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                items(available, key = { it.archetypeId }) { pkg ->
-                    Text(
-                        text = pkg.label,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(role = Role.Button) { onPick(pkg) }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
-}
-
 private enum class BuilderPickerKind {
     ANCESTRY,
     HERITAGE,
@@ -1717,6 +1831,196 @@ private data class BuilderPickerItem(
     val label: String,
     val subtitle: String,
 )
+
+private fun BuilderGrantRecord.displayName(): String? {
+    return name
+        ?: uuid
+            ?.substringAfterLast('.')
+            ?.takeIf { it.isNotBlank() }
+}
+
+@Composable
+private fun BuilderDetailBlock(
+    lines: List<String>,
+    description: String,
+) {
+    val visibleLines = lines.filter { it.isNotBlank() }
+    val summary = description.shortDescription()
+    if (visibleLines.isEmpty() && summary.isBlank()) return
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        visibleLines.forEach { line ->
+            Text(
+                text = line,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (summary.isNotBlank()) {
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+private fun BuilderAncestryRecord.detailLines(): List<String> {
+    return listOfNotNull(
+        hp?.let { "Ancestry HP $it" },
+        speed.takeIf { it.isNotBlank() }?.let { "Speed $it" },
+        size.takeIf { it.isNotBlank() }?.let { "Size $it" },
+        boosts.takeIf { it.isNotEmpty() }?.let { "Boosts: ${it.joinToString { boost -> boost.choiceText() }}" },
+        flaws.takeIf { it.isNotEmpty() }?.let { "Flaws: ${it.joinToString { flaw -> flaw.choiceText() }}" },
+        traits.displayLine(),
+        source.title?.let { "Source: $it" },
+    )
+}
+
+private fun BuilderAncestryRecord.pickerSubtitle(): String {
+    return (detailLines().take(5) + description.shortDescription(120))
+        .filter { it.isNotBlank() }
+        .joinToString(" - ")
+}
+
+private fun BuilderHeritageRecord.detailLines(): List<String> {
+    return listOfNotNull(
+        traits.displayLine(),
+        grants.mapNotNull { it.displayName() }.takeIf { it.isNotEmpty() }?.let { "Grants: ${it.joinToString()}" },
+        source.title?.let { "Source: $it" },
+    )
+}
+
+private fun BuilderHeritageRecord.pickerSubtitle(): String {
+    return (detailLines().take(3) + description.shortDescription(140))
+        .filter { it.isNotBlank() }
+        .joinToString(" - ")
+}
+
+private fun BuilderBackgroundRecord.detailLines(): List<String> {
+    return listOfNotNull(
+        boosts.takeIf { it.isNotEmpty() }?.let { "Boosts: ${it.joinToString { boost -> boost.choiceText() }}" },
+        trainedSkills.value.takeIf { it.isNotEmpty() }?.let {
+            "Trained skill: ${it.joinToString { skill -> BuilderRules.displaySkillName(skill) }}"
+        },
+        trainedSkills.lore.takeIf { it.isNotEmpty() }?.let { "Lore: ${it.joinToString()}" },
+        grants.mapNotNull { it.displayName() }.takeIf { it.isNotEmpty() }?.let { "Skill feat: ${it.joinToString()}" },
+        traits.displayLine(),
+        source.title?.let { "Source: $it" },
+    )
+}
+
+private fun BuilderBackgroundRecord.pickerSubtitle(): String {
+    return (detailLines().take(5) + description.shortDescription(120))
+        .filter { it.isNotBlank() }
+        .joinToString(" - ")
+}
+
+private fun BuilderClassRecord.detailLines(definition: CharacterClassDefinition?): List<String> {
+    return listOfNotNull(
+        hp?.let { "Class HP $it" },
+        "Key attribute: ${keyAbilityOptions.ifEmpty { definition?.keyAbilityOptions.orEmpty() }.joinToString { it.label() }}",
+        trainedSkills.value.takeIf { it.isNotEmpty() }?.let {
+            "Trained skill: ${it.joinToString { skill -> BuilderRules.displaySkillName(skill) }}"
+        },
+        trainedSkills.additional?.let { "Extra trained skills: $it plus Intelligence" },
+        traits.displayLine(),
+        source.title?.let { "Source: $it" },
+    )
+}
+
+private fun BuilderClassRecord.pickerSubtitle(definition: CharacterClassDefinition?): String {
+    return (detailLines(definition).take(5) + description.shortDescription(120))
+        .filter { it.isNotBlank() }
+        .joinToString(" - ")
+}
+
+private fun CharacterClassDefinition.detailLines(): List<String> {
+    return listOf(
+        "Key attribute: ${keyAbilityOptions.joinToString { it.label() }}",
+    )
+}
+
+private fun CharacterClassDefinition.pickerSubtitle(): String {
+    return detailLines().joinToString(" - ")
+}
+
+private fun BuilderAbilityBoostRecord.choiceText(): String {
+    selected?.let { return it.label() }
+    return abilities.takeIf { it.isNotEmpty() }
+        ?.joinToString("/") { it.label() }
+        ?: "free"
+}
+
+private fun BuilderTraitsRecord.displayLine(): String? {
+    val parts = (listOf(rarity.takeIf { it.isNotBlank() && it != "common" }) + values)
+        .filterNotNull()
+        .filter { it.isNotBlank() }
+        .distinct()
+    return parts.takeIf { it.isNotEmpty() }?.joinToString(prefix = "Traits: ")
+}
+
+private fun String.shortDescription(maxLength: Int = 220): String {
+    val cleaned = replace(Regex("\\s+"), " ").trim()
+    if (cleaned.length <= maxLength) return cleaned
+    return cleaned.take(maxLength).substringBeforeLast(' ').trimEnd('.', ',', ';', ':') + "..."
+}
+
+private fun BuilderAbilityAdjustment.sourceShortLabel(): String = when {
+    groupId.startsWith("ancestry") -> "Anc"
+    groupId.startsWith("background") -> "Bg"
+    groupId.startsWith("class") -> "Cls"
+    groupId.startsWith("free") -> "Free"
+    else -> groupLabel.substringBefore(' ').take(4)
+}
+
+private fun BuilderIssue.isModifierIssue(): Boolean = slotId.startsWith("ability/modifier/")
+
+private fun AbilityScore.modifierIssueSlotId(): String = "ability/modifier/${name.lowercase()}"
+
+private fun BuilderIssue.isMissingAbilityChoiceIssue(): Boolean {
+    return message.startsWith("Choose one ") || message == "Choose a class key attribute."
+}
+
+private fun BuilderIssue.compactAbilityMessage(): String {
+    details?.let { detail ->
+        if (detail.contains("higher than +4")) return "L1 max +4."
+        if (detail.contains("lower than -1")) return "L1 min -1."
+        if (detail.contains("different attributes") && message.contains(" is selected ")) {
+            val ability = message.substringBefore(" is selected")
+            val count = message.substringAfter(" is selected ").substringBefore(" in ")
+            return "$ability selected $count here."
+        }
+    }
+    if (message.contains(" no longer belongs to ")) {
+        return "${message.substringBefore(" no longer belongs to ")} is not valid here."
+    }
+    return message
+}
+
+private fun BuilderAbilityBoostSlot.compactGroupTitle(): String = when (kind) {
+    BuilderAbilityBoostKind.ANCESTRY_FLAW -> "Ancestry Flaw"
+    BuilderAbilityBoostKind.ANCESTRY_BOOST -> "Ancestry Boosts"
+    BuilderAbilityBoostKind.BACKGROUND_BOOST -> "Background Boosts"
+    BuilderAbilityBoostKind.CLASS_KEY -> "Class Key"
+    BuilderAbilityBoostKind.FREE_BOOST -> "Free Boosts"
+}
+
+private fun BuilderAbilityBoostSlot.compactChipLabel(
+    slotNumber: Int,
+    groupSize: Int,
+    selected: AbilityScore?,
+): String {
+    val slotLabel = when {
+        groupSize > 1 -> "#$slotNumber"
+        kind == BuilderAbilityBoostKind.CLASS_KEY -> "Key"
+        kind == BuilderAbilityBoostKind.ANCESTRY_FLAW -> "Flaw"
+        else -> "Boost"
+    }
+    val delta = if (isFlaw) "-1" else "+1"
+    val choice = selected?.label() ?: "Pick"
+    return "$slotLabel $delta $choice"
+}
 
 @Composable
 private fun SectionLabel(text: String) {
@@ -1746,34 +2050,4 @@ private fun BuilderLegalityStatus.label(): String = when (this) {
     BuilderLegalityStatus.ELIGIBLE -> "Eligible"
     BuilderLegalityStatus.NEEDS_REVIEW -> "Needs Review"
     BuilderLegalityStatus.UNAVAILABLE -> "Unavailable"
-}
-
-private fun summarizeArchetypeSlotsForLevel(
-    level: Int,
-    hasBasic: Boolean,
-    hasExpert: Boolean,
-    hasMaster: Boolean,
-): String {
-    val unlockedRanks = mutableListOf<Int>()
-    if (hasBasic) {
-        if (level >= 4) unlockedRanks += 1
-        if (level >= 6) unlockedRanks += 2
-        if (level >= 8) unlockedRanks += 3
-    }
-    if (hasExpert) {
-        if (level >= 12) unlockedRanks += 4
-        if (level >= 14) unlockedRanks += 5
-        if (level >= 16) unlockedRanks += 6
-    }
-    if (hasMaster) {
-        if (level >= 18) unlockedRanks += 7
-        if (level >= 20) unlockedRanks += 8
-    }
-    if (unlockedRanks.isEmpty()) {
-        return "At level $level: no archetype spell slots unlocked."
-    }
-    val rankText = unlockedRanks
-        .sorted()
-        .joinToString(", ") { rank -> "R$rank" }
-    return "At level $level: $rankText (1 slot each)."
 }

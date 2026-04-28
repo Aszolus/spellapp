@@ -163,6 +163,7 @@ data class BuilderChoicePromptRecord(
     val sourceRulePath: String,
     val required: Boolean,
     val choiceValues: List<BuilderChoiceValueRecord> = emptyList(),
+    val choiceDomain: String? = null,
 )
 
 data class BuilderFeatSlot(
@@ -211,6 +212,7 @@ data class BuilderClassRecord(
     val skillFeatLevels: List<Int> = emptyList(),
     val baseProficiencies: List<BuilderProficiencyGrant> = emptyList(),
     val featureRefs: List<String> = emptyList(),
+    val choicePrompts: List<BuilderChoicePromptRecord> = emptyList(),
 )
 
 data class BuilderAncestryRecord(
@@ -430,6 +432,7 @@ class AssetCharacterBuilderCatalogSource(
                 skillFeatLevels = item.optJSONArray("skillFeatLevels").ints(),
                 baseProficiencies = parseProficiencyGrants(item.optJSONArray("baseProficiencies")),
                 featureRefs = item.optJSONArray("featureRefs").strings(),
+                choicePrompts = parseChoicePrompts(item.optJSONArray("choicePrompts")),
             )
         }.sortedBy { it.name }
     }
@@ -610,12 +613,14 @@ class AssetCharacterBuilderCatalogSource(
 
     private fun parseChoicePrompts(raw: JSONArray?): List<BuilderChoicePromptRecord> {
         return raw.objects().map { item ->
+            val choiceConfig = item.opt("choiceConfig")
             BuilderChoicePromptRecord(
                 promptId = item.optString("promptId"),
                 label = item.optString("label").ifBlank { "Choice" },
                 sourceRulePath = item.optString("sourceRulePath"),
                 required = item.optBoolean("required", true),
-                choiceValues = parseChoiceValues(item.opt("choiceConfig")),
+                choiceValues = parseChoiceValues(choiceConfig),
+                choiceDomain = (choiceConfig as? String)?.takeIf { it.isNotBlank() },
             )
         }
     }

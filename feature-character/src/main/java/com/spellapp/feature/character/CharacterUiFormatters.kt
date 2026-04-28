@@ -22,6 +22,17 @@ internal fun AbilityScore.label(): String {
     }
 }
 
+internal fun AbilityScore.fullLabel(): String {
+    return when (this) {
+        AbilityScore.STRENGTH -> "Strength"
+        AbilityScore.DEXTERITY -> "Dexterity"
+        AbilityScore.CONSTITUTION -> "Constitution"
+        AbilityScore.INTELLIGENCE -> "Intelligence"
+        AbilityScore.WISDOM -> "Wisdom"
+        AbilityScore.CHARISMA -> "Charisma"
+    }
+}
+
 internal fun defaultKeyAbility(
     classId: String,
     classDefinitions: Map<String, CharacterClassDefinition> = emptyMap(),

@@ -283,10 +283,10 @@ class CharacterBuilderViewModelTest {
             CharacterBuilderSectionStatus.COMPLETE,
             sectionsById[CharacterBuilderSectionId.CLASS_SPELLCASTING]?.status,
         )
-        assertEquals(
-            CharacterBuilderSectionStatus.OPTIONAL,
-            sectionsById[CharacterBuilderSectionId.PREFERENCES]?.status,
-        )
+        val sectionTitles = sectionsById.values.map { it.title }
+        assertFalse(sectionTitles.contains("Preferences"))
+        assertFalse(sectionTitles.contains("Casting Stats"))
+        assertFalse(sectionTitles.contains("Archetype Spellcasting"))
         assertEquals(
             CharacterBuilderSectionStatus.COMPLETE,
             sectionsById[CharacterBuilderSectionId.SPELL_SOURCES]?.status,
@@ -308,6 +308,246 @@ class CharacterBuilderViewModelTest {
         assertFalse(state.availableBackgrounds.any { it.id == "detective" })
         assertTrue(state.featsById.values.any { it.name == "Counterspell" })
         assertFalse(state.featsById.values.any { it.name == "Lost Omens Feat" })
+    }
+
+    @Test
+    fun saveInvalidDraft_showsActiveAbilityBlockerSummary() = runTest {
+        val viewModel = createViewModel(characterId = 0L)
+        advanceUntilIdle()
+
+        viewModel.save()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        val abilitySection = state.sections.first { it.id == CharacterBuilderSectionId.ABILITY_SCORES }
+        assertEquals("4 attribute choices need review.", abilitySection.validationMessage)
+        assertTrue(state.builderWarningLines.contains("Choose one free Level 1 boost."))
+    }
+
+    @Test
+    fun futureBoostIssuesStayNonBlockingUntilCharacterReachesThatLevel() = runTest {
+        val viewModel = createViewModel(characterId = 0L)
+        advanceUntilIdle()
+
+        val futureSlots = viewModel.uiState.value.abilityBoostSlots
+            .filter { slot -> slot.groupId == "free-boosts-5" }
+            .take(2)
+        viewModel.selectAbilityBoost(futureSlots[0].slotId, AbilityScore.STRENGTH)
+        viewModel.selectAbilityBoost(futureSlots[1].slotId, AbilityScore.STRENGTH)
+        advanceUntilIdle()
+
+        val issue = viewModel.uiState.value.abilityIssues.single {
+            it.message == "STR is selected twice in Level 5 free boosts."
+        }
+        assertFalse(issue.active)
+        assertFalse(viewModel.uiState.value.builderWarningLines.contains(issue.message))
+    }
+
+    @Test
+    fun backgroundSkillPromptBlocksUntilSelectedAndPersists() = runTest {
+        val characterCrudRepository = FakeCharacterCrudRepository()
+        val characterBuildRepository = FakeCharacterBuildRepository()
+        val viewModel = createViewModel(
+            characterId = 0L,
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
+        )
+        advanceUntilIdle()
+
+        viewModel.updateName("Tavi")
+        selectRequiredClassChoices(viewModel)
+        viewModel.selectAncestry("human")
+        viewModel.selectHeritage("skilled-heritage")
+        viewModel.selectBackground("prompted-background")
+        selectRequiredAbilityBoosts(viewModel)
+        advanceUntilIdle()
+
+        val promptSkillSlot = viewModel.uiState.value.skillChoiceSlots
+            .firstOrNull { it.kind == BuilderSkillChoiceKind.PROMPT_SKILL }
+        assertTrue(
+            "Expected a prompt skill slot, found ${viewModel.uiState.value.skillChoiceSlots}",
+            promptSkillSlot != null,
+        )
+        viewModel.save()
+        advanceUntilIdle()
+        assertFalse(characterCrudRepository.characters().any { it.name == "Tavi" })
+        assertTrue(viewModel.uiState.value.skillIssues.any {
+            it.active && it.slotId == promptSkillSlot!!.slotId
+        })
+
+        viewModel.selectSkillChoice(promptSkillSlot!!.slotId, "diplomacy")
+        assertTrue(viewModel.uiState.value.canSave)
+        viewModel.save()
+        advanceUntilIdle()
+
+        val savedCharacter = characterCrudRepository.characters().firstOrNull { it.name == "Tavi" }
+        assertTrue("Expected Tavi to save; state=${viewModel.uiState.value}", savedCharacter != null)
+        val savedCharacterId = savedCharacter!!.id
+        val savedPromptSkill = characterBuildRepository.getBuildOptions(savedCharacterId).firstOrNull {
+            it.optionType == CharacterBuildOptionType.SKILL_PROFICIENCY &&
+                it.optionId == "diplomacy" &&
+                it.metadataJson.contains("\"slotKind\":\"prompt_skill\"")
+        }
+        assertTrue(
+            "Expected prompt skill option; options=${characterBuildRepository.getBuildOptions(savedCharacterId)}",
+            savedPromptSkill != null,
+        )
+        assertEquals("diplomacy", savedPromptSkill!!.optionId)
+    }
+
+    @Test
+    fun genericPromptBlocksUntilSelectedAndPersists() = runTest {
+        val characterCrudRepository = FakeCharacterCrudRepository()
+        val characterBuildRepository = FakeCharacterBuildRepository()
+        val viewModel = createViewModel(
+            characterId = 0L,
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
+        )
+        advanceUntilIdle()
+
+        viewModel.updateName("Rin")
+        selectRequiredClassChoices(viewModel)
+        viewModel.selectAncestry("human")
+        viewModel.selectHeritage("skilled-heritage")
+        viewModel.selectBackground("lineage-background")
+        selectRequiredAbilityBoosts(viewModel)
+        selectRequiredSkills(viewModel)
+        advanceUntilIdle()
+
+        val promptSlot = viewModel.uiState.value.promptSlots.single {
+            it.source == BuilderPromptSource.BACKGROUND
+        }
+        viewModel.save()
+        advanceUntilIdle()
+        assertFalse(characterCrudRepository.characters().any { it.name == "Rin" })
+        assertTrue(viewModel.uiState.value.promptIssues.any {
+            it.active && it.slotId == promptSlot.slotId
+        })
+
+        viewModel.selectPromptChoice(promptSlot.slotId, "noble")
+        viewModel.save()
+        advanceUntilIdle()
+
+        val savedCharacterId = characterCrudRepository.characters().single { it.name == "Rin" }.id
+        val savedPrompt = characterBuildRepository.getBuildOptions(savedCharacterId).single {
+            it.metadataJson.contains("\"slotKind\":\"prompt\"")
+        }
+        assertEquals(CharacterBuildOptionType.BACKGROUND, savedPrompt.optionType)
+        assertTrue(savedPrompt.metadataJson.contains("\"selectedValue\":\"noble\""))
+    }
+
+    @Test
+    fun activeFutureBoostIssueBelongsToLevelWorkbenchNotAttributeSection() = runTest {
+        val viewModel = createViewModel(characterId = 0L)
+        advanceUntilIdle()
+
+        viewModel.updateName("Lio")
+        viewModel.updateLevel("5")
+        selectRequiredClassChoices(viewModel)
+        selectRequiredBuilderBasics(viewModel)
+        val futureSlots = viewModel.uiState.value.abilityBoostSlots
+            .filter { slot -> slot.groupId == "free-boosts-5" }
+            .take(2)
+        viewModel.selectAbilityBoost(futureSlots[0].slotId, AbilityScore.STRENGTH)
+        viewModel.selectAbilityBoost(futureSlots[1].slotId, AbilityScore.STRENGTH)
+        advanceUntilIdle()
+
+        val sectionsById = viewModel.uiState.value.sections.associateBy { it.id }
+        assertEquals(CharacterBuilderSectionStatus.COMPLETE, sectionsById[CharacterBuilderSectionId.ABILITY_SCORES]?.status)
+        assertEquals(CharacterBuilderSectionStatus.NEEDS_REVIEW, sectionsById[CharacterBuilderSectionId.FEATS]?.status)
+    }
+
+    @Test
+    fun staleSavedPromptChoiceIsRemovedOnNextSave() = runTest {
+        val characterCrudRepository = FakeCharacterCrudRepository()
+        val characterBuildRepository = FakeCharacterBuildRepository()
+        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 66L, classId = "wizard"))
+        characterBuildRepository.upsertBuildIdentity(
+            CharacterBuildIdentity(
+                characterId = existingCharacterId,
+                ancestryId = "human",
+                heritageId = "skilled-heritage",
+                backgroundId = "acolyte",
+            ),
+        )
+        characterBuildRepository.replaceBuildOptions(
+            characterId = existingCharacterId,
+            options = listOf(
+                CharacterBuildOption(
+                    characterId = existingCharacterId,
+                    optionType = CharacterBuildOptionType.BACKGROUND,
+                    optionId = "prompt/prompt/background/old/value",
+                    levelAcquired = 1,
+                    metadataJson = """{"schemaVersion":1,"managedBy":"builder","slotId":"prompt/background/old/choice","slotKind":"prompt","slotLevel":"1","selectedValue":"old"}""",
+                ),
+            ),
+        )
+        val viewModel = createViewModel(
+            characterId = existingCharacterId,
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
+        )
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.selectedPromptChoices.containsKey("prompt/background/old/choice"))
+        selectRequiredClassChoices(viewModel)
+        selectRequiredBuilderBasics(viewModel)
+        viewModel.save()
+        advanceUntilIdle()
+
+        val savedOptions = characterBuildRepository.getBuildOptions(existingCharacterId)
+        assertFalse(savedOptions.any { option -> option.metadataJson.contains("prompt/background/old/choice") })
+        assertFalse(viewModel.uiState.value.selectedPromptChoices.containsKey("prompt/background/old/choice"))
+    }
+
+    @Test
+    fun savedVoluntaryFlawsAreIgnoredAndRemovedOnNextSave() = runTest {
+        val characterCrudRepository = FakeCharacterCrudRepository()
+        val characterBuildRepository = FakeCharacterBuildRepository()
+        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 55L))
+        characterBuildRepository.upsertBuildIdentity(
+            CharacterBuildIdentity(
+                characterId = existingCharacterId,
+                ancestryId = "human",
+                heritageId = "skilled-heritage",
+                backgroundId = "acolyte",
+            ),
+        )
+        characterBuildRepository.replaceBuildOptions(
+            characterId = existingCharacterId,
+            options = listOf(
+                CharacterBuildOption(
+                    characterId = existingCharacterId,
+                    optionType = CharacterBuildOptionType.ABILITY_BOOST,
+                    optionId = "str",
+                    levelAcquired = 1,
+                    metadataJson = """{"schemaVersion":1,"managedBy":"builder","slotId":"ability/voluntary-flaw/flaw/1","slotKind":"flaw","slotLevel":"1","grantOrigin":"player"}""",
+                ),
+            ),
+        )
+        val viewModel = createViewModel(
+            characterId = existingCharacterId,
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
+        )
+        advanceUntilIdle()
+
+        val loaded = viewModel.uiState.value
+        assertFalse(loaded.voluntaryFlawEnabled)
+        assertTrue("ability/voluntary-flaw/flaw/1" in loaded.selectedAbilityBoosts)
+        assertFalse(loaded.abilityBoostSlots.any { slot -> slot.slotId.startsWith("ability/voluntary-flaw/") })
+
+        selectRequiredClassChoices(viewModel)
+        selectRequiredBuilderBasics(viewModel)
+        viewModel.save()
+        advanceUntilIdle()
+
+        val savedOptions = characterBuildRepository.getBuildOptions(existingCharacterId)
+        assertFalse(savedOptions.any { option -> option.metadataJson.contains("ability/voluntary-flaw/") })
+        assertFalse(viewModel.uiState.value.selectedAbilityBoosts.keys.any { slotId ->
+            slotId.startsWith("ability/voluntary-flaw/")
+        })
     }
 
     private fun selectRequiredClassChoices(viewModel: CharacterBuilderViewModel) {
@@ -552,6 +792,48 @@ private class FakeCharacterBuilderCatalogSource : CharacterBuilderCatalogSource 
                         description = "",
                         grants = emptyList(),
                         choicePrompts = emptyList(),
+                        warnings = emptyList(),
+                    ),
+                    BuilderBackgroundRecord(
+                        id = "prompted-background",
+                        name = "Prompted Background",
+                        source = source,
+                        traits = traits,
+                        description = "",
+                        grants = emptyList(),
+                        choicePrompts = listOf(
+                            BuilderChoicePromptRecord(
+                                promptId = "skill",
+                                label = "PF2E.SpecificRule.Prompt.Skill",
+                                sourceRulePath = "system.rules[0]",
+                                required = true,
+                                choiceValues = listOf(
+                                    BuilderChoiceValueRecord("deception", "Deception"),
+                                    BuilderChoiceValueRecord("diplomacy", "Diplomacy"),
+                                ),
+                            ),
+                        ),
+                        warnings = emptyList(),
+                    ),
+                    BuilderBackgroundRecord(
+                        id = "lineage-background",
+                        name = "Lineage Background",
+                        source = source,
+                        traits = traits,
+                        description = "",
+                        grants = emptyList(),
+                        choicePrompts = listOf(
+                            BuilderChoicePromptRecord(
+                                promptId = "lineage",
+                                label = "Lineage",
+                                sourceRulePath = "system.rules[0]",
+                                required = true,
+                                choiceValues = listOf(
+                                    BuilderChoiceValueRecord("noble", "Noble"),
+                                    BuilderChoiceValueRecord("commoner", "Commoner"),
+                                ),
+                            ),
+                        ),
                         warnings = emptyList(),
                     ),
                     BuilderBackgroundRecord(
