@@ -3,6 +3,7 @@ package com.spellapp
 import android.content.Context
 import com.spellapp.core.data.AcceptedSpellSourceRepository
 import com.spellapp.core.data.CharacterRepository
+import com.spellapp.core.data.CatalogRecordRepository
 import com.spellapp.core.data.KnownSpellRepository
 import com.spellapp.core.data.RulesReferenceRepository
 import com.spellapp.core.data.SpellRepository
@@ -16,6 +17,7 @@ import com.spellapp.core.data.local.CatalogSpellRepository
 import com.spellapp.core.data.local.CatalogSpellRulesTextRepository
 import com.spellapp.core.data.local.FallbackSpellRulesTextRepository
 import com.spellapp.core.data.local.RoomAcceptedSpellSourceRepository
+import com.spellapp.core.data.local.RoomCatalogRecordRepository
 import com.spellapp.core.data.local.RoomCharacterRepository
 import com.spellapp.core.data.local.RoomKnownSpellRepository
 import com.spellapp.core.data.local.RoomSpellRepository
@@ -55,6 +57,10 @@ class AppContainer(
             catalogRepository = catalogSpellRepository,
             fallbackRepository = legacySpellRepository,
         )
+    }
+
+    val catalogRecordRepository: CatalogRecordRepository by lazy {
+        RoomCatalogRecordRepository(catalogDatabase.catalogDao())
     }
 
     val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource by lazy {

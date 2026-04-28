@@ -10,6 +10,140 @@ interface CatalogDao {
     @Query("SELECT value FROM catalog_metadata WHERE key = :key LIMIT 1")
     suspend fun getMetadataValue(key: String): String?
 
+    @Query(
+        """
+        SELECT
+            id,
+            uuid,
+            pack_name AS packName,
+            record_type AS recordType,
+            category,
+            name,
+            level,
+            rarity,
+            source_title AS sourceTitle,
+            image_path AS imagePath,
+            image_missing AS imageMissing,
+            automation_status AS automationStatus
+        FROM catalog_records
+        WHERE (:recordType = '' OR record_type = :recordType)
+          AND (:category = '' OR COALESCE(category, '') = :category)
+          AND (:query = '' OR name LIKE '%' || :query || '%' OR detail_text LIKE '%' || :query || '%')
+          AND (:sourceTitle = '' OR COALESCE(source_title, '') = :sourceTitle)
+          AND (:rarity = '' OR LOWER(COALESCE(rarity, '')) = LOWER(:rarity))
+          AND (:maxLevel IS NULL OR level IS NULL OR level <= :maxLevel)
+        ORDER BY
+            CASE WHEN level IS NULL THEN 0 ELSE 1 END ASC,
+            level ASC,
+            name COLLATE NOCASE ASC
+        LIMIT :limit
+        """,
+    )
+    fun observeCatalogRecordSummaries(
+        recordType: String,
+        category: String,
+        query: String,
+        sourceTitle: String,
+        rarity: String,
+        maxLevel: Int?,
+        limit: Int,
+    ): Flow<List<CatalogRecordSummaryRow>>
+
+    @Query(
+        """
+        SELECT
+            id,
+            uuid,
+            pack_name AS packName,
+            pack_label AS packLabel,
+            record_type AS recordType,
+            category,
+            name,
+            level,
+            rarity,
+            source_title AS sourceTitle,
+            source_license AS sourceLicense,
+            source_page AS sourcePage,
+            image_path AS imagePath,
+            image_missing AS imageMissing,
+            automation_status AS automationStatus,
+            detail_text AS detailText,
+            normalized_json AS normalizedJson,
+            raw_json_gzip AS rawJsonGzip
+        FROM catalog_records
+        WHERE id = :recordIdOrUuid
+           OR uuid = :recordIdOrUuid
+           OR id = (
+               SELECT record_id FROM uuid_index
+               WHERE uuid = :recordIdOrUuid
+               LIMIT 1
+           )
+        LIMIT 1
+        """,
+    )
+    suspend fun getCatalogRecordDetail(recordIdOrUuid: String): CatalogRecordDetailRow?
+
+    @Query(
+        """
+        SELECT
+            l.from_record_id AS fromRecordId,
+            l.to_uuid AS toUuid,
+            l.to_record_id AS toRecordId,
+            l.link_type AS linkType,
+            l.source_path AS sourcePath,
+            l.label AS label,
+            l.resolved AS resolved,
+            target.name AS relatedName,
+            target.record_type AS relatedRecordType
+        FROM catalog_links l
+        LEFT JOIN catalog_records target ON target.id = l.to_record_id
+        WHERE l.from_record_id = :recordIdOrUuid
+           OR l.from_record_id = (
+               SELECT record_id FROM uuid_index
+               WHERE uuid = :recordIdOrUuid
+               LIMIT 1
+           )
+           OR l.from_record_id = (
+               SELECT id FROM catalog_records
+               WHERE uuid = :recordIdOrUuid
+               LIMIT 1
+           )
+        ORDER BY COALESCE(l.label, target.name, l.to_uuid) COLLATE NOCASE ASC
+        """,
+    )
+    suspend fun getCatalogLinksFromRecord(recordIdOrUuid: String): List<CatalogRecordLinkRow>
+
+    @Query(
+        """
+        SELECT
+            l.from_record_id AS fromRecordId,
+            l.to_uuid AS toUuid,
+            l.to_record_id AS toRecordId,
+            l.link_type AS linkType,
+            l.source_path AS sourcePath,
+            l.label AS label,
+            l.resolved AS resolved,
+            source.name AS relatedName,
+            source.record_type AS relatedRecordType
+        FROM catalog_links l
+        LEFT JOIN catalog_records source ON source.id = l.from_record_id
+        WHERE l.to_record_id = :recordIdOrUuid
+           OR l.to_uuid = :recordIdOrUuid
+           OR l.to_record_id = (
+               SELECT record_id FROM uuid_index
+               WHERE uuid = :recordIdOrUuid
+               LIMIT 1
+           )
+           OR l.to_record_id = (
+               SELECT id FROM catalog_records
+               WHERE uuid = :recordIdOrUuid
+               LIMIT 1
+           )
+        ORDER BY COALESCE(source.name, l.from_record_id) COLLATE NOCASE ASC
+        """,
+    )
+    suspend fun getCatalogBacklinksToRecord(recordIdOrUuid: String): List<CatalogRecordLinkRow>
+
     @Query("SELECT COUNT(*) FROM catalog_spell_index")
     suspend fun getSpellIndexCount(): Int
 

@@ -111,6 +111,22 @@ private class RecordingCatalogDao(
 ) : CatalogDao {
     override suspend fun getMetadataValue(key: String): String? = metadata[key]
 
+    override fun observeCatalogRecordSummaries(
+        recordType: String,
+        category: String,
+        query: String,
+        sourceTitle: String,
+        rarity: String,
+        maxLevel: Int?,
+        limit: Int,
+    ): Flow<List<CatalogRecordSummaryRow>> = emptyFlow()
+
+    override suspend fun getCatalogRecordDetail(recordIdOrUuid: String): CatalogRecordDetailRow? = null
+
+    override suspend fun getCatalogLinksFromRecord(recordIdOrUuid: String): List<CatalogRecordLinkRow> = emptyList()
+
+    override suspend fun getCatalogBacklinksToRecord(recordIdOrUuid: String): List<CatalogRecordLinkRow> = emptyList()
+
     override suspend fun getSpellIndexCount(): Int = spellIndexCount
 
     override fun observeAvailableSpellSources(): Flow<List<String>> = emptyFlow()

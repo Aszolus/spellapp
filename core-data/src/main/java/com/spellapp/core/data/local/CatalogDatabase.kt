@@ -10,6 +10,8 @@ import androidx.room.RoomDatabase
         CatalogMetadataEntity::class,
         CatalogRecordEntity::class,
         CatalogSpellIndexEntity::class,
+        CatalogUuidIndexEntity::class,
+        CatalogLinkEntity::class,
     ],
     version = 1,
     exportSchema = false,
