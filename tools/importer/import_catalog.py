@@ -249,6 +249,8 @@ def record_category(record: dict[str, Any]) -> str | None:
 
 
 def record_level(record: dict[str, Any]) -> int | None:
+    if record.get("type") == "spell" and "cantrip" in trait_values(record):
+        return 0
     return int_or_none(get_path(record, "system", "level", "value"))
 
 
@@ -259,6 +261,52 @@ def record_rarity(record: dict[str, Any]) -> str:
 def raw_description(record: dict[str, Any]) -> str:
     value = get_path(record, "system", "description", "value", default="")
     return "" if value is None else str(value)
+
+
+def format_area(record: dict[str, Any]) -> str | None:
+    area = get_path(record, "system", "area")
+    if not isinstance(area, dict):
+        return None
+    value = int_or_none(area.get("value"))
+    if value is None:
+        return None
+    area_type = str(area.get("type") or "").strip()
+    if area_type:
+        return f"{value}-foot {area_type}"
+    return f"{value}-foot area"
+
+
+def format_defense(record: dict[str, Any]) -> str | None:
+    save = get_path(record, "system", "defense", "save")
+    if not isinstance(save, dict):
+        return None
+    statistic = str(save.get("statistic") or "").strip()
+    if not statistic:
+        return None
+    capitalized = statistic[:1].upper() + statistic[1:]
+    if save.get("basic") is True:
+        return f"basic {capitalized}"
+    return capitalized
+
+
+def spell_index(record_id: str, path: Path, record: dict[str, Any]) -> dict[str, Any] | None:
+    if record.get("type") != "spell":
+        return None
+    traits = string_list(get_path(record, "system", "traits", "value", default=[]))
+    traditions = string_list(get_path(record, "system", "traits", "traditions", default=[]))
+    return {
+        "recordId": record_id,
+        "spellId": slugify(get_path(record, "system", "slug") or path.stem),
+        "rank": record_level(record) or 0,
+        "traditionsCsv": ",".join(traditions),
+        "traitsCsv": ",".join(traits),
+        "castTime": str(get_path(record, "system", "time", "value", default="") or ""),
+        "rangeText": str(get_path(record, "system", "range", "value", default="") or ""),
+        "targetText": str(get_path(record, "system", "target", "value", default="") or ""),
+        "durationText": str(get_path(record, "system", "duration", "value", default="") or ""),
+        "areaText": format_area(record),
+        "defenseText": format_defense(record),
+    }
 
 
 def html_to_text(markup: str) -> str:
@@ -540,6 +588,7 @@ def collect_records(
                     "traits": traits,
                     "uuidAliases": uuid_aliases(spec.name, record),
                     "localizationKeys": extract_localization_keys(raw_payload),
+                    "spellIndex": spell_index(record_id, path, record),
                 }
             )
             stats["importedCount"] += 1
@@ -673,6 +722,20 @@ def create_catalog_db(
                 relative_path TEXT NOT NULL
             );
 
+            CREATE TABLE catalog_spell_index (
+                record_id TEXT PRIMARY KEY NOT NULL,
+                spell_id TEXT NOT NULL,
+                rank INTEGER NOT NULL,
+                traditions_csv TEXT NOT NULL,
+                traits_csv TEXT NOT NULL,
+                cast_time TEXT NOT NULL,
+                range_text TEXT NOT NULL,
+                target_text TEXT NOT NULL,
+                duration_text TEXT NOT NULL,
+                area_text TEXT,
+                defense_text TEXT
+            );
+
             CREATE TABLE uuid_index (
                 uuid TEXT PRIMARY KEY NOT NULL,
                 record_id TEXT NOT NULL,
@@ -725,6 +788,10 @@ def create_catalog_db(
             CREATE INDEX index_catalog_records_category_name ON catalog_records(category, name);
             CREATE INDEX index_catalog_records_level ON catalog_records(level);
             CREATE INDEX index_catalog_records_automation ON catalog_records(automation_status);
+            CREATE INDEX index_catalog_spell_index_spell_id ON catalog_spell_index(spell_id);
+            CREATE INDEX index_catalog_spell_index_rank ON catalog_spell_index(rank);
+            CREATE INDEX index_catalog_spell_index_traditions ON catalog_spell_index(traditions_csv);
+            CREATE INDEX index_catalog_spell_index_traits ON catalog_spell_index(traits_csv);
             CREATE INDEX index_catalog_links_from_record_id ON catalog_links(from_record_id);
             CREATE INDEX index_catalog_links_to_record_id ON catalog_links(to_record_id);
             CREATE INDEX index_catalog_traits_trait ON catalog_traits(trait);
@@ -799,6 +866,32 @@ def create_catalog_db(
         connection.executemany(
             "INSERT INTO catalog_traits(record_id, trait) VALUES (?, ?)",
             [(record["id"], trait) for record in records for trait in record["traits"]],
+        )
+        connection.executemany(
+            """
+            INSERT INTO catalog_spell_index(
+                record_id, spell_id, rank, traditions_csv, traits_csv, cast_time,
+                range_text, target_text, duration_text, area_text, defense_text
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    spell["recordId"],
+                    spell["spellId"],
+                    spell["rank"],
+                    spell["traditionsCsv"],
+                    spell["traitsCsv"],
+                    spell["castTime"],
+                    spell["rangeText"],
+                    spell["targetText"],
+                    spell["durationText"],
+                    spell["areaText"],
+                    spell["defenseText"],
+                )
+                for record in records
+                for spell in [record.get("spellIndex")]
+                if spell is not None
+            ],
         )
         connection.executemany(
             """
@@ -890,6 +983,7 @@ def write_outputs(
 
     record_counts = Counter(record["recordType"] for record in records)
     automation_counts = Counter(record["automationStatus"] for record in records)
+    spell_index_count = sum(1 for record in records if record.get("spellIndex") is not None)
     link_counts = {
         "total": len(links),
         "resolved": sum(1 for link in links if link.get("resolved")),
@@ -910,6 +1004,7 @@ def write_outputs(
         },
         "counts": {
             "records": len(records),
+            "spellIndexRecords": spell_index_count,
             "links": link_counts,
             "recordTypes": dict(sorted(record_counts.items())),
             "automationStatus": dict(sorted(automation_counts.items())),
@@ -956,10 +1051,18 @@ def build_catalog(
     allow_oversize: bool = False,
     strict_references: bool = False,
 ) -> dict[str, Any]:
+    def publish_staging() -> None:
+        if final_output_dir.exists():
+            shutil.rmtree(final_output_dir)
+        staging_dir.replace(final_output_dir)
+
     validate_root(root)
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    final_output_dir = output_dir
+    staging_dir = output_dir.with_name(f"{output_dir.name}.staging")
+    if staging_dir.exists():
+        shutil.rmtree(staging_dir)
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = staging_dir
 
     issues: list[dict[str, Any]] = []
     system_manifest = load_json_file(root / "system.pf2e.json")
@@ -999,7 +1102,9 @@ def build_catalog(
         allow_oversize,
     )
     if audit["status"] != "ok":
-        raise SystemExit(f"Catalog import failed with {audit['counts']['issues']['errors']} error(s). See {output_dir / 'catalog.audit.json'}")
+        publish_staging()
+        raise SystemExit(f"Catalog import failed with {audit['counts']['issues']['errors']} error(s). See {final_output_dir / 'catalog.audit.json'}")
+    publish_staging()
     return manifest
 
 

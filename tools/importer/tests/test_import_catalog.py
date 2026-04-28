@@ -76,13 +76,25 @@ class CatalogImporterTest(unittest.TestCase):
                     description="<p>Use @UUID[Compendium.pf2e.actionspf2e.Item.Subsist] safely.</p>",
                 ),
             )
+            spell = minimal_record("Force Barrage", "spell")
+            spell["system"]["level"] = {"value": 1}
+            spell["system"]["traits"] = {
+                "rarity": "common",
+                "traditions": ["arcane", "occult"],
+                "value": ["concentrate", "force"],
+            }
+            write_json(
+                root / "packs" / "pf2e" / "spells-srd" / "force-barrage.json",
+                spell,
+            )
 
             manifest = build_catalog(root, output, "abc123")
 
             self.assertEqual(manifest["catalog_schema_version"], 1)
             self.assertEqual(manifest["source_commit"], "abc123")
             self.assertEqual(manifest["pf2e_system_version"], "test-system")
-            self.assertEqual(manifest["counts"]["records"], 2)
+            self.assertEqual(manifest["counts"]["records"], 3)
+            self.assertEqual(manifest["counts"]["spellIndexRecords"], 1)
             self.assertEqual(manifest["counts"]["links"]["resolved"], 1)
 
             connection = sqlite3.connect(output / "catalog.db")
@@ -94,6 +106,13 @@ class CatalogImporterTest(unittest.TestCase):
                 self.assertIsNotNone(row)
                 self.assertIn("Subsist", row[0])
                 self.assertNotIn("@UUID", row[0])
+
+                spell_row = connection.execute(
+                    "SELECT spell_id, rank, traditions_csv FROM catalog_spell_index WHERE spell_id = ?",
+                    ("force-barrage",),
+                ).fetchone()
+                self.assertIsNotNone(spell_row)
+                self.assertEqual(("force-barrage", 1, "arcane,occult"), spell_row)
             finally:
                 connection.close()
 

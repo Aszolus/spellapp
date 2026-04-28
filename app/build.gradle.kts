@@ -36,6 +36,10 @@ android {
         compose = true
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -78,8 +82,8 @@ val checkNoBannedNetworkDependencies = tasks.register("checkNoBannedNetworkDepen
         val violations = mutableListOf<String>()
         configurationsToCheck.forEach { configName ->
             val config = configurations.findByName(configName) ?: return@forEach
-            config.dependencies.forEach { dependency ->
-                val group = dependency.group ?: return@forEach
+            config.dependencies.forEach dependencyLoop@{ dependency ->
+                val group = dependency.group ?: return@dependencyLoop
                 if (bannedGroups.any { group.startsWith(it) }) {
                     violations += "$configName -> $group:${dependency.name}"
                 }
@@ -119,6 +123,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
 
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.robolectric)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

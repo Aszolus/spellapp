@@ -1,0 +1,398 @@
+{
+  "catalog_schema_version": 1,
+  "counts": {
+    "automationStatus": {
+      "partially_automated": 9556,
+      "reference_only": 10801
+    },
+    "issues": {
+      "errors": 0,
+      "warnings": 820
+    },
+    "links": {
+      "resolved": 23257,
+      "total": 23900,
+      "unresolved": 643
+    },
+    "packs": {
+      "actionspf2e": 551,
+      "adventure-specific-actions": 160,
+      "ancestries": 50,
+      "ancestryfeatures": 55,
+      "backgrounds": 490,
+      "bestiary-ability-glossary-srd": 55,
+      "bestiary-effects": 634,
+      "bestiary-family-ability-glossary": 456,
+      "boons-and-curses": 247,
+      "campaign-effects": 74,
+      "classes": 27,
+      "classfeatures": 841,
+      "conditionitems": 43,
+      "deities": 478,
+      "equipment-effects": 685,
+      "equipment-srd": 5622,
+      "familiar-abilities": 111,
+      "feat-effects": 826,
+      "feats-srd": 5976,
+      "heritages": 321,
+      "kingmaker-features": 132,
+      "other-effects": 53,
+      "pathfinder-society-boons": 157,
+      "spell-effects": 517,
+      "spells-srd": 1796
+    },
+    "recordTypes": {
+      "action": 1317,
+      "ammo": 203,
+      "ancestry": 50,
+      "armor": 201,
+      "background": 490,
+      "backpack": 46,
+      "campaignFeature": 115,
+      "class": 27,
+      "condition": 44,
+      "consumable": 1660,
+      "deity": 478,
+      "effect": 2805,
+      "equipment": 2268,
+      "feat": 7292,
+      "heritage": 321,
+      "kit": 2,
+      "shield": 118,
+      "spell": 1796,
+      "treasure": 153,
+      "weapon": 971
+    },
+    "records": 20357,
+    "spellIndexRecords": 1796
+  },
+  "database": {
+    "fileName": "catalog.db",
+    "maxSizeBytes": 83886080,
+    "rawPayloadEncoding": "gzip",
+    "relativePath": "catalog.db",
+    "sizeBytes": 81895424,
+    "warnSizeBytes": 41943040
+  },
+  "deprecatedDatasetScripts": [
+    "scripts/update_spell_dataset.ps1",
+    "scripts/update_class_dataset.ps1",
+    "scripts/update_class_spellcasting_dataset.ps1",
+    "scripts/update_builder_catalog.ps1",
+    "scripts/update_rules_catalog.ps1"
+  ],
+  "generated_at": "2026-04-28T21:56:54Z",
+  "includedPacks": [
+    {
+      "documentType": "Item",
+      "importedCount": 551,
+      "includedReason": "sheet-critical",
+      "label": "Actions",
+      "packName": "actionspf2e",
+      "parseErrorCount": 0,
+      "path": "packs/actions",
+      "skippedCount": 0,
+      "sourceFileCount": 551
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 160,
+      "includedReason": "player-reference",
+      "label": "Adventure-Specific Actions",
+      "packName": "adventure-specific-actions",
+      "parseErrorCount": 0,
+      "path": "packs/adventure-specific-actions",
+      "skippedCount": 0,
+      "sourceFileCount": 160
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 50,
+      "includedReason": "sheet-critical",
+      "label": "Ancestries",
+      "packName": "ancestries",
+      "parseErrorCount": 0,
+      "path": "packs/ancestries",
+      "skippedCount": 0,
+      "sourceFileCount": 50
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 55,
+      "includedReason": "sheet-critical",
+      "label": "Ancestry Features",
+      "packName": "ancestryfeatures",
+      "parseErrorCount": 0,
+      "path": "packs/ancestry-features",
+      "skippedCount": 0,
+      "sourceFileCount": 55
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 490,
+      "includedReason": "sheet-critical",
+      "label": "Backgrounds",
+      "packName": "backgrounds",
+      "parseErrorCount": 0,
+      "path": "packs/backgrounds",
+      "skippedCount": 0,
+      "sourceFileCount": 490
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 55,
+      "includedReason": "reference-only",
+      "label": "Bestiary Ability Glossary",
+      "packName": "bestiary-ability-glossary-srd",
+      "parseErrorCount": 0,
+      "path": "packs/bestiary-ability-glossary-srd",
+      "skippedCount": 0,
+      "sourceFileCount": 55
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 634,
+      "includedReason": "reference-only",
+      "label": "Bestiary Effects",
+      "packName": "bestiary-effects",
+      "parseErrorCount": 0,
+      "path": "packs/bestiary-effects",
+      "skippedCount": 0,
+      "sourceFileCount": 634
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 456,
+      "includedReason": "reference-only",
+      "label": "Creature Family Ability Glossary",
+      "packName": "bestiary-family-ability-glossary",
+      "parseErrorCount": 0,
+      "path": "packs/bestiary-family-ability-glossary",
+      "skippedCount": 0,
+      "sourceFileCount": 456
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 247,
+      "includedReason": "player-reference",
+      "label": "Divine Intercessions",
+      "packName": "boons-and-curses",
+      "parseErrorCount": 0,
+      "path": "packs/boons-and-curses",
+      "skippedCount": 0,
+      "sourceFileCount": 247
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 74,
+      "includedReason": "player-reference",
+      "label": "Campaign Effects",
+      "packName": "campaign-effects",
+      "parseErrorCount": 0,
+      "path": "packs/campaign-effects",
+      "skippedCount": 0,
+      "sourceFileCount": 74
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 27,
+      "includedReason": "sheet-critical",
+      "label": "Classes",
+      "packName": "classes",
+      "parseErrorCount": 0,
+      "path": "packs/classes",
+      "skippedCount": 0,
+      "sourceFileCount": 27
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 841,
+      "includedReason": "sheet-critical",
+      "label": "Class Features",
+      "packName": "classfeatures",
+      "parseErrorCount": 0,
+      "path": "packs/class-features",
+      "skippedCount": 0,
+      "sourceFileCount": 841
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 43,
+      "includedReason": "sheet-critical",
+      "label": "Conditions",
+      "packName": "conditionitems",
+      "parseErrorCount": 0,
+      "path": "packs/conditions",
+      "skippedCount": 0,
+      "sourceFileCount": 43
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 478,
+      "includedReason": "sheet-critical",
+      "label": "Deities",
+      "packName": "deities",
+      "parseErrorCount": 0,
+      "path": "packs/deities",
+      "skippedCount": 0,
+      "sourceFileCount": 478
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 685,
+      "includedReason": "player-reference",
+      "label": "Equipment Effects",
+      "packName": "equipment-effects",
+      "parseErrorCount": 0,
+      "path": "packs/equipment-effects",
+      "skippedCount": 0,
+      "sourceFileCount": 685
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 5622,
+      "includedReason": "sheet-critical",
+      "label": "Equipment",
+      "packName": "equipment-srd",
+      "parseErrorCount": 0,
+      "path": "packs/equipment",
+      "skippedCount": 0,
+      "sourceFileCount": 5622
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 111,
+      "includedReason": "player-reference",
+      "label": "Familiar Abilities",
+      "packName": "familiar-abilities",
+      "parseErrorCount": 0,
+      "path": "packs/familiar-abilities",
+      "skippedCount": 0,
+      "sourceFileCount": 111
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 826,
+      "includedReason": "player-reference",
+      "label": "Feat/Feature Effects",
+      "packName": "feat-effects",
+      "parseErrorCount": 0,
+      "path": "packs/feat-effects",
+      "skippedCount": 0,
+      "sourceFileCount": 826
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 5976,
+      "includedReason": "sheet-critical",
+      "label": "Feats",
+      "packName": "feats-srd",
+      "parseErrorCount": 0,
+      "path": "packs/feats",
+      "skippedCount": 0,
+      "sourceFileCount": 5976
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 321,
+      "includedReason": "sheet-critical",
+      "label": "Heritages",
+      "packName": "heritages",
+      "parseErrorCount": 0,
+      "path": "packs/heritages",
+      "skippedCount": 0,
+      "sourceFileCount": 321
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 132,
+      "includedReason": "player-reference",
+      "label": "Kingmaker Features",
+      "packName": "kingmaker-features",
+      "parseErrorCount": 0,
+      "path": "packs/kingmaker-features",
+      "skippedCount": 0,
+      "sourceFileCount": 132
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 53,
+      "includedReason": "player-reference",
+      "label": "Other Effects",
+      "packName": "other-effects",
+      "parseErrorCount": 0,
+      "path": "packs/other-effects",
+      "skippedCount": 0,
+      "sourceFileCount": 53
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 157,
+      "includedReason": "player-reference",
+      "label": "Pathfinder Society Boons",
+      "packName": "pathfinder-society-boons",
+      "parseErrorCount": 0,
+      "path": "packs/pathfinder-society-boons",
+      "skippedCount": 0,
+      "sourceFileCount": 157
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 517,
+      "includedReason": "player-reference",
+      "label": "Spell Effects",
+      "packName": "spell-effects",
+      "parseErrorCount": 0,
+      "path": "packs/spell-effects",
+      "skippedCount": 0,
+      "sourceFileCount": 517
+    },
+    {
+      "documentType": "Item",
+      "importedCount": 1796,
+      "includedReason": "sheet-critical",
+      "label": "Spells",
+      "packName": "spells-srd",
+      "parseErrorCount": 0,
+      "path": "packs/spells",
+      "skippedCount": 0,
+      "sourceFileCount": 1796
+    }
+  ],
+  "pf2e_system_id": "pf2e",
+  "pf2e_system_version": "8.0.2",
+  "source_commit": "cd1f3cac4b960b726b846e4b280151de13f43fd5",
+  "strict_references": false,
+  "support_files": [
+    {
+      "relativePath": "system.pf2e.json",
+      "sha256": "f8354361a41ffac8a2d22ff666eff8ec725e5abfc510344801d94af060598514",
+      "sizeBytes": 49378
+    },
+    {
+      "relativePath": "static/template.json",
+      "sha256": "02df2c6f9ff6573cf716210efec19337f884a043097e28936967df7a3902c056",
+      "sizeBytes": 18564
+    },
+    {
+      "relativePath": "static/lang/en.json",
+      "sha256": "48facd238747424c2581aeb7c02dd9b4249fdd9c053fb6cd87b26557d83095f8",
+      "sizeBytes": 529345
+    },
+    {
+      "relativePath": "static/lang/action-en.json",
+      "sha256": "3d2b7a41cfc260a84aef82331910c612f617b10c944d8ed37885f86802e0874c",
+      "sizeBytes": 163726
+    },
+    {
+      "relativePath": "static/lang/re-en.json",
+      "sha256": "352a2b2f08bf86dcbf6242a324f77cf4dd62d082582ed75003ebecd7c4faaffe",
+      "sizeBytes": 624372
+    },
+    {
+      "relativePath": "static/lang/kingmaker-en.json",
+      "sha256": "4059c939f77f6cc09253dbf9dce18badf885707d3817529c177cdd76ff0b8437",
+      "sizeBytes": 23741
+    }
+  ]
+}

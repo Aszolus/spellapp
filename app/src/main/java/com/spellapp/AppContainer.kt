@@ -10,6 +10,11 @@ import com.spellapp.core.data.SpellRulesTextRepository
 import com.spellapp.core.data.local.AssetClassSpellcastingCatalogSource
 import com.spellapp.core.data.local.AssetRulesReferenceRepository
 import com.spellapp.core.data.local.AssetSpellRulesTextRepository
+import com.spellapp.core.data.local.CatalogDatabase
+import com.spellapp.core.data.local.CatalogFirstSpellRepository
+import com.spellapp.core.data.local.CatalogSpellRepository
+import com.spellapp.core.data.local.CatalogSpellRulesTextRepository
+import com.spellapp.core.data.local.FallbackSpellRulesTextRepository
 import com.spellapp.core.data.local.RoomAcceptedSpellSourceRepository
 import com.spellapp.core.data.local.RoomCharacterRepository
 import com.spellapp.core.data.local.RoomKnownSpellRepository
@@ -33,8 +38,23 @@ class AppContainer(
         SpellDatabase.create(appContext)
     }
 
-    val spellRepository: SpellRepository by lazy {
+    private val catalogDatabase: CatalogDatabase by lazy {
+        CatalogDatabase.create(appContext)
+    }
+
+    private val legacySpellRepository: RoomSpellRepository by lazy {
         RoomSpellRepository(spellDatabase.spellDao())
+    }
+
+    private val catalogSpellRepository: CatalogSpellRepository by lazy {
+        CatalogSpellRepository(catalogDatabase.catalogDao())
+    }
+
+    val spellRepository: SpellRepository by lazy {
+        CatalogFirstSpellRepository(
+            catalogRepository = catalogSpellRepository,
+            fallbackRepository = legacySpellRepository,
+        )
     }
 
     val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource by lazy {
@@ -68,7 +88,10 @@ class AppContainer(
     }
 
     val spellRulesTextRepository: SpellRulesTextRepository by lazy {
-        AssetSpellRulesTextRepository(appContext)
+        FallbackSpellRulesTextRepository(
+            primary = CatalogSpellRulesTextRepository(catalogDatabase.catalogDao()),
+            fallback = AssetSpellRulesTextRepository(appContext),
+        )
     }
 
     val characterClassDefinitionSource: CharacterClassDefinitionSource by lazy {
@@ -139,6 +162,9 @@ class AppContainer(
     }
 
     suspend fun seedSpellsIfNeeded() {
+        if (catalogSpellRepository.isAvailable()) {
+            return
+        }
         val datasetJson = appContext.assets
             .open("spells.normalized.json")
             .bufferedReader()
