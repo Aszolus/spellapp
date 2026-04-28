@@ -236,6 +236,14 @@ def source_record(path: Path, pack_name: str, record_type: str, record):
     }
 
 
+def catalog_record_id(path: Path, pack_dir: Path, catalog_pack_name: str) -> str:
+    try:
+        relative = path.relative_to(pack_dir).with_suffix("").as_posix()
+    except ValueError:
+        relative = path.with_suffix("").name
+    return f"{catalog_pack_name}:{slugify(relative)}"
+
+
 def read_records(pack_dir: Path, record_type: str):
     records = []
     for path in sorted(pack_dir.rglob("*.json"), key=lambda p: str(p).lower()):
@@ -426,8 +434,10 @@ def normalize_level(record):
 
 def build_classes(packs_dir):
     result = []
-    for path, record in read_records(packs_dir / "classes", "class"):
+    pack_dir = packs_dir / "classes"
+    for path, record in read_records(pack_dir, "class"):
         base = source_record(path, "classes", "class", record)
+        base["catalogRecordId"] = catalog_record_id(path, pack_dir, "classes")
         feat_slots = []
         for kind, path_key in [
             ("ancestry", "ancestryFeatLevels"),
@@ -458,8 +468,10 @@ def build_classes(packs_dir):
 
 def build_ancestries(packs_dir):
     result = []
-    for path, record in read_records(packs_dir / "ancestries", "ancestry"):
+    pack_dir = packs_dir / "ancestries"
+    for path, record in read_records(pack_dir, "ancestry"):
         base = source_record(path, "ancestries", "ancestry", record)
+        base["catalogRecordId"] = catalog_record_id(path, pack_dir, "ancestries")
         base.update({
             "hp": get_path(record, "system", "hp"),
             "speed": get_path(record, "system", "speed"),
@@ -476,8 +488,10 @@ def build_ancestries(packs_dir):
 
 def build_heritages(packs_dir):
     result = []
-    for path, record in read_records(packs_dir / "heritages", "heritage"):
+    pack_dir = packs_dir / "heritages"
+    for path, record in read_records(pack_dir, "heritage"):
         base = source_record(path, "heritages", "heritage", record)
+        base["catalogRecordId"] = catalog_record_id(path, pack_dir, "heritages")
         base.update({
             "ancestryId": slugify(get_path(record, "system", "ancestry", "slug", default="")),
             "ancestryName": get_path(record, "system", "ancestry", "name"),
@@ -489,8 +503,10 @@ def build_heritages(packs_dir):
 
 def build_backgrounds(packs_dir):
     result = []
-    for path, record in read_records(packs_dir / "backgrounds", "background"):
+    pack_dir = packs_dir / "backgrounds"
+    for path, record in read_records(pack_dir, "background"):
         base = source_record(path, "backgrounds", "background", record)
+        base["catalogRecordId"] = catalog_record_id(path, pack_dir, "backgrounds")
         base.update({
             "boosts": normalize_boosts(get_path(record, "system", "boosts", default={})),
             "trainedSkills": normalize_trained_skills(get_path(record, "system", "trainedSkills", default={})),
@@ -502,13 +518,19 @@ def build_backgrounds(packs_dir):
 
 def build_features(packs_dir, pack_name, record_type):
     result = []
-    for path, record in read_records(packs_dir / pack_name, "feat"):
+    pack_dir = packs_dir / pack_name
+    catalog_pack_name = {
+        "ancestry-features": "ancestryfeatures",
+        "class-features": "classfeatures",
+    }.get(pack_name, pack_name)
+    for path, record in read_records(pack_dir, "feat"):
         category = str(get_path(record, "system", "category", default="") or "").lower()
         if record_type == "class-feature" and category != "classfeature":
             continue
         if record_type == "ancestry-feature" and category != "ancestryfeature":
             continue
         base = source_record(path, pack_name, record_type, record)
+        base["catalogRecordId"] = catalog_record_id(path, pack_dir, catalog_pack_name)
         base.update({
             "level": normalize_level(record),
             "category": category,
@@ -521,8 +543,10 @@ def build_features(packs_dir, pack_name, record_type):
 
 def build_feats(packs_dir):
     by_category = {category: [] for category in [*sorted(FEAT_CATEGORIES), "other"]}
-    for path, record in read_records(packs_dir / "feats", "feat"):
+    pack_dir = packs_dir / "feats"
+    for path, record in read_records(pack_dir, "feat"):
         base = source_record(path, "feats-srd", "feat", record)
+        base["catalogRecordId"] = catalog_record_id(path, pack_dir, "feats-srd")
         category = normalize_feat_category(record, path)
         base.update({
             "category": category,

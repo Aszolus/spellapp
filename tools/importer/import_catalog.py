@@ -16,6 +16,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from import_builder_catalog import (
+    build_ancestries as build_builder_ancestries,
+    build_backgrounds as build_builder_backgrounds,
+    build_classes as build_builder_classes,
+    build_features as build_builder_features,
+    build_feats as build_builder_feats,
+    build_heritages as build_builder_heritages,
+    feat_index_record as builder_feat_index_record,
+)
+
 
 CATALOG_SCHEMA_VERSION = 1
 DEFAULT_WARN_SIZE_BYTES = 40 * 1024 * 1024
@@ -307,6 +317,107 @@ def spell_index(record_id: str, path: Path, record: dict[str, Any]) -> dict[str,
         "areaText": format_area(record),
         "defenseText": format_defense(record),
     }
+
+
+def stripped_builder_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    stripped: list[dict[str, Any]] = []
+    for record in records:
+        item = dict(record)
+        item.pop("description", None)
+        stripped.append(item)
+    return stripped
+
+
+def builder_payload_gzip(payload: dict[str, Any]) -> bytes:
+    return gzip.compress(canonical_json(payload).encode("utf-8"), compresslevel=9, mtime=0)
+
+
+def builder_asset(
+    *,
+    name: str,
+    builder_type: str,
+    records: list[dict[str, Any]],
+    payload_key: str,
+    category: str | None = None,
+    extra_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = {
+        "descriptionSource": "catalog_records.detail_text",
+        payload_key: stripped_builder_records(records),
+    }
+    if extra_payload:
+        payload.update(extra_payload)
+    return {
+        "name": name,
+        "builderType": builder_type,
+        "category": category,
+        "recordCount": len(records),
+        "payloadJsonGzip": builder_payload_gzip(payload),
+    }
+
+
+def build_builder_assets(packs_dir: Path) -> list[dict[str, Any]]:
+    classes = build_builder_classes(packs_dir)
+    ancestries = build_builder_ancestries(packs_dir)
+    heritages = build_builder_heritages(packs_dir)
+    backgrounds = build_builder_backgrounds(packs_dir)
+    class_features = build_builder_features(packs_dir, "class-features", "class-feature")
+    ancestry_features = build_builder_features(packs_dir, "ancestry-features", "ancestry-feature")
+    feats_by_category = build_builder_feats(packs_dir)
+
+    assets = [
+        builder_asset(name="classes", builder_type="class", records=classes, payload_key="classes"),
+        builder_asset(name="ancestries", builder_type="ancestry", records=ancestries, payload_key="ancestries"),
+        builder_asset(name="heritages", builder_type="heritage", records=heritages, payload_key="heritages"),
+        builder_asset(name="backgrounds", builder_type="background", records=backgrounds, payload_key="backgrounds"),
+        builder_asset(name="class-features", builder_type="class-feature", records=class_features, payload_key="features"),
+        builder_asset(name="ancestry-features", builder_type="ancestry-feature", records=ancestry_features, payload_key="features"),
+    ]
+
+    feat_index_entries: list[dict[str, Any]] = []
+    feat_shards: list[dict[str, Any]] = []
+    for category, records in sorted(feats_by_category.items()):
+        if not records:
+            continue
+        asset_name = f"feats.{category}"
+        assets.append(
+            builder_asset(
+                name=asset_name,
+                builder_type="feat",
+                category=category,
+                records=records,
+                payload_key="feats",
+                extra_payload={"category": category},
+            )
+        )
+        feat_shards.append({"category": category, "name": asset_name, "count": len(records)})
+        feat_index_entries.extend(builder_feat_index_record(record, asset_name) for record in records)
+
+    feat_index_payload = {
+        "categories": sorted(feats_by_category.keys()),
+        "shards": sorted(feat_shards, key=lambda item: item["name"]),
+        "feats": sorted(feat_index_entries, key=lambda item: (item["level"], item["name"], item["id"])),
+    }
+    assets.append(
+        {
+            "name": "feats.index",
+            "builderType": "feat-index",
+            "category": None,
+            "recordCount": len(feat_index_entries),
+            "payloadJsonGzip": builder_payload_gzip(feat_index_payload),
+        }
+    )
+    return assets
+
+
+def build_builder_assets_for_audit(packs_dir: Path, issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    try:
+        return build_builder_assets(packs_dir)
+    except SystemExit as exc:
+        issues.append(issue("ERROR", "BUILDER_INDEX_ERROR", f"Could not build builder catalog index: {exc}"))
+    except Exception as exc:  # noqa: BLE001
+        issues.append(issue("ERROR", "BUILDER_INDEX_ERROR", f"Could not build builder catalog index: {exc}"))
+    return []
 
 
 def html_to_text(markup: str) -> str:
@@ -680,6 +791,7 @@ def create_catalog_db(
     db_path: Path,
     records: list[dict[str, Any]],
     links: list[dict[str, Any]],
+    builder_assets: list[dict[str, Any]],
     pack_stats: dict[str, dict[str, Any]],
     issues: list[dict[str, Any]],
     metadata: dict[str, Any],
@@ -734,6 +846,14 @@ def create_catalog_db(
                 duration_text TEXT NOT NULL,
                 area_text TEXT,
                 defense_text TEXT
+            );
+
+            CREATE TABLE catalog_builder_assets (
+                name TEXT PRIMARY KEY NOT NULL,
+                builder_type TEXT NOT NULL,
+                category TEXT,
+                record_count INTEGER NOT NULL,
+                payload_json_gzip BLOB NOT NULL
             );
 
             CREATE TABLE uuid_index (
@@ -792,6 +912,7 @@ def create_catalog_db(
             CREATE INDEX index_catalog_spell_index_rank ON catalog_spell_index(rank);
             CREATE INDEX index_catalog_spell_index_traditions ON catalog_spell_index(traditions_csv);
             CREATE INDEX index_catalog_spell_index_traits ON catalog_spell_index(traits_csv);
+            CREATE INDEX index_catalog_builder_assets_type_category ON catalog_builder_assets(builder_type, category);
             CREATE INDEX index_catalog_links_from_record_id ON catalog_links(from_record_id);
             CREATE INDEX index_catalog_links_to_record_id ON catalog_links(to_record_id);
             CREATE INDEX index_catalog_traits_trait ON catalog_traits(trait);
@@ -895,6 +1016,22 @@ def create_catalog_db(
         )
         connection.executemany(
             """
+            INSERT INTO catalog_builder_assets(name, builder_type, category, record_count, payload_json_gzip)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    asset["name"],
+                    asset["builderType"],
+                    asset.get("category"),
+                    asset["recordCount"],
+                    asset["payloadJsonGzip"],
+                )
+                for asset in builder_assets
+            ],
+        )
+        connection.executemany(
+            """
             INSERT INTO catalog_pack_stats(
                 pack_name, label, path, document_type, included_reason, source_file_count,
                 imported_count, skipped_count, parse_error_count
@@ -954,6 +1091,7 @@ def write_outputs(
     db_path: Path,
     records: list[dict[str, Any]],
     links: list[dict[str, Any]],
+    builder_assets: list[dict[str, Any]],
     pack_stats: dict[str, dict[str, Any]],
     issues: list[dict[str, Any]],
     metadata: dict[str, Any],
@@ -984,6 +1122,7 @@ def write_outputs(
     record_counts = Counter(record["recordType"] for record in records)
     automation_counts = Counter(record["automationStatus"] for record in records)
     spell_index_count = sum(1 for record in records if record.get("spellIndex") is not None)
+    builder_record_count = sum(asset["recordCount"] for asset in builder_assets if asset["builderType"] != "feat-index")
     link_counts = {
         "total": len(links),
         "resolved": sum(1 for link in links if link.get("resolved")),
@@ -1005,6 +1144,11 @@ def write_outputs(
         "counts": {
             "records": len(records),
             "spellIndexRecords": spell_index_count,
+            "builderIndexRecords": builder_record_count,
+            "builderIndexAssets": {
+                asset["name"]: asset["recordCount"]
+                for asset in sorted(builder_assets, key=lambda item: item["name"])
+            },
             "links": link_counts,
             "recordTypes": dict(sorted(record_counts.items())),
             "automationStatus": dict(sorted(automation_counts.items())),
@@ -1074,6 +1218,7 @@ def build_catalog(
     localization = load_localization(root, issues)
     pack_specs = load_pack_specs(root, system_manifest, issues)
     records, links, pack_stats = collect_records(root, pack_specs, issues)
+    builder_assets = build_builder_assets_for_audit(root / "packs" / "pf2e", issues)
     uuid_to_record_id = build_uuid_index(records, issues)
     resolve_links(records, links, uuid_to_record_id, localization, issues, strict_references)
 
@@ -1088,12 +1233,13 @@ def build_catalog(
     }
 
     db_path = output_dir / "catalog.db"
-    create_catalog_db(db_path, records, links, pack_stats, issues, metadata, uuid_to_record_id)
+    create_catalog_db(db_path, records, links, builder_assets, pack_stats, issues, metadata, uuid_to_record_id)
     manifest, audit = write_outputs(
         output_dir,
         db_path,
         records,
         links,
+        builder_assets,
         pack_stats,
         issues,
         metadata,

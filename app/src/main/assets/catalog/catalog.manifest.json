@@ -5,6 +5,21 @@
       "partially_automated": 9556,
       "reference_only": 10801
     },
+    "builderIndexAssets": {
+      "ancestries": 50,
+      "ancestry-features": 55,
+      "backgrounds": 490,
+      "class-features": 823,
+      "classes": 27,
+      "feats.ancestry": 1555,
+      "feats.archetype": 1957,
+      "feats.class": 2094,
+      "feats.general": 40,
+      "feats.index": 5976,
+      "feats.skill": 330,
+      "heritages": 321
+    },
+    "builderIndexRecords": 7742,
     "issues": {
       "errors": 0,
       "warnings": 820
@@ -71,7 +86,7 @@
     "maxSizeBytes": 83886080,
     "rawPayloadEncoding": "gzip",
     "relativePath": "catalog.db",
-    "sizeBytes": 81895424,
+    "sizeBytes": 82628608,
     "warnSizeBytes": 41943040
   },
   "deprecatedDatasetScripts": [
@@ -81,7 +96,7 @@
     "scripts/update_builder_catalog.ps1",
     "scripts/update_rules_catalog.ps1"
   ],
-  "generated_at": "2026-04-28T21:56:54Z",
+  "generated_at": "2026-04-28T22:22:46Z",
   "includedPacks": [
     {
       "documentType": "Item",

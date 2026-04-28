@@ -1,3 +1,4 @@
+import gzip
 import json
 import sqlite3
 import sys
@@ -95,6 +96,7 @@ class CatalogImporterTest(unittest.TestCase):
             self.assertEqual(manifest["pf2e_system_version"], "test-system")
             self.assertEqual(manifest["counts"]["records"], 3)
             self.assertEqual(manifest["counts"]["spellIndexRecords"], 1)
+            self.assertEqual(manifest["counts"]["builderIndexRecords"], 1)
             self.assertEqual(manifest["counts"]["links"]["resolved"], 1)
 
             connection = sqlite3.connect(output / "catalog.db")
@@ -113,6 +115,17 @@ class CatalogImporterTest(unittest.TestCase):
                 ).fetchone()
                 self.assertIsNotNone(spell_row)
                 self.assertEqual(("force-barrage", 1, "arcane,occult"), spell_row)
+
+                builder_row = connection.execute(
+                    "SELECT record_count, payload_json_gzip FROM catalog_builder_assets WHERE name = ?",
+                    ("heritages",),
+                ).fetchone()
+                self.assertIsNotNone(builder_row)
+                self.assertEqual(1, builder_row[0])
+                builder_payload = json.loads(gzip.decompress(builder_row[1]).decode("utf-8"))
+                self.assertEqual("catalog_records.detail_text", builder_payload["descriptionSource"])
+                self.assertEqual("heritages:irongut-goblin", builder_payload["heritages"][0]["catalogRecordId"])
+                self.assertNotIn("description", builder_payload["heritages"][0])
             finally:
                 connection.close()
 
