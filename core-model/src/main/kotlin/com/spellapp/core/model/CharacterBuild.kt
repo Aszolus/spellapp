@@ -20,6 +20,8 @@ enum class CharacterBuildOptionType {
     CLASS,
     CLASS_FEATURE,
     FEAT,
+    ABILITY_BOOST,
+    SKILL_PROFICIENCY,
     ARCHETYPE,
     ANCESTRY,
     ANCESTRY_FEATURE,

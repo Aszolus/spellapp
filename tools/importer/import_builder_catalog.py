@@ -11,6 +11,9 @@ from pathlib import Path
 
 FEAT_CATEGORIES = {"ancestry", "class", "general", "skill", "archetype"}
 WARNING_RULE_KEYS = {"ChoiceSet", "GrantItem", "ActiveEffectLike", "FlatModifier"}
+SAVE_PROFICIENCIES = {"fortitude", "reflex", "will"}
+ATTACK_PROFICIENCIES = {"advanced", "martial", "simple", "unarmed"}
+DEFENSE_PROFICIENCIES = {"heavy", "light", "medium", "unarmored"}
 
 
 def slugify(value: str) -> str:
@@ -80,6 +83,17 @@ def publication(record):
         "remaster": bool(raw.get("remaster", False)),
         "title": raw.get("title"),
     }
+
+
+def source_titles_from_normalized(*record_lists):
+    titles = set()
+    for records in record_lists:
+        for record in records:
+            source = record.get("source") or {}
+            title = str(source.get("title") or "").strip()
+            if title:
+                titles.add(title)
+    return sorted(titles)
 
 
 def traits(record):
@@ -275,6 +289,120 @@ def normalize_trained_skills(raw):
     }
 
 
+def normalize_rank(value):
+    try:
+        rank = int(value)
+    except (TypeError, ValueError):
+        return None
+    if rank < 0 or rank > 4:
+        return None
+    return rank
+
+
+def proficiency_category(target):
+    normalized = slugify(target)
+    if normalized == "perception":
+        return "perception"
+    if normalized in SAVE_PROFICIENCIES:
+        return "save"
+    if normalized in ATTACK_PROFICIENCIES:
+        return "attack"
+    if normalized in DEFENSE_PROFICIENCIES:
+        return "defense"
+    if normalized in {"class-dc", "classdc"}:
+        return "class-dc"
+    if normalized in {"spell-attack", "spell-attacks", "spell-dc", "spell-dcs"}:
+        return "spellcasting"
+    return "other"
+
+
+def proficiency_entry(target, rank, source):
+    normalized_rank = normalize_rank(rank)
+    if normalized_rank is None:
+        return None
+    normalized_target = slugify(target)
+    return {
+        "category": proficiency_category(normalized_target),
+        "target": normalized_target,
+        "rank": normalized_rank,
+        "source": source,
+    }
+
+
+def normalize_base_proficiencies(record):
+    system = record.get("system") or {}
+    entries = []
+    perception = proficiency_entry("perception", system.get("perception"), "system.perception")
+    if perception:
+        entries.append(perception)
+    for target, rank in sorted((system.get("savingThrows") or {}).items()):
+        entry = proficiency_entry(target, rank, f"system.savingThrows.{target}")
+        if entry:
+            entries.append(entry)
+    for target, rank in sorted((system.get("attacks") or {}).items()):
+        if target == "other" and isinstance(rank, dict):
+            rank = rank.get("rank")
+        entry = proficiency_entry(target, rank, f"system.attacks.{target}")
+        if entry:
+            entries.append(entry)
+    for target, rank in sorted((system.get("defenses") or {}).items()):
+        entry = proficiency_entry(target, rank, f"system.defenses.{target}")
+        if entry:
+            entries.append(entry)
+    class_dc = get_path(record, "system", "classDC", default=None)
+    if isinstance(class_dc, dict):
+        class_dc = class_dc.get("rank")
+    entry = proficiency_entry("class-dc", class_dc, "system.classDC")
+    if entry:
+        entries.append(entry)
+    return sorted(entries, key=lambda item: (item["category"], item["target"], item["source"]))
+
+
+def normalize_subfeature_proficiencies(record):
+    proficiencies = get_path(record, "system", "subfeatures", "proficiencies", default={}) or {}
+    entries = []
+    if isinstance(proficiencies, dict):
+        for target, value in sorted(proficiencies.items()):
+            rank = value.get("rank") if isinstance(value, dict) else value
+            entry = proficiency_entry(target, rank, f"system.subfeatures.proficiencies.{target}")
+            if entry:
+                entries.append(entry)
+    return entries
+
+
+def normalize_rule_proficiency_grants(record):
+    entries = []
+    for index, rule in enumerate(rules(record)):
+        if not isinstance(rule, dict) or rule.get("key") != "ActiveEffectLike":
+            continue
+        path = str(rule.get("path") or "")
+        value = rule.get("value")
+        match = re.match(r"system\.proficiencies\.(attacks|defenses)\.([^.]+)\.rank$", path)
+        if match:
+            target = match.group(2)
+            entry = proficiency_entry(target, value, f"system.rules[{index}]")
+            if entry:
+                entries.append(entry)
+            continue
+        match = re.match(r"system\.saves\.([^.]+)\.rank$", path)
+        if match:
+            entry = proficiency_entry(match.group(1), value, f"system.rules[{index}]")
+            if entry:
+                entries.append(entry)
+    return entries
+
+
+def proficiency_grants(record):
+    seen = set()
+    grants = []
+    for entry in normalize_subfeature_proficiencies(record) + normalize_rule_proficiency_grants(record):
+        key = (entry["category"], entry["target"], entry["rank"], entry["source"])
+        if key not in seen:
+            seen.add(key)
+            grants.append(entry)
+    return sorted(grants, key=lambda item: (item["category"], item["target"], item["rank"], item["source"]))
+
+
 def normalize_feat_category(record, path):
     category = str(get_path(record, "system", "category", default="") or "").strip().lower()
     traits_value = set(string_list(get_path(record, "system", "traits", "value", default=[])))
@@ -318,6 +446,9 @@ def build_classes(packs_dir):
             "keyAbilityOptions": string_list(get_path(record, "system", "keyAbility", "value", default=[])),
             "spellcastingFlag": get_path(record, "system", "spellcasting", default=0) or 0,
             "trainedSkills": normalize_trained_skills(get_path(record, "system", "trainedSkills", default={})),
+            "skillIncreaseLevels": int_list(get_path(record, "system", "skillIncreaseLevels", "value", default=[])),
+            "skillFeatLevels": int_list(get_path(record, "system", "skillFeatLevels", "value", default=[])),
+            "baseProficiencies": normalize_base_proficiencies(record),
             "featSlots": sorted(feat_slots, key=lambda item: (item["level"], item["kind"])),
             "featureRefs": [grant["uuid"] for grant in item_grants(record) if grant.get("uuid")],
         })
@@ -382,6 +513,7 @@ def build_features(packs_dir, pack_name, record_type):
             "level": normalize_level(record),
             "category": category,
             "prerequisites": prerequisites(record),
+            "proficiencyGrants": proficiency_grants(record),
         })
         result.append(base)
     return sorted(result, key=lambda item: (item["level"], item["id"]))
@@ -396,6 +528,7 @@ def build_feats(packs_dir):
             "category": category,
             "level": normalize_level(record),
             "prerequisites": prerequisites(record),
+            "proficiencyGrants": proficiency_grants(record),
             "actionType": get_path(record, "system", "actionType", "value"),
             "actions": get_path(record, "system", "actions", "value"),
         })
@@ -550,6 +683,15 @@ def write_asset_set(packs_dir: Path, output_dir: Path, source_commit: str, gener
             "feats": len(feat_index_entries),
             "featShards": len(feat_shards),
         },
+        "sources": source_titles_from_normalized(
+            plain_assets["classes.normalized.json"]["classes"],
+            plain_assets["ancestries.normalized.json"]["ancestries"],
+            plain_assets["heritages.normalized.json"]["heritages"],
+            plain_assets["backgrounds.normalized.json"]["backgrounds"],
+            gz_assets["class-features.normalized.json.gz"]["features"],
+            gz_assets["ancestry-features.normalized.json.gz"]["features"],
+            feat_index_entries,
+        ),
     }
     manifest_path = output_dir / "builder.manifest.normalized.json"
     write_json(manifest_path, manifest)
@@ -564,6 +706,7 @@ def feat_index_record(record, shard_name):
         "rarity": record["traits"]["rarity"],
         "traits": record["traits"]["value"],
         "shard": shard_name,
+        "source": record.get("source") or {},
     }
 
 

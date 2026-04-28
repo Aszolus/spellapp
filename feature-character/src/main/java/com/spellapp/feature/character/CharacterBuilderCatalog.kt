@@ -8,7 +8,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
-import java.security.MessageDigest
 import java.util.zip.GZIPInputStream
 
 data class CharacterBuilderCatalogResult(
@@ -22,15 +21,37 @@ data class CharacterBuilderCatalog(
     val heritages: List<BuilderHeritageRecord>,
     val backgrounds: List<BuilderBackgroundRecord>,
     val featIndex: List<BuilderFeatIndexRecord>,
+    val feats: List<BuilderFeatRecord>,
     val featShards: List<BuilderFeatShard>,
     val classFeatures: List<BuilderFeatureRecord>,
     val ancestryFeatures: List<BuilderFeatureRecord>,
 ) {
+    private val sourceFilterCache = object : LinkedHashMap<Set<String>, CharacterBuilderCatalog>(8, 0.75f, true) {
+        override fun removeEldestEntry(
+            eldest: MutableMap.MutableEntry<Set<String>, CharacterBuilderCatalog>?,
+        ): Boolean = size > SOURCE_FILTER_CACHE_SIZE
+    }
+
     val classesById: Map<String, BuilderClassRecord> = classes.associateBy { normalizeClassId(it.id) }
     val ancestriesById: Map<String, BuilderAncestryRecord> = ancestries.associateBy { it.id }
     val heritagesById: Map<String, BuilderHeritageRecord> = heritages.associateBy { it.id }
     val backgroundsById: Map<String, BuilderBackgroundRecord> = backgrounds.associateBy { it.id }
     val featIndexById: Map<String, BuilderFeatIndexRecord> = featIndex.associateBy { it.id }
+    val featsById: Map<String, BuilderFeatRecord> = feats.associateBy { it.id }
+    val classFeaturesByUuid: Map<String, BuilderFeatureRecord> = classFeatures
+        .mapNotNull { feature -> feature.uuid?.let { uuid -> uuid to feature } }
+        .toMap()
+    private val cachedSourceTitles: List<String> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        buildSet {
+            classes.mapNotNullTo(this) { it.source.title }
+            ancestries.mapNotNullTo(this) { it.source.title }
+            heritages.mapNotNullTo(this) { it.source.title }
+            backgrounds.mapNotNullTo(this) { it.source.title }
+            featIndex.mapNotNullTo(this) { it.source.title }
+            classFeatures.mapNotNullTo(this) { it.source.title }
+            ancestryFeatures.mapNotNullTo(this) { it.source.title }
+        }.sorted()
+    }
 
     fun heritagesForAncestry(ancestryId: String?): List<BuilderHeritageRecord> {
         val normalized = ancestryId?.trim().orEmpty()
@@ -48,10 +69,59 @@ data class CharacterBuilderCatalog(
             .sortedWith(compareBy<BuilderFeatSlot> { it.level }.thenBy { it.kind })
     }
 
-    fun featCandidatesFor(slot: BuilderFeatSlot): List<BuilderFeatIndexRecord> {
-        return featIndex
+    fun featCandidatesFor(slot: BuilderFeatSlot): List<BuilderFeatRecord> {
+        return feats
             .filter { feat -> feat.category == slot.kind && feat.level <= slot.level }
-            .sortedWith(compareBy<BuilderFeatIndexRecord> { it.level }.thenBy { it.name })
+            .sortedWith(compareBy<BuilderFeatRecord> { it.level }.thenBy { it.name })
+    }
+
+    fun sourceTitles(): List<String> {
+        return cachedSourceTitles
+    }
+
+    fun filteredBySources(sourceBooks: Set<String>): CharacterBuilderCatalog {
+        val sourceKeys = sourceBooks.normalizedSourceBookKeys()
+        synchronized(sourceFilterCache) {
+            sourceFilterCache[sourceKeys]?.let { return it }
+        }
+        val filtered = if (sourceKeys.isEmpty()) {
+            copy(
+                classes = emptyList(),
+                ancestries = emptyList(),
+                heritages = emptyList(),
+                backgrounds = emptyList(),
+                featIndex = emptyList(),
+                feats = emptyList(),
+                classFeatures = emptyList(),
+                ancestryFeatures = emptyList(),
+            )
+        } else {
+            val ancestryIds = ancestries
+                .filter { it.source.isAllowedBySourceKeys(sourceKeys) }
+                .map { it.id }
+                .toSet()
+            copy(
+                classes = classes.filter { it.source.isAllowedBySourceKeys(sourceKeys) },
+                ancestries = ancestries.filter { it.id in ancestryIds },
+                heritages = heritages.filter { heritage ->
+                    heritage.source.isAllowedBySourceKeys(sourceKeys) &&
+                        (heritage.ancestryId in ancestryIds || heritage.ancestryId == VERSATILE_HERITAGE_ANCESTRY_ID)
+                },
+                backgrounds = backgrounds.filter { it.source.isAllowedBySourceKeys(sourceKeys) },
+                featIndex = featIndex.filter { it.source.isAllowedBySourceKeys(sourceKeys) },
+                feats = feats.filter { it.source.isAllowedBySourceKeys(sourceKeys) },
+                classFeatures = classFeatures.filter { it.source.isAllowedBySourceKeys(sourceKeys) },
+                ancestryFeatures = ancestryFeatures.filter { it.source.isAllowedBySourceKeys(sourceKeys) },
+            )
+        }
+        synchronized(sourceFilterCache) {
+            sourceFilterCache[sourceKeys] = filtered
+        }
+        return filtered
+    }
+
+    private companion object {
+        const val SOURCE_FILTER_CACHE_SIZE = 8
     }
 }
 
@@ -92,12 +162,37 @@ data class BuilderChoicePromptRecord(
     val label: String,
     val sourceRulePath: String,
     val required: Boolean,
+    val choiceValues: List<BuilderChoiceValueRecord> = emptyList(),
 )
 
 data class BuilderFeatSlot(
     val slotId: String,
     val kind: String,
     val level: Int,
+)
+
+data class BuilderAbilityBoostRecord(
+    val id: String,
+    val abilities: List<AbilityScore>,
+    val selected: AbilityScore?,
+)
+
+data class BuilderTrainedSkillsRecord(
+    val value: List<String> = emptyList(),
+    val lore: List<String> = emptyList(),
+    val additional: Int? = null,
+)
+
+data class BuilderProficiencyGrant(
+    val category: String,
+    val target: String,
+    val rank: Int,
+    val source: String,
+)
+
+data class BuilderChoiceValueRecord(
+    val value: String,
+    val label: String,
 )
 
 data class BuilderClassRecord(
@@ -110,6 +205,12 @@ data class BuilderClassRecord(
     val traits: BuilderTraitsRecord,
     val description: String,
     val warnings: List<BuilderWarningRecord>,
+    val uuid: String? = null,
+    val trainedSkills: BuilderTrainedSkillsRecord = BuilderTrainedSkillsRecord(),
+    val skillIncreaseLevels: List<Int> = emptyList(),
+    val skillFeatLevels: List<Int> = emptyList(),
+    val baseProficiencies: List<BuilderProficiencyGrant> = emptyList(),
+    val featureRefs: List<String> = emptyList(),
 )
 
 data class BuilderAncestryRecord(
@@ -124,6 +225,9 @@ data class BuilderAncestryRecord(
     val grants: List<BuilderGrantRecord>,
     val choicePrompts: List<BuilderChoicePromptRecord>,
     val warnings: List<BuilderWarningRecord>,
+    val uuid: String? = null,
+    val boosts: List<BuilderAbilityBoostRecord> = emptyList(),
+    val flaws: List<BuilderAbilityBoostRecord> = emptyList(),
 )
 
 data class BuilderHeritageRecord(
@@ -136,6 +240,7 @@ data class BuilderHeritageRecord(
     val grants: List<BuilderGrantRecord>,
     val choicePrompts: List<BuilderChoicePromptRecord>,
     val warnings: List<BuilderWarningRecord>,
+    val uuid: String? = null,
 )
 
 data class BuilderBackgroundRecord(
@@ -147,6 +252,9 @@ data class BuilderBackgroundRecord(
     val grants: List<BuilderGrantRecord>,
     val choicePrompts: List<BuilderChoicePromptRecord>,
     val warnings: List<BuilderWarningRecord>,
+    val uuid: String? = null,
+    val boosts: List<BuilderAbilityBoostRecord> = emptyList(),
+    val trainedSkills: BuilderTrainedSkillsRecord = BuilderTrainedSkillsRecord(),
 )
 
 data class BuilderFeatureRecord(
@@ -160,6 +268,8 @@ data class BuilderFeatureRecord(
     val grants: List<BuilderGrantRecord>,
     val choicePrompts: List<BuilderChoicePromptRecord>,
     val warnings: List<BuilderWarningRecord>,
+    val uuid: String? = null,
+    val proficiencyGrants: List<BuilderProficiencyGrant> = emptyList(),
 )
 
 data class BuilderFeatShard(
@@ -176,10 +286,34 @@ data class BuilderFeatIndexRecord(
     val rarity: String,
     val traits: List<String>,
     val shard: String,
+    val source: BuilderSourceRecord = BuilderSourceRecord(title = null, license = null, remaster = false),
+)
+
+data class BuilderFeatRecord(
+    val id: String,
+    val name: String,
+    val category: String,
+    val level: Int,
+    val rarity: String,
+    val traits: List<String>,
+    val source: BuilderSourceRecord,
+    val description: String,
+    val prerequisites: List<String>,
+    val grants: List<BuilderGrantRecord>,
+    val choicePrompts: List<BuilderChoicePromptRecord>,
+    val warnings: List<BuilderWarningRecord>,
+    val actionType: String?,
+    val actions: String?,
+    val shard: String,
+    val uuid: String? = null,
+    val proficiencyGrants: List<BuilderProficiencyGrant> = emptyList(),
 )
 
 interface CharacterBuilderCatalogSource {
     suspend fun loadCatalog(): CharacterBuilderCatalogResult
+    suspend fun loadAvailableSourceTitles(): List<String> =
+        loadCatalog().catalog?.sourceTitles().orEmpty()
+    suspend fun loadFeatRecords(): List<BuilderFeatRecord> = emptyList()
 }
 
 object EmptyCharacterBuilderCatalogSource : CharacterBuilderCatalogSource {
@@ -195,6 +329,12 @@ class AssetCharacterBuilderCatalogSource(
     @Volatile
     private var cachedResult: CharacterBuilderCatalogResult? = null
 
+    @Volatile
+    private var cachedFeatRecords: List<BuilderFeatRecord>? = null
+
+    @Volatile
+    private var cachedSourceTitles: List<String>? = null
+
     override suspend fun loadCatalog(): CharacterBuilderCatalogResult {
         cachedResult?.let { return it }
         return withContext(Dispatchers.IO) {
@@ -204,18 +344,35 @@ class AssetCharacterBuilderCatalogSource(
         }
     }
 
+    override suspend fun loadAvailableSourceTitles(): List<String> {
+        cachedSourceTitles?.let { return it }
+        return withContext(Dispatchers.IO) {
+            val manifestSources = synchronized(this@AssetCharacterBuilderCatalogSource) {
+                cachedSourceTitles ?: run {
+                    val manifest = readJsonObjectAsset("builder.manifest.normalized.json")
+                    val sources = manifest.optJSONArray("sources")
+                        .strings()
+                    sources.takeIf { it.isNotEmpty() }?.also { cachedSourceTitles = it }
+                }
+            }
+            manifestSources ?: loadCatalog().catalog?.sourceTitles().orEmpty()
+        }
+    }
+
     private fun loadCatalogResult(): CharacterBuilderCatalogResult {
         return runCatching {
             val manifest = readJsonObjectAsset("builder.manifest.normalized.json")
             verifyManifestAssets(manifest)
-            val featShards = parseFeatShards(manifest.optJSONArray("assets"), readJsonObjectAsset("feats.index.normalized.json"))
+            val featIndexRoot = readJsonObjectAsset("feats.index.normalized.json")
+            val featShards = parseFeatShards(manifest.optJSONArray("assets"), featIndexRoot)
             CharacterBuilderCatalogResult(
                 catalog = CharacterBuilderCatalog(
                     classes = parseClasses(readJsonObjectAsset("classes.normalized.json").optJSONArray("classes")),
                     ancestries = parseAncestries(readJsonObjectAsset("ancestries.normalized.json").optJSONArray("ancestries")),
                     heritages = parseHeritages(readJsonObjectAsset("heritages.normalized.json").optJSONArray("heritages")),
                     backgrounds = parseBackgrounds(readJsonObjectAsset("backgrounds.normalized.json").optJSONArray("backgrounds")),
-                    featIndex = parseFeatIndex(readJsonObjectAsset("feats.index.normalized.json").optJSONArray("feats")),
+                    featIndex = parseFeatIndex(featIndexRoot.optJSONArray("feats")),
+                    feats = emptyList(),
                     featShards = featShards,
                     classFeatures = parseFeatures(readJsonObjectAsset("class-features.normalized.json.gz").optJSONArray("features")),
                     ancestryFeatures = parseFeatures(readJsonObjectAsset("ancestry-features.normalized.json.gz").optJSONArray("features")),
@@ -226,6 +383,27 @@ class AssetCharacterBuilderCatalogSource(
                 loadError = error.message ?: "Character builder catalog could not be loaded.",
             )
         }
+    }
+
+    override suspend fun loadFeatRecords(): List<BuilderFeatRecord> {
+        cachedFeatRecords?.let { return it }
+        return withContext(Dispatchers.IO) {
+            synchronized(this@AssetCharacterBuilderCatalogSource) {
+                cachedFeatRecords ?: loadFeatRecordsResult().also { cachedFeatRecords = it }
+            }
+        }
+    }
+
+    private fun loadFeatRecordsResult(): List<BuilderFeatRecord> {
+        val manifest = readJsonObjectAsset("builder.manifest.normalized.json")
+        val featIndexRoot = readJsonObjectAsset("feats.index.normalized.json")
+        return parseFeatShards(manifest.optJSONArray("assets"), featIndexRoot)
+            .flatMap { shard ->
+                parseFeats(
+                    raw = readJsonObjectAsset(shard.name).optJSONArray("feats"),
+                    shardName = shard.name,
+                )
+            }
     }
 
     private fun parseClasses(raw: JSONArray?): List<BuilderClassRecord> {
@@ -246,6 +424,12 @@ class AssetCharacterBuilderCatalogSource(
                 traits = parseTraits(item.optJSONObject("traits")),
                 description = item.optString("description"),
                 warnings = parseWarnings(item.optJSONArray("warnings")),
+                uuid = item.optString("uuid").ifBlank { null },
+                trainedSkills = parseTrainedSkills(item.optJSONObject("trainedSkills")),
+                skillIncreaseLevels = item.optJSONArray("skillIncreaseLevels").ints(),
+                skillFeatLevels = item.optJSONArray("skillFeatLevels").ints(),
+                baseProficiencies = parseProficiencyGrants(item.optJSONArray("baseProficiencies")),
+                featureRefs = item.optJSONArray("featureRefs").strings(),
             )
         }.sortedBy { it.name }
     }
@@ -264,6 +448,9 @@ class AssetCharacterBuilderCatalogSource(
                 grants = parseGrants(item.optJSONArray("grants")),
                 choicePrompts = parseChoicePrompts(item.optJSONArray("choicePrompts")),
                 warnings = parseWarnings(item.optJSONArray("warnings")),
+                uuid = item.optString("uuid").ifBlank { null },
+                boosts = parseAbilityBoosts(item.optJSONArray("boosts")),
+                flaws = parseAbilityBoosts(item.optJSONArray("flaws")),
             )
         }.sortedBy { it.name }
     }
@@ -280,6 +467,7 @@ class AssetCharacterBuilderCatalogSource(
                 grants = parseGrants(item.optJSONArray("grants")),
                 choicePrompts = parseChoicePrompts(item.optJSONArray("choicePrompts")),
                 warnings = parseWarnings(item.optJSONArray("warnings")),
+                uuid = item.optString("uuid").ifBlank { null },
             )
         }.sortedWith(compareBy<BuilderHeritageRecord> { it.ancestryId }.thenBy { it.name })
     }
@@ -295,6 +483,9 @@ class AssetCharacterBuilderCatalogSource(
                 grants = parseGrants(item.optJSONArray("grants")),
                 choicePrompts = parseChoicePrompts(item.optJSONArray("choicePrompts")),
                 warnings = parseWarnings(item.optJSONArray("warnings")),
+                uuid = item.optString("uuid").ifBlank { null },
+                boosts = parseAbilityBoosts(item.optJSONArray("boosts")),
+                trainedSkills = parseTrainedSkills(item.optJSONObject("trainedSkills")),
             )
         }.sortedBy { it.name }
     }
@@ -312,6 +503,8 @@ class AssetCharacterBuilderCatalogSource(
                 grants = parseGrants(item.optJSONArray("grants")),
                 choicePrompts = parseChoicePrompts(item.optJSONArray("choicePrompts")),
                 warnings = parseWarnings(item.optJSONArray("warnings")),
+                uuid = item.optString("uuid").ifBlank { null },
+                proficiencyGrants = parseProficiencyGrants(item.optJSONArray("proficiencyGrants")),
             )
         }
     }
@@ -326,6 +519,34 @@ class AssetCharacterBuilderCatalogSource(
                 rarity = item.optString("rarity").ifBlank { "common" },
                 traits = item.optJSONArray("traits").strings(),
                 shard = item.optString("shard"),
+                source = parseSource(item.optJSONObject("source")),
+            )
+        }
+    }
+
+    private fun parseFeats(
+        raw: JSONArray?,
+        shardName: String,
+    ): List<BuilderFeatRecord> {
+        return raw.objects().map { item ->
+            BuilderFeatRecord(
+                id = item.optString("id"),
+                name = item.optString("name").ifBlank { item.optString("id") },
+                category = item.optString("category"),
+                level = item.optInt("level"),
+                rarity = item.optJSONObject("traits")?.optString("rarity")?.ifBlank { "common" } ?: "common",
+                traits = item.optJSONObject("traits")?.optJSONArray("value").strings(),
+                source = parseSource(item.optJSONObject("source")),
+                description = item.optString("description"),
+                prerequisites = item.optJSONArray("prerequisites").strings(),
+                grants = parseGrants(item.optJSONArray("grants")),
+                choicePrompts = parseChoicePrompts(item.optJSONArray("choicePrompts")),
+                warnings = parseWarnings(item.optJSONArray("warnings")),
+                actionType = item.optString("actionType").ifBlank { null },
+                actions = item.opt("actions")?.toString()?.takeIf { it.isNotBlank() && it != "null" },
+                shard = shardName,
+                uuid = item.optString("uuid").ifBlank { null },
+                proficiencyGrants = parseProficiencyGrants(item.optJSONArray("proficiencyGrants")),
             )
         }
     }
@@ -394,6 +615,49 @@ class AssetCharacterBuilderCatalogSource(
                 label = item.optString("label").ifBlank { "Choice" },
                 sourceRulePath = item.optString("sourceRulePath"),
                 required = item.optBoolean("required", true),
+                choiceValues = parseChoiceValues(item.opt("choiceConfig")),
+            )
+        }
+    }
+
+    private fun parseChoiceValues(raw: Any?): List<BuilderChoiceValueRecord> {
+        val array = raw as? JSONArray ?: return emptyList()
+        return array.objects().mapNotNull { item ->
+            val value = item.optString("value").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            BuilderChoiceValueRecord(
+                value = value,
+                label = item.optString("label").ifBlank { value },
+            )
+        }
+    }
+
+    private fun parseAbilityBoosts(raw: JSONArray?): List<BuilderAbilityBoostRecord> {
+        return raw.objects().map { item ->
+            BuilderAbilityBoostRecord(
+                id = item.optString("id"),
+                abilities = item.optJSONArray("abilities").strings().mapNotNull(::parseAbility),
+                selected = parseAbility(item.optString("selected")),
+            )
+        }
+    }
+
+    private fun parseTrainedSkills(raw: JSONObject?): BuilderTrainedSkillsRecord {
+        return BuilderTrainedSkillsRecord(
+            value = raw?.optJSONArray("value").strings().map(::normalizeSkillId),
+            lore = raw?.optJSONArray("lore").strings(),
+            additional = raw?.optNullableInt("additional"),
+        )
+    }
+
+    private fun parseProficiencyGrants(raw: JSONArray?): List<BuilderProficiencyGrant> {
+        return raw.objects().mapNotNull { item ->
+            val category = item.optString("category").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val target = item.optString("target").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            BuilderProficiencyGrant(
+                category = category,
+                target = target,
+                rank = item.optInt("rank").coerceIn(0, 4),
+                source = item.optString("source"),
             )
         }
     }
@@ -415,20 +679,8 @@ class AssetCharacterBuilderCatalogSource(
             }
         }
         assets.forEach { asset ->
-            val name = asset.optString("name").takeIf { it.isNotBlank() }
-                ?: error("Builder manifest contains an asset without a name.")
-            val assetBytes = readAssetBytes(name)
-            val content = assetBytes.decodedContent()
-            if (!assetBytes.wasAndroidExpandedGzip) {
-                if (asset.optInt("bytes") != assetBytes.bytes.size) {
-                    error("Builder asset size mismatch: $name")
-                }
-                if (asset.optString("artifactSha256") != sha256(assetBytes.bytes)) {
-                    error("Builder asset hash mismatch: $name")
-                }
-            }
-            if (asset.optString("contentSha256") != sha256(content)) {
-                error("Builder asset content hash mismatch: $name")
+            if (asset.optString("name").isBlank()) {
+                error("Builder manifest contains an asset without a name.")
             }
         }
     }
@@ -461,12 +713,6 @@ class AssetCharacterBuilderCatalogSource(
             }
         }
         error("Builder asset is missing: $assetName")
-    }
-
-    private fun sha256(bytes: ByteArray): String {
-        return MessageDigest.getInstance("SHA-256")
-            .digest(bytes)
-            .joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
     }
 
     private companion object {
@@ -514,6 +760,15 @@ private fun JSONArray?.strings(): List<String> {
     }
 }
 
+private fun JSONArray?.ints(): List<Int> {
+    if (this == null) return emptyList()
+    return buildList {
+        for (index in 0 until length()) {
+            add(optInt(index))
+        }
+    }
+}
+
 private fun JSONObject.optNullableInt(name: String): Int? {
     if (!has(name) || isNull(name)) return null
     return optInt(name)
@@ -529,4 +784,33 @@ private fun parseAbility(raw: String): AbilityScore? {
         "cha" -> AbilityScore.CHARISMA
         else -> null
     }
+}
+
+internal fun normalizeSkillId(raw: String): String {
+    return raw.trim()
+        .lowercase()
+        .replace(Regex("[^a-z0-9]+"), "-")
+        .trim('-')
+}
+
+internal fun BuilderSourceRecord.isAllowedBy(sourceBooks: Set<String>): Boolean {
+    return isAllowedBySourceKeys(sourceBooks.normalizedSourceBookKeys())
+}
+
+private fun BuilderSourceRecord.isAllowedBySourceKeys(sourceBookKeys: Set<String>): Boolean {
+    val titleKey = title?.sourceBookKey() ?: return false
+    return titleKey in sourceBookKeys
+}
+
+private fun Set<String>.normalizedSourceBookKeys(): Set<String> {
+    return mapTo(sortedSetOf()) { sourceBook -> sourceBook.sourceBookKey() }
+        .filterTo(sortedSetOf()) { it.isNotBlank() }
+}
+
+internal fun String.sourceBookKey(): String {
+    return trim()
+        .lowercase()
+        .removePrefix("pathfinder ")
+        .replace(Regex("[^a-z0-9]+"), " ")
+        .trim()
 }

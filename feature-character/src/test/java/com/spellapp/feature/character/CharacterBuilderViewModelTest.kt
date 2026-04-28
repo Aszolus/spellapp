@@ -71,8 +71,8 @@ class CharacterBuilderViewModelTest {
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
         assertTrue(state.isNewCharacter)
-        assertEquals(setOf("Player Core", "GM Core"), state.acceptedSourceBooks)
-        assertEquals(CharacterBuilderSectionId.IDENTITY, state.expandedSection)
+        assertEquals(setOf("Player Core", "GM Core", "Lost Omens Character Guide"), state.acceptedSourceBooks)
+        assertEquals(CharacterBuilderSectionId.SPELL_SOURCES, state.expandedSection)
         assertTrue(state.classPreviewLines.isNotEmpty())
         assertEquals(
             CharacterBuilderSectionStatus.NEEDS_REVIEW,
@@ -206,6 +206,34 @@ class CharacterBuilderViewModelTest {
     }
 
     @Test
+    fun saveExisting_persistsFeatOverrideReason() = runTest {
+        val characterCrudRepository = FakeCharacterCrudRepository()
+        val characterBuildRepository = FakeCharacterBuildRepository()
+        val existingCharacterId = characterCrudRepository.upsertCharacter(sampleCharacter(id = 44L))
+        val viewModel = createViewModel(
+            characterId = existingCharacterId,
+            characterCrudRepository = characterCrudRepository,
+            characterBuildRepository = characterBuildRepository,
+        )
+        advanceUntilIdle()
+        selectRequiredClassChoices(viewModel)
+        selectRequiredBuilderBasics(viewModel)
+
+        viewModel.selectFeatForSlot(
+            slotId = "wizard-class-2",
+            featId = "mystery-training",
+            overrideReason = "GM mentor boon",
+        )
+        viewModel.save()
+        advanceUntilIdle()
+
+        val override = characterBuildRepository.getBuildOptions(existingCharacterId)
+            .single { it.optionType == CharacterBuildOptionType.OVERRIDE }
+        assertTrue(override.metadataJson.contains("\"targetId\":\"mystery-training\""))
+        assertTrue(override.metadataJson.contains("\"reason\":\"GM mentor boon\""))
+    }
+
+    @Test
     fun saveNewCleric_persistsAcceptedSources_andSeedsCommonKnownSpells() = runTest {
         val characterCrudRepository = FakeCharacterCrudRepository()
         val acceptedSpellSourceRepository = FakeAcceptedSpellSourceRepository()
@@ -257,12 +285,29 @@ class CharacterBuilderViewModelTest {
         )
         assertEquals(
             CharacterBuilderSectionStatus.OPTIONAL,
-            sectionsById[CharacterBuilderSectionId.SPELL_SOURCES]?.status,
-        )
-        assertEquals(
-            CharacterBuilderSectionStatus.OPTIONAL,
             sectionsById[CharacterBuilderSectionId.PREFERENCES]?.status,
         )
+        assertEquals(
+            CharacterBuilderSectionStatus.COMPLETE,
+            sectionsById[CharacterBuilderSectionId.SPELL_SOURCES]?.status,
+        )
+    }
+
+    @Test
+    fun acceptedSources_filterBuilderOptions() = runTest {
+        val viewModel = createViewModel(characterId = 0L)
+        advanceUntilIdle()
+
+        viewModel.setAcceptedSourceBooks(setOf("Player Core"))
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.availableAncestries.any { it.id == "human" })
+        assertFalse(state.availableAncestries.any { it.id == "android" })
+        assertTrue(state.availableBackgrounds.any { it.id == "acolyte" })
+        assertFalse(state.availableBackgrounds.any { it.id == "detective" })
+        assertTrue(state.featsById.values.any { it.name == "Counterspell" })
+        assertFalse(state.featsById.values.any { it.name == "Lost Omens Feat" })
     }
 
     private fun selectRequiredClassChoices(viewModel: CharacterBuilderViewModel) {
@@ -277,6 +322,53 @@ class CharacterBuilderViewModelTest {
         viewModel.selectAncestry("human")
         viewModel.selectHeritage("skilled-heritage")
         viewModel.selectBackground("acolyte")
+        selectRequiredAbilityBoosts(viewModel)
+        selectRequiredSkills(viewModel)
+        selectRequiredActiveFeats(viewModel)
+    }
+
+    private fun selectRequiredAbilityBoosts(viewModel: CharacterBuilderViewModel) {
+        val activeLevel = viewModel.uiState.value.level ?: 1
+        val usedByGroup = mutableMapOf<String, MutableSet<AbilityScore>>()
+        viewModel.uiState.value.abilityBoostSlots
+            .filter { slot -> slot.level <= activeLevel }
+            .forEach { slot ->
+                slot.fixedChoice?.let { fixed ->
+                    usedByGroup.getOrPut(slot.groupId) { mutableSetOf() } += fixed
+                }
+            }
+        viewModel.uiState.value.abilityBoostSlots
+            .filter { slot -> slot.level <= activeLevel && slot.fixedChoice == null }
+            .forEach { slot ->
+                val used = usedByGroup.getOrPut(slot.groupId) { mutableSetOf() }
+                val choice = slot.choices.firstOrNull { it !in used } ?: slot.choices.first()
+                used += choice
+                viewModel.selectAbilityBoost(slot.slotId, choice)
+            }
+    }
+
+    private fun selectRequiredSkills(viewModel: CharacterBuilderViewModel) {
+        val activeLevel = viewModel.uiState.value.level ?: 1
+        viewModel.uiState.value.skillChoiceSlots
+            .filter { slot -> slot.level <= activeLevel }
+            .forEach { slot ->
+                val choice = slot.choices.firstOrNull() ?: return@forEach
+                viewModel.selectSkillChoice(slot.slotId, choice)
+            }
+    }
+
+    private fun selectRequiredActiveFeats(viewModel: CharacterBuilderViewModel) {
+        val activeLevel = viewModel.uiState.value.level ?: 1
+        viewModel.uiState.value.expectedFeatSlots
+            .filter { slot -> slot.level <= activeLevel }
+            .forEach { slot ->
+                val feat = viewModel.uiState.value.featsById
+                    .values
+                    .filter { feat -> feat.category == slot.kind && feat.level <= slot.level }
+                    .sortedWith(compareBy<BuilderFeatRecord> { it.level }.thenBy { it.name })
+                    .firstOrNull() ?: return@forEach
+                viewModel.selectFeatForSlot(slot.slotId, feat.id)
+            }
     }
 
     private fun createViewModel(
@@ -365,7 +457,12 @@ class CharacterBuilderViewModelTest {
 private class FakeCharacterBuilderCatalogSource : CharacterBuilderCatalogSource {
     override suspend fun loadCatalog(): CharacterBuilderCatalogResult {
         val source = BuilderSourceRecord(
-            title = "Test",
+            title = "Player Core",
+            license = "Test",
+            remaster = true,
+        )
+        val lostOmensSource = BuilderSourceRecord(
+            title = "Lost Omens Character Guide",
             license = "Test",
             remaster = true,
         )
@@ -419,6 +516,19 @@ private class FakeCharacterBuilderCatalogSource : CharacterBuilderCatalogSource 
                         choicePrompts = emptyList(),
                         warnings = emptyList(),
                     ),
+                    BuilderAncestryRecord(
+                        id = "android",
+                        name = "Android",
+                        hp = 8,
+                        speed = "25 feet",
+                        size = "medium",
+                        source = lostOmensSource,
+                        traits = traits,
+                        description = "",
+                        grants = emptyList(),
+                        choicePrompts = emptyList(),
+                        warnings = emptyList(),
+                    ),
                 ),
                 heritages = listOf(
                     BuilderHeritageRecord(
@@ -444,6 +554,16 @@ private class FakeCharacterBuilderCatalogSource : CharacterBuilderCatalogSource 
                         choicePrompts = emptyList(),
                         warnings = emptyList(),
                     ),
+                    BuilderBackgroundRecord(
+                        id = "detective",
+                        name = "Detective",
+                        source = lostOmensSource,
+                        traits = traits,
+                        description = "",
+                        grants = emptyList(),
+                        choicePrompts = emptyList(),
+                        warnings = emptyList(),
+                    ),
                 ),
                 featIndex = listOf(
                     BuilderFeatIndexRecord(
@@ -453,6 +573,110 @@ private class FakeCharacterBuilderCatalogSource : CharacterBuilderCatalogSource 
                         level = 1,
                         rarity = "common",
                         traits = emptyList(),
+                        shard = "feats.class.normalized.json.gz",
+                        source = source,
+                    ),
+                    BuilderFeatIndexRecord(
+                        id = "mystery-training",
+                        name = "Mystery Training",
+                        category = "class",
+                        level = 1,
+                        rarity = "common",
+                        traits = emptyList(),
+                        shard = "feats.class.normalized.json.gz",
+                        source = source,
+                    ),
+                    BuilderFeatIndexRecord(
+                        id = "lost-omens-feat",
+                        name = "Lost Omens Feat",
+                        category = "class",
+                        level = 1,
+                        rarity = "common",
+                        traits = emptyList(),
+                        shard = "feats.class.normalized.json.gz",
+                        source = lostOmensSource,
+                    ),
+                    BuilderFeatIndexRecord(
+                        id = "wizard-dedication",
+                        name = "Wizard Dedication",
+                        category = "archetype",
+                        level = 2,
+                        rarity = "common",
+                        traits = emptyList(),
+                        shard = "feats.archetype.normalized.json.gz",
+                        source = source,
+                    ),
+                    BuilderFeatIndexRecord(
+                        id = "cleric-dedication",
+                        name = "Cleric Dedication",
+                        category = "archetype",
+                        level = 2,
+                        rarity = "common",
+                        traits = emptyList(),
+                        shard = "feats.archetype.normalized.json.gz",
+                        source = source,
+                    ),
+                    BuilderFeatIndexRecord(
+                        id = "druid-dedication",
+                        name = "Druid Dedication",
+                        category = "archetype",
+                        level = 2,
+                        rarity = "common",
+                        traits = emptyList(),
+                        shard = "feats.archetype.normalized.json.gz",
+                        source = source,
+                    ),
+                ),
+                feats = listOf(
+                    BuilderFeatRecord(
+                        id = "counterspell",
+                        name = "Counterspell",
+                        category = "class",
+                        level = 1,
+                        rarity = "common",
+                        traits = emptyList(),
+                        source = source,
+                        description = "Reactively counter a spell.",
+                        prerequisites = emptyList(),
+                        grants = emptyList(),
+                        choicePrompts = emptyList(),
+                        warnings = emptyList(),
+                        actionType = "reaction",
+                        actions = null,
+                        shard = "feats.class.normalized.json.gz",
+                    ),
+                    BuilderFeatRecord(
+                        id = "mystery-training",
+                        name = "Mystery Training",
+                        category = "class",
+                        level = 1,
+                        rarity = "common",
+                        traits = emptyList(),
+                        source = source,
+                        description = "Requires table adjudication.",
+                        prerequisites = listOf("trained by a specific mentor"),
+                        grants = emptyList(),
+                        choicePrompts = emptyList(),
+                        warnings = emptyList(),
+                        actionType = "passive",
+                        actions = null,
+                        shard = "feats.class.normalized.json.gz",
+                    ),
+                    BuilderFeatRecord(
+                        id = "lost-omens-feat",
+                        name = "Lost Omens Feat",
+                        category = "class",
+                        level = 1,
+                        rarity = "common",
+                        traits = emptyList(),
+                        source = lostOmensSource,
+                        description = "From an unaccepted source.",
+                        prerequisites = emptyList(),
+                        grants = emptyList(),
+                        choicePrompts = emptyList(),
+                        warnings = emptyList(),
+                        actionType = "passive",
+                        actions = null,
                         shard = "feats.class.normalized.json.gz",
                     ),
                 ),

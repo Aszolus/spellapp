@@ -46,7 +46,7 @@ import com.spellapp.core.model.AbilityScore
 import com.spellapp.core.model.ClassChoice
 import com.spellapp.core.model.ClassChoiceGroup
 
-private val coreSpellSourceBooksForBuilder = setOf(
+private val coreSourceBooksForBuilder = setOf(
     "Pathfinder Core Rulebook",
     "Pathfinder Advanced Player's Guide",
     "Pathfinder Secrets of Magic",
@@ -68,7 +68,13 @@ fun CharacterBuilderRoute(
     onClassSelected: (String) -> Unit,
     onClassChoiceSelected: (ClassChoiceGroup, ClassChoice) -> Unit,
     onKeyAbilitySelected: (AbilityScore) -> Unit,
-    onFeatSelected: (String, String?) -> Unit,
+    onAbilityBoostSelected: (String, AbilityScore?) -> Unit,
+    onVoluntaryFlawEnabledChange: (Boolean) -> Unit,
+    onSkillChoiceSelected: (String, String?) -> Unit,
+    onLoreSkillChoiceSelected: (String, String) -> Unit,
+    onFeatSelected: (String, String?, String?) -> Unit,
+    onFeatPickerOpen: (String) -> Unit,
+    onFeatPickerDismiss: () -> Unit,
     onSpellDcChange: (String) -> Unit,
     onSpellAttackChange: (String) -> Unit,
     onAcceptedSourcesChange: (Set<String>) -> Unit,
@@ -124,7 +130,13 @@ fun CharacterBuilderRoute(
             onClassSelected = onClassSelected,
             onClassChoiceSelected = onClassChoiceSelected,
             onKeyAbilitySelected = onKeyAbilitySelected,
+            onAbilityBoostSelected = onAbilityBoostSelected,
+            onVoluntaryFlawEnabledChange = onVoluntaryFlawEnabledChange,
+            onSkillChoiceSelected = onSkillChoiceSelected,
+            onLoreSkillChoiceSelected = onLoreSkillChoiceSelected,
             onFeatSelected = onFeatSelected,
+            onFeatPickerOpen = onFeatPickerOpen,
+            onFeatPickerDismiss = onFeatPickerDismiss,
             onSpellDcChange = onSpellDcChange,
             onSpellAttackChange = onSpellAttackChange,
             onAcceptedSourcesChange = onAcceptedSourcesChange,
@@ -176,7 +188,13 @@ private fun CharacterBuilderContent(
     onClassSelected: (String) -> Unit,
     onClassChoiceSelected: (ClassChoiceGroup, ClassChoice) -> Unit,
     onKeyAbilitySelected: (AbilityScore) -> Unit,
-    onFeatSelected: (String, String?) -> Unit,
+    onAbilityBoostSelected: (String, AbilityScore?) -> Unit,
+    onVoluntaryFlawEnabledChange: (Boolean) -> Unit,
+    onSkillChoiceSelected: (String, String?) -> Unit,
+    onLoreSkillChoiceSelected: (String, String) -> Unit,
+    onFeatSelected: (String, String?, String?) -> Unit,
+    onFeatPickerOpen: (String) -> Unit,
+    onFeatPickerDismiss: () -> Unit,
     onSpellDcChange: (String) -> Unit,
     onSpellAttackChange: (String) -> Unit,
     onAcceptedSourcesChange: (Set<String>) -> Unit,
@@ -257,9 +275,23 @@ private fun CharacterBuilderContent(
                         onKeyAbilitySelected = onKeyAbilitySelected,
                     )
 
+                    CharacterBuilderSectionId.ABILITY_SCORES -> AbilityScoresSection(
+                        uiState = uiState,
+                        onAbilityBoostSelected = onAbilityBoostSelected,
+                        onVoluntaryFlawEnabledChange = onVoluntaryFlawEnabledChange,
+                    )
+
+                    CharacterBuilderSectionId.SKILLS -> SkillsSection(
+                        uiState = uiState,
+                        onSkillChoiceSelected = onSkillChoiceSelected,
+                        onLoreSkillChoiceSelected = onLoreSkillChoiceSelected,
+                    )
+
                     CharacterBuilderSectionId.FEATS -> FeatsSection(
                         uiState = uiState,
                         onFeatSelected = onFeatSelected,
+                        onFeatPickerOpen = onFeatPickerOpen,
+                        onFeatPickerDismiss = onFeatPickerDismiss,
                     )
 
                     CharacterBuilderSectionId.CASTING_STATS -> CastingStatsSection(
@@ -571,71 +603,283 @@ private fun ClassSpellcastingSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AbilityScoresSection(
+    uiState: CharacterBuilderUiState,
+    onAbilityBoostSelected: (String, AbilityScore?) -> Unit,
+    onVoluntaryFlawEnabledChange: (Boolean) -> Unit,
+) {
+    val activeLevel = uiState.level ?: 1
+    uiState.buildFacts?.let { facts ->
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            facts.abilityScores.forEach { (ability, score) ->
+                Text(
+                    text = "${ability.label()} $score (${facts.abilityModifiers[ability]?.withSign() ?: "+0"})",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        facts.hp?.let { hp ->
+            Text(
+                text = "HP $hp",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text("Voluntary flaw", style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = "Adds optional flaw/boost slots at level 1.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = uiState.voluntaryFlawEnabled,
+            onCheckedChange = onVoluntaryFlawEnabledChange,
+        )
+    }
+    val slotsByLevel = uiState.abilityBoostSlots.groupBy { it.level }
+    slotsByLevel.keys.sorted().forEach { level ->
+        SectionLabel(if (level <= activeLevel) "Level $level active boosts" else "Level $level planned boosts")
+        slotsByLevel.getValue(level).forEach { slot ->
+            AbilityBoostSlotRow(
+                slot = slot,
+                selected = slot.fixedChoice ?: uiState.selectedAbilityBoosts[slot.slotId],
+                enabled = slot.fixedChoice == null,
+                onAbilityBoostSelected = onAbilityBoostSelected,
+            )
+        }
+    }
+    uiState.abilityIssues.take(4).forEach { issue ->
+        Text(
+            text = issue.message,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (issue.active) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AbilityBoostSlotRow(
+    slot: BuilderAbilityBoostSlot,
+    selected: AbilityScore?,
+    enabled: Boolean,
+    onAbilityBoostSelected: (String, AbilityScore?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = slot.label,
+            style = MaterialTheme.typography.titleSmall,
+        )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            slot.choices.forEach { ability ->
+                FilterChip(
+                    selected = selected == ability,
+                    onClick = { onAbilityBoostSelected(slot.slotId, ability) },
+                    enabled = enabled,
+                    label = { Text(ability.label()) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SkillsSection(
+    uiState: CharacterBuilderUiState,
+    onSkillChoiceSelected: (String, String?) -> Unit,
+    onLoreSkillChoiceSelected: (String, String) -> Unit,
+) {
+    val activeLevel = uiState.level ?: 1
+    var activeSlot by remember { mutableStateOf<BuilderSkillChoiceSlot?>(null) }
+    uiState.buildFacts?.let { facts ->
+        SectionLabel("Current Skill Totals")
+        val trained = facts.skillRanks
+            .filterValues { it.value > 0 }
+            .toSortedMap()
+        if (trained.isEmpty()) {
+            Text(
+                text = "No trained skills yet.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                trained.entries.take(16).forEach { (skillId, rank) ->
+                    val total = facts.skillTotals[skillId]?.withSign().orEmpty()
+                    Text(
+                        text = "${BuilderRules.displaySkillName(skillId)}: ${rank.label} $total",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+    val slotsByLevel = uiState.skillChoiceSlots.groupBy { it.level }
+    slotsByLevel.keys.sorted().forEach { level ->
+        SectionLabel(if (level <= activeLevel) "Level $level active skill choices" else "Level $level planned skill choices")
+        slotsByLevel.getValue(level).forEach { slot ->
+            val selected = uiState.selectedSkillChoices[slot.slotId]
+            BuilderSelectionRow(
+                label = slot.label,
+                value = selected?.let(BuilderRules::displaySkillName) ?: "No skill selected",
+                onChoose = { activeSlot = slot },
+            )
+        }
+    }
+    uiState.skillIssues.take(4).forEach { issue ->
+        Text(
+            text = issue.message,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (issue.active) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    activeSlot?.let { slot ->
+        SkillChoicePickerDialog(
+            slot = slot,
+            onPick = { skillId ->
+                onSkillChoiceSelected(slot.slotId, skillId)
+                activeSlot = null
+            },
+            onLorePick = { loreName ->
+                onLoreSkillChoiceSelected(slot.slotId, loreName)
+                activeSlot = null
+            },
+            onClear = {
+                onSkillChoiceSelected(slot.slotId, null)
+                activeSlot = null
+            },
+            onDismiss = { activeSlot = null },
+        )
+    }
+}
+
 @Composable
 private fun FeatsSection(
     uiState: CharacterBuilderUiState,
-    onFeatSelected: (String, String?) -> Unit,
+    onFeatSelected: (String, String?, String?) -> Unit,
+    onFeatPickerOpen: (String) -> Unit,
+    onFeatPickerDismiss: () -> Unit,
 ) {
     if (uiState.expectedFeatSlots.isEmpty()) {
         Text(
-            text = "No feat slots are expected at this level for the selected class.",
+            text = "No feat slots are expected for the selected class.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         return
     }
-    var activeSlot by remember { mutableStateOf<BuilderFeatSlot?>(null) }
+    val activeLevel = uiState.level ?: 1
+    if (uiState.isLoadingFeatDetails) {
+        Text(
+            text = "Loading feat details...",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        uiState.expectedFeatSlots.forEach { slot ->
-            val selectedFeatId = uiState.selectedFeatSlotOptions[slot.slotId]
-            val selectedFeat = selectedFeatId?.let(uiState.featIndexById::get)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
+        (1..20).forEach { level ->
+            val slots = uiState.expectedFeatSlots.filter { it.level == level }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = if (level <= activeLevel) "Level $level" else "Level $level planned",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (level <= activeLevel) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+                if (slots.isEmpty()) {
                     Text(
-                        text = "Level ${slot.level} ${slot.kind.replaceFirstChar { it.uppercase() }} Feat",
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Text(
-                        text = selectedFeat?.name ?: "No feat selected",
+                        text = "No tracked builder choices.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-                TextButton(onClick = { activeSlot = slot }) {
-                    Text(if (selectedFeat == null) "Choose" else "Change")
+                } else {
+                    slots.forEach { slot ->
+                        val selectedFeatId = uiState.selectedFeatSlotOptions[slot.slotId]
+                        val selectedFeat = selectedFeatId?.let(uiState.featsById::get)
+                        val selectedLegality = selectedFeatId
+                            ?.let { uiState.featLegalityBySlotId[slot.slotId]?.get(it) }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Text(
+                                    text = "${slot.kind.replaceFirstChar { it.uppercase() }} feat",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Text(
+                                    text = listOfNotNull(
+                                        selectedFeat?.name ?: "No feat selected",
+                                        selectedLegality?.status?.label()?.takeIf { selectedFeat != null },
+                                    ).joinToString(" - "),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = when (selectedLegality?.status) {
+                                        BuilderLegalityStatus.UNAVAILABLE -> MaterialTheme.colorScheme.error
+                                        BuilderLegalityStatus.NEEDS_REVIEW -> MaterialTheme.colorScheme.tertiary
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
+                            }
+                            TextButton(
+                                onClick = { onFeatPickerOpen(slot.slotId) },
+                                enabled = !uiState.isLoadingFeatDetails,
+                            ) {
+                                Text(if (selectedFeat == null) "Choose" else "Change")
+                            }
+                        }
+                    }
                 }
             }
         }
     }
     BuilderWarnings(uiState.builderWarningLines)
-    activeSlot?.let { slot ->
-        val items = uiState.featCandidatesBySlotId[slot.slotId].orEmpty().map { feat ->
-            BuilderPickerItem(
-                id = feat.id,
-                label = feat.name,
-                subtitle = "Level ${feat.level} · ${feat.rarity}",
-            )
-        }
-        BuilderPickerDialog(
+    uiState.activeFeatPickerSlotId
+        ?.let { slotId -> uiState.expectedFeatSlots.firstOrNull { it.slotId == slotId } }
+        ?.let { slot ->
+        FeatPickerDialog(
             title = "Choose ${slot.kind.replaceFirstChar { it.uppercase() }} Feat",
-            items = items,
-            allowClear = true,
+            feats = uiState.activeFeatPickerCandidates,
+            legalityByFeatId = uiState.activeFeatPickerLegalityByFeatId,
+            loading = uiState.isPreparingFeatPicker,
             onClear = {
-                onFeatSelected(slot.slotId, null)
-                activeSlot = null
+                onFeatSelected(slot.slotId, null, null)
+                onFeatPickerDismiss()
             },
-            onPick = { item ->
-                onFeatSelected(slot.slotId, item.id)
-                activeSlot = null
+            onPick = { feat, overrideReason ->
+                onFeatSelected(slot.slotId, feat.id, overrideReason)
+                onFeatPickerDismiss()
             },
-            onDismiss = { activeSlot = null },
+            onDismiss = onFeatPickerDismiss,
         )
     }
 }
@@ -690,7 +934,7 @@ private fun SpellSourcesSection(
     var showSourcePicker by remember { mutableStateOf(false) }
     if (uiState.availableSpellSources.isEmpty()) {
         Text(
-            text = "No spell sources are available yet.",
+            text = "No sources are available yet.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -938,7 +1182,7 @@ private fun BuilderSourcePickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Spell Sources") },
+        title = { Text("Sources") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
@@ -952,7 +1196,11 @@ private fun BuilderSourcePickerDialog(
                         onClick = {
                             onAcceptedSourcesChange(
                                 uiState.availableSpellSources
-                                    .filter { it in coreSpellSourceBooksForBuilder }
+                                    .filter { sourceBook ->
+                                        coreSourceBooksForBuilder.any { coreSource ->
+                                            coreSource.sourceBookKey() == sourceBook.sourceBookKey()
+                                        }
+                                    }
                                     .toSet(),
                             )
                         },
@@ -1097,6 +1345,247 @@ private fun BuilderWarnings(lines: List<String>) {
             )
         }
     }
+}
+
+@Composable
+private fun SkillChoicePickerDialog(
+    slot: BuilderSkillChoiceSlot,
+    onPick: (String) -> Unit,
+    onLorePick: (String) -> Unit,
+    onClear: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    var loreName by remember { mutableStateOf("") }
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+    val filtered = remember(slot, query) {
+        val normalized = query.trim()
+        BuilderRules.standardSkills
+            .filter { skill -> skill.id in slot.choices }
+            .filter { skill ->
+                normalized.isBlank() ||
+                    skill.label.contains(normalized, ignoreCase = true)
+            }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(slot.label) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("Search skills") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = screenHeightDp * 0.35f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    items(filtered, key = { it.id }) { skill ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(role = Role.Button) { onPick(skill.id) }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(skill.label, style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text = skill.ability.label(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                if (slot.allowLore) {
+                    SectionLabel("Lore")
+                    OutlinedTextField(
+                        value = loreName,
+                        onValueChange = { loreName = it },
+                        label = { Text("Lore skill name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedButton(
+                        onClick = { onLorePick(loreName) },
+                        enabled = loreName.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Use Lore")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onClear) {
+                Text("Clear")
+            }
+        },
+    )
+}
+
+@Composable
+private fun FeatPickerDialog(
+    title: String,
+    feats: List<BuilderFeatRecord>,
+    legalityByFeatId: Map<String, BuilderFeatLegality>,
+    loading: Boolean,
+    onClear: () -> Unit,
+    onPick: (BuilderFeatRecord, String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    var selectedFeatId by remember { mutableStateOf<String?>(null) }
+    var overrideReason by remember { mutableStateOf("") }
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+    val filtered = remember(feats, query) {
+        val normalized = query.trim()
+        feats.filter { feat ->
+            normalized.isBlank() ||
+                feat.name.contains(normalized, ignoreCase = true) ||
+                feat.traits.any { trait -> trait.contains(normalized, ignoreCase = true) }
+        }
+    }
+    val selectedFeat = selectedFeatId?.let { id -> filtered.firstOrNull { it.id == id } }
+    val selectedLegality = selectedFeatId?.let(legalityByFeatId::get)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("Search feats") },
+                    singleLine = true,
+                    enabled = !loading,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = screenHeightDp * 0.38f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    if (loading) {
+                        item("loading") {
+                            Text(
+                                text = "Preparing feat choices...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else if (filtered.isEmpty()) {
+                        item("empty") {
+                            Text(
+                                text = "No feat choices matched.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    if (!loading) BuilderLegalityStatus.values().forEach { status ->
+                        val group = filtered.filter { feat ->
+                            legalityByFeatId[feat.id]?.status == status
+                        }
+                        if (group.isNotEmpty()) {
+                            item("${status.name}-label") {
+                                SectionLabel("${status.label()} (${group.size})")
+                            }
+                            items(group, key = { it.id }) { feat ->
+                                val legality = legalityByFeatId[feat.id]
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable(role = Role.Button) { selectedFeatId = feat.id }
+                                        .padding(vertical = 8.dp, horizontal = 4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Text(
+                                        text = feat.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                                    Text(
+                                        text = "Level ${feat.level} - ${feat.rarity} - ${feat.traits.take(3).joinToString()}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = when (legality?.status) {
+                                            BuilderLegalityStatus.UNAVAILABLE -> MaterialTheme.colorScheme.error
+                                            BuilderLegalityStatus.NEEDS_REVIEW -> MaterialTheme.colorScheme.tertiary
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                selectedFeat?.let { feat ->
+                    HorizontalDivider()
+                    Text(feat.name, style = MaterialTheme.typography.titleSmall)
+                    if (feat.prerequisites.isNotEmpty()) {
+                        Text(
+                            text = "Prerequisites: ${feat.prerequisites.joinToString()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    selectedLegality?.reasons.orEmpty().take(3).forEach { reason ->
+                        Text(reason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
+                    selectedLegality?.warnings.orEmpty().take(3).forEach { warning ->
+                        Text(warning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                    }
+                    if (selectedLegality?.requiresOverride == true) {
+                        OutlinedTextField(
+                            value = overrideReason,
+                            onValueChange = { overrideReason = it },
+                            label = { Text("Override reason") },
+                            singleLine = false,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    Text(
+                        text = feat.description.take(700),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    selectedFeat?.let { feat ->
+                        onPick(
+                            feat,
+                            overrideReason.trim().takeIf { selectedLegality?.requiresOverride == true },
+                        )
+                    }
+                },
+                enabled = !loading &&
+                    selectedFeat != null &&
+                    (selectedLegality?.requiresOverride != true || overrideReason.isNotBlank()),
+            ) {
+                Text("Choose")
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onClear) {
+                    Text("Clear")
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+            }
+        },
+    )
 }
 
 @Composable
@@ -1251,6 +1740,12 @@ private fun CharacterBuilderSectionStatus.label(): String = when (this) {
     CharacterBuilderSectionStatus.NEEDS_REVIEW -> "Review"
     CharacterBuilderSectionStatus.OPTIONAL -> "Optional"
     CharacterBuilderSectionStatus.BLOCKED -> "Blocked"
+}
+
+private fun BuilderLegalityStatus.label(): String = when (this) {
+    BuilderLegalityStatus.ELIGIBLE -> "Eligible"
+    BuilderLegalityStatus.NEEDS_REVIEW -> "Needs Review"
+    BuilderLegalityStatus.UNAVAILABLE -> "Unavailable"
 }
 
 private fun summarizeArchetypeSlotsForLevel(
