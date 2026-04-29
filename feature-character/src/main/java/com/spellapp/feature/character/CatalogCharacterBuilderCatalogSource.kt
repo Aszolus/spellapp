@@ -21,12 +21,25 @@ class CatalogCharacterBuilderCatalogSource(
     @Volatile
     private var cachedFeatRecords: List<BuilderFeatRecord>? = null
 
+    @Volatile
+    private var cachedSourceTitles: List<String>? = null
+
     override suspend fun loadCatalog(): CharacterBuilderCatalogResult {
         cachedResult?.let { return it }
         return withContext(Dispatchers.IO) {
             val loaded = loadCatalogResult()
             synchronized(this@CatalogCharacterBuilderCatalogSource) {
                 cachedResult ?: loaded.also { cachedResult = it }
+            }
+        }
+    }
+
+    override suspend fun loadAvailableSourceTitles(): List<String> {
+        cachedSourceTitles?.let { return it }
+        return withContext(Dispatchers.IO) {
+            val loaded = catalogDao.getAvailableBuilderSourceTitles()
+            synchronized(this@CatalogCharacterBuilderCatalogSource) {
+                cachedSourceTitles ?: loaded.also { cachedSourceTitles = it }
             }
         }
     }
@@ -45,7 +58,11 @@ class CatalogCharacterBuilderCatalogSource(
         return runCatching {
             verifyAvailable()
             val assets = loadAssets(REQUIRED_BUILDER_ASSETS)
-            val descriptions = loadDescriptions(assets.values)
+            val descriptions = loadDescriptions(
+                assets
+                    .filterKeys { name -> name in DISPLAY_DESCRIPTION_ASSET_NAMES }
+                    .values,
+            )
             val featIndexRoot = assets.requireAsset("feats.index").root
             val featShards = CatalogBuilderJsonParser.parseFeatShards(
                 raw = featIndexRoot.optJSONArray("shards"),
@@ -74,11 +91,11 @@ class CatalogCharacterBuilderCatalogSource(
                     featShards = featShards,
                     classFeatures = CatalogBuilderJsonParser.parseFeatures(
                         assets.requireAsset("class-features").root.optJSONArray("features"),
-                        descriptions,
+                        emptyMap(),
                     ),
                     ancestryFeatures = CatalogBuilderJsonParser.parseFeatures(
                         assets.requireAsset("ancestry-features").root.optJSONArray("features"),
-                        descriptions,
+                        emptyMap(),
                     ),
                 ),
             )
@@ -147,6 +164,12 @@ class CatalogCharacterBuilderCatalogSource(
             "class-features",
             "ancestry-features",
             "feats.index",
+        )
+        private val DISPLAY_DESCRIPTION_ASSET_NAMES = setOf(
+            "classes",
+            "ancestries",
+            "heritages",
+            "backgrounds",
         )
     }
 }

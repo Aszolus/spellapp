@@ -45,6 +45,23 @@ class CatalogCharacterBuilderCatalogSourceTest {
         assertEquals("Toughness", catalog.featIndex.single().name)
         assertTrue(dao.requestedAssetNames.containsAll(REQUIRED_ASSET_NAMES_FOR_TEST))
         assertTrue(dao.requestedRecordTextIds.contains("classes:fighter"))
+        assertFalse(dao.requestedRecordTextIds.contains("classfeatures:attack-of-opportunity"))
+    }
+
+    @Test
+    fun loadAvailableSourceTitles_doesNotLoadBuilderAssetsOrDescriptions() = runBlocking {
+        val dao = RecordingCatalogDao(
+            assets = sampleBuilderAssets(),
+            descriptions = sampleDescriptions(),
+            sourceTitles = listOf("Pathfinder Player Core", "Pathfinder Player Core 2"),
+        )
+        val source = CatalogCharacterBuilderCatalogSource(dao)
+
+        val titles = source.loadAvailableSourceTitles()
+
+        assertEquals(listOf("Pathfinder Player Core", "Pathfinder Player Core 2"), titles)
+        assertTrue(dao.requestedAssetNames.isEmpty())
+        assertTrue(dao.requestedRecordTextIds.isEmpty())
     }
 
     @Test
@@ -99,6 +116,7 @@ private class StaticCharacterBuilderCatalogSource(
 private class RecordingCatalogDao(
     private val assets: Map<String, CatalogBuilderAssetEntity>,
     private val descriptions: Map<String, String>,
+    private val sourceTitles: List<String> = emptyList(),
 ) : CatalogDao {
     val requestedAssetNames = mutableListOf<String>()
     val requestedRecordTextIds = mutableListOf<String>()
@@ -106,6 +124,8 @@ private class RecordingCatalogDao(
     override suspend fun getMetadataValue(key: String): String? = "1"
 
     override suspend fun getBuilderAssetCount(): Int = assets.size
+
+    override suspend fun getAvailableBuilderSourceTitles(): List<String> = sourceTitles
 
     override suspend fun getCatalogBuilderAssets(names: List<String>): List<CatalogBuilderAssetEntity> {
         requestedAssetNames += names
@@ -158,6 +178,7 @@ private fun sampleDescriptions(): Map<String, String> {
         "ancestries:goblin" to "Goblin details",
         "heritages:irongut-goblin" to "Irongut Goblin details",
         "backgrounds:acolyte" to "Acolyte details",
+        "classfeatures:attack-of-opportunity" to "Feature details that should not load during initial catalog load",
         "feats-srd:toughness" to "Toughness details",
     )
 }
@@ -263,7 +284,30 @@ private fun sampleBuilderAssets(): Map<String, CatalogBuilderAssetEntity> {
                 }
             """.trimIndent(),
         ),
-        builderAsset(name = "class-features", type = "class-feature", recordCount = 0, payload = """{"features": []}"""),
+        builderAsset(
+            name = "class-features",
+            type = "class-feature",
+            recordCount = 1,
+            payload = """
+                {
+                  "features": [
+                    {
+                      "id": "attack-of-opportunity",
+                      "catalogRecordId": "classfeatures:attack-of-opportunity",
+                      "name": "Attack of Opportunity",
+                      "level": 1,
+                      "category": "classfeature",
+                      "source": {"title": "Pathfinder Player Core", "license": "ORC", "remaster": true},
+                      "traits": {"rarity": "common", "value": ["fighter"]},
+                      "grants": [],
+                      "choicePrompts": [],
+                      "warnings": [],
+                      "proficiencyGrants": []
+                    }
+                  ]
+                }
+            """.trimIndent(),
+        ),
         builderAsset(name = "ancestry-features", type = "ancestry-feature", recordCount = 0, payload = """{"features": []}"""),
         builderAsset(
             name = "feats.index",

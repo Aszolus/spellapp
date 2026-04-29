@@ -15,6 +15,25 @@ interface CatalogDao {
 
     @Query(
         """
+        SELECT DISTINCT COALESCE(source_title, '')
+        FROM catalog_records
+        WHERE TRIM(COALESCE(source_title, '')) != ''
+          AND pack_name IN (
+              'classes',
+              'ancestries',
+              'heritages',
+              'backgrounds',
+              'classfeatures',
+              'ancestryfeatures',
+              'feats-srd'
+          )
+        ORDER BY COALESCE(source_title, '') ASC
+        """,
+    )
+    suspend fun getAvailableBuilderSourceTitles(): List<String>
+
+    @Query(
+        """
         SELECT
             name,
             builder_type,

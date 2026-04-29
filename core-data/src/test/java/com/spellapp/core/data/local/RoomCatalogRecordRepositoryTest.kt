@@ -172,6 +172,8 @@ private class RecordingCatalogRecordDao(
 
     override suspend fun getBuilderAssetCount(): Int = 0
 
+    override suspend fun getAvailableBuilderSourceTitles(): List<String> = emptyList()
+
     override suspend fun getCatalogBuilderAssets(names: List<String>): List<CatalogBuilderAssetEntity> = emptyList()
 
     override suspend fun getCatalogRecordTexts(recordIds: List<String>): List<CatalogRecordTextRow> = emptyList()
