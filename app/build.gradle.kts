@@ -36,6 +36,10 @@ android {
         compose = true
     }
 
+    androidResources {
+        noCompress += "db"
+    }
+
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }

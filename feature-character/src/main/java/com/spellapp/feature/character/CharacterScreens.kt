@@ -61,7 +61,6 @@ private val coreSpellSourceBooks = setOf(
 @Composable
 fun CharacterListRoute(
     characters: List<CharacterProfile>,
-    classDefinitionsByClass: Map<String, CharacterClassDefinition>,
     onAddCharacter: () -> Unit,
     onEditCharacter: (CharacterProfile) -> Unit,
     onDeleteCharacter: (CharacterProfile) -> Unit,
@@ -116,7 +115,6 @@ fun CharacterListRoute(
                 }
                 CharacterRow(
                     character = character,
-                    classDefinitionsByClass = classDefinitionsByClass,
                     onEdit = { onEditCharacter(character) },
                     onDelete = { pendingDeleteCharacter = character },
                     onOpenPreparedSlots = { onOpenPreparedSlots(character) },
@@ -170,7 +168,6 @@ fun CharacterListRoute(
 @Composable
 private fun CharacterRow(
     character: CharacterProfile,
-    classDefinitionsByClass: Map<String, CharacterClassDefinition>,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onOpenPreparedSlots: () -> Unit,
@@ -188,7 +185,7 @@ private fun CharacterRow(
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            text = "Level ${character.level} ${character.classId.classLabel(classDefinitionsByClass)}",
+            text = "Level ${character.level} ${character.classId.classLabel()}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

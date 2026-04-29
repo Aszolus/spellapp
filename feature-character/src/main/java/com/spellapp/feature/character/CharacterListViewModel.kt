@@ -5,46 +5,27 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.model.CharacterProfile
-import com.spellapp.core.model.normalizeClassId
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class CharacterListUiState(
     val characters: List<CharacterProfile> = emptyList(),
-    val classDefinitionsByClass: Map<String, CharacterClassDefinition> = emptyMap(),
 )
 
 class CharacterListViewModel(
     private val characterCrudRepository: CharacterCrudRepository,
-    private val classDefinitionSource: CharacterClassDefinitionSource,
 ) : ViewModel() {
-    private val classDefinitionsByClass = MutableStateFlow<Map<String, CharacterClassDefinition>>(emptyMap())
-
-    val uiState = combine(
-        characterCrudRepository.observeCharacters(),
-        classDefinitionsByClass,
-    ) { characters, definitionsByClass ->
-            CharacterListUiState(
-                characters = characters,
-                classDefinitionsByClass = definitionsByClass,
-            )
+    val uiState = characterCrudRepository.observeCharacters()
+        .map { characters ->
+            CharacterListUiState(characters = characters)
         }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = CharacterListUiState(),
         )
-
-    init {
-        viewModelScope.launch(Dispatchers.IO) {
-            classDefinitionsByClass.value = classDefinitionSource.allDefinitions()
-                .associateBy { normalizeClassId(it.classId) }
-        }
-    }
 
     fun deleteCharacter(characterId: Long) {
         viewModelScope.launch {
@@ -55,7 +36,6 @@ class CharacterListViewModel(
 
 class CharacterListViewModelFactory(
     private val characterCrudRepository: CharacterCrudRepository,
-    private val classDefinitionSource: CharacterClassDefinitionSource = StaticCharacterClassDefinitionSource,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -64,7 +44,6 @@ class CharacterListViewModelFactory(
         }
         return CharacterListViewModel(
             characterCrudRepository = characterCrudRepository,
-            classDefinitionSource = classDefinitionSource,
         ) as T
     }
 }
