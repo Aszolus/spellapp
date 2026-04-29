@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.spellapp.core.data.AcceptedSpellSourceRepository
 import com.spellapp.core.data.KnownSpellRepository
+import com.spellapp.core.data.PerfTrace
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.ClassSpellcastingCatalogSource
 import com.spellapp.core.model.EmptyClassSpellcastingCatalogSource
@@ -274,34 +275,36 @@ class SpellListViewModel(
             rarity = null,
             trait = query.filters.trait,
         ).map { sourceSpells ->
-            var filtered = sourceSpells
-            if (query.acceptedSourceBooks.isNotEmpty()) {
-                filtered = filtered.filter { spell -> spell.sourceBook in query.acceptedSourceBooks }
-            }
-            if (query.filters.rarities.isNotEmpty()) {
-                filtered = filtered.filter { spell ->
-                    spell.rarity.lowercase() in query.filters.rarities
+            PerfTrace.section("SpellListViewModel.filter size=${sourceSpells.size}") {
+                var filtered = sourceSpells
+                if (query.acceptedSourceBooks.isNotEmpty()) {
+                    filtered = filtered.filter { spell -> spell.sourceBook in query.acceptedSourceBooks }
                 }
-            }
-            if (query.filters.rank != null) {
-                filtered = filtered.filter { spell -> spell.rank == query.filters.rank }
-            }
-            when (query.browserMode) {
-                is SpellBrowserMode.AssignPreparedSlot -> {
-                    filtered = filtered.filter { spell -> spell.id in query.knownSpellIds }
+                if (query.filters.rarities.isNotEmpty()) {
                     filtered = filtered.filter { spell ->
-                        if (query.browserMode.slotRank == 0) {
-                            spell.rank == 0
-                        } else {
-                            spell.rank in 1..query.browserMode.slotRank
-                        }
+                        spell.rarity.lowercase() in query.filters.rarities
                     }
                 }
+                if (query.filters.rank != null) {
+                    filtered = filtered.filter { spell -> spell.rank == query.filters.rank }
+                }
+                when (query.browserMode) {
+                    is SpellBrowserMode.AssignPreparedSlot -> {
+                        filtered = filtered.filter { spell -> spell.id in query.knownSpellIds }
+                        filtered = filtered.filter { spell ->
+                            if (query.browserMode.slotRank == 0) {
+                                spell.rank == 0
+                            } else {
+                                spell.rank in 1..query.browserMode.slotRank
+                            }
+                        }
+                    }
 
-                is SpellBrowserMode.ManageKnownSpells -> Unit
-                is SpellBrowserMode.BrowseCatalog -> Unit
+                    is SpellBrowserMode.ManageKnownSpells -> Unit
+                    is SpellBrowserMode.BrowseCatalog -> Unit
+                }
+                filtered
             }
-            filtered
         }
     }.stateIn(
         scope = viewModelScope,

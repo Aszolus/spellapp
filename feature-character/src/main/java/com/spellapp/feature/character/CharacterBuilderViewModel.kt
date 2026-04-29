@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.spellapp.core.data.AcceptedSpellSourceRepository
 import com.spellapp.core.data.CharacterBuildRepository
 import com.spellapp.core.data.CharacterCrudRepository
+import com.spellapp.core.data.PerfTrace
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.model.AbilityScore
 import com.spellapp.core.model.CastingStyle
@@ -606,6 +607,12 @@ class CharacterBuilderViewModel(
     }
 
     private suspend fun loadDraftUnsafe() {
+        PerfTrace.suspendSection("CharacterBuilderViewModel.loadDraft characterId=$characterId") {
+            loadDraftUnsafeTimed()
+        }
+    }
+
+    private suspend fun loadDraftUnsafeTimed() {
         loadStaticBuilderData()
         val sources = spellRepository.observeAvailableSources().first()
         builderSourceTitles = characterBuilderCatalogSource.loadAvailableSourceTitles()
@@ -750,16 +757,18 @@ class CharacterBuilderViewModel(
         if (classDefinitionsByClass.isNotEmpty() && availableClasses.isNotEmpty()) {
             return
         }
-        val loaded = withContext(Dispatchers.IO) {
-            StaticBuilderData(
-                classDefinitionsByClass = classDefinitionSource.allDefinitions()
-                    .associateBy { normalizeClassId(it.classId) },
-                availableClasses = classDefinitionSource.phaseOneDefinitions(),
-                archetypeSpellcastingPackages = archetypeSpellcastingCatalogSource.phaseOnePackages(),
-                managedClassChoiceOptionIds = classSpellcastingCatalogSource.managedOptionIds(),
-                managedBuildOptionIds = archetypeSpellcastingCatalogSource.managedOptionIds() +
-                    classSpellcastingCatalogSource.managedOptionIds(),
-            )
+        val loaded = PerfTrace.suspendSection("CharacterBuilderViewModel.loadStaticBuilderData") {
+            withContext(Dispatchers.IO) {
+                StaticBuilderData(
+                    classDefinitionsByClass = classDefinitionSource.allDefinitions()
+                        .associateBy { normalizeClassId(it.classId) },
+                    availableClasses = classDefinitionSource.phaseOneDefinitions(),
+                    archetypeSpellcastingPackages = archetypeSpellcastingCatalogSource.phaseOnePackages(),
+                    managedClassChoiceOptionIds = classSpellcastingCatalogSource.managedOptionIds(),
+                    managedBuildOptionIds = archetypeSpellcastingCatalogSource.managedOptionIds() +
+                        classSpellcastingCatalogSource.managedOptionIds(),
+                )
+            }
         }
         classDefinitionsByClass = loaded.classDefinitionsByClass
         availableClasses = loaded.availableClasses

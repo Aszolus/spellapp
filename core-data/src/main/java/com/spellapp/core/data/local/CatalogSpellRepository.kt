@@ -1,6 +1,7 @@
 package com.spellapp.core.data.local
 
 import com.spellapp.core.data.SpellRepository
+import com.spellapp.core.data.PerfTrace
 import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
 import kotlinx.coroutines.flow.Flow
@@ -10,18 +11,32 @@ class CatalogSpellRepository(
     private val catalogDao: CatalogDao,
 ) : SpellRepository {
     suspend fun isAvailable(): Boolean {
-        return runCatching {
-            catalogDao.getMetadataValue(CATALOG_SCHEMA_VERSION_KEY) == SUPPORTED_CATALOG_SCHEMA_VERSION.toString() &&
-                catalogDao.getSpellIndexCount() > 0
-        }.getOrDefault(false)
+        return PerfTrace.suspendSection("CatalogSpellRepository.isAvailable") {
+            runCatching {
+                catalogDao.getMetadataValue(CATALOG_SCHEMA_VERSION_KEY) == SUPPORTED_CATALOG_SCHEMA_VERSION.toString() &&
+                    catalogDao.getSpellIndexCount() > 0
+            }.getOrDefault(false)
+        }
     }
 
     override fun observeAvailableSources(): Flow<List<String>> {
-        return catalogDao.observeAvailableSpellSources()
+        return PerfTrace.firstEmission(
+            name = "CatalogSpellRepository.sources",
+            source = catalogDao.observeAvailableSpellSources(),
+            sizeOf = List<String>::size,
+        )
     }
 
     override fun observeAvailableTraits(): Flow<List<String>> {
-        return catalogDao.observeSpellTraitRows().map(::normalizeTraitCatalog)
+        return PerfTrace.firstEmission(
+            name = "CatalogSpellRepository.traitRows",
+            source = catalogDao.observeSpellTraitRows(),
+            sizeOf = List<String>::size,
+        ).map { rows ->
+            PerfTrace.section("CatalogSpellRepository.normalizeTraits") {
+                normalizeTraitCatalog(rows)
+            }
+        }
     }
 
     override fun observeSpells(
@@ -31,18 +46,24 @@ class CatalogSpellRepository(
         rarity: String?,
         trait: String?,
     ): Flow<List<SpellListItem>> {
-        return catalogDao.observeSpellList(
-            query = query.trim(),
-            rank = rank,
-            tradition = tradition.orEmpty().trim(),
-            rarity = rarity.orEmpty().trim(),
-            trait = trait.orEmpty().trim(),
+        return PerfTrace.firstEmission(
+            name = "CatalogSpellRepository.spellList query='${query.trim()}' rank=$rank tradition=${tradition.orEmpty().trim()} trait=${trait.orEmpty().trim()}",
+            source = catalogDao.observeSpellList(
+                query = query.trim(),
+                rank = rank,
+                tradition = tradition.orEmpty().trim(),
+                rarity = rarity.orEmpty().trim(),
+                trait = trait.orEmpty().trim(),
+            ),
+            sizeOf = List<SpellListItem>::size,
         )
     }
 
     override suspend fun getSpellDetail(spellId: String): SpellDetail? {
-        val row = catalogDao.getSpellDetail(spellId) ?: return null
-        return row.toSpellDetail()
+        return PerfTrace.suspendSection("CatalogSpellRepository.getSpellDetail $spellId") {
+            val row = catalogDao.getSpellDetail(spellId) ?: return@suspendSection null
+            row.toSpellDetail()
+        }
     }
 
     override suspend fun getSpellDetails(spellIds: Collection<String>): Map<String, SpellDetail> {
@@ -51,10 +72,12 @@ class CatalogSpellRepository(
             .filter(String::isNotBlank)
             .distinct()
             .toList()
-        return buildMap {
-            ids.chunked(SQLITE_BIND_LIMIT).forEach { chunk ->
-                catalogDao.getSpellDetails(chunk).forEach { row ->
-                    put(row.id, row.toSpellDetail())
+        return PerfTrace.suspendSection("CatalogSpellRepository.getSpellDetails count=${ids.size}") {
+            buildMap {
+                ids.chunked(SQLITE_BIND_LIMIT).forEach { chunk ->
+                    catalogDao.getSpellDetails(chunk).forEach { row ->
+                        put(row.id, row.toSpellDetail())
+                    }
                 }
             }
         }
@@ -66,10 +89,12 @@ class CatalogSpellRepository(
             .filter(String::isNotBlank)
             .distinct()
             .toList()
-        return buildMap {
-            ids.chunked(SQLITE_BIND_LIMIT).forEach { chunk ->
-                catalogDao.getSpellRanks(chunk).forEach { row ->
-                    put(row.id, row.rank)
+        return PerfTrace.suspendSection("CatalogSpellRepository.getSpellRanks count=${ids.size}") {
+            buildMap {
+                ids.chunked(SQLITE_BIND_LIMIT).forEach { chunk ->
+                    catalogDao.getSpellRanks(chunk).forEach { row ->
+                        put(row.id, row.rank)
+                    }
                 }
             }
         }

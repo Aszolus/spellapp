@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.spellapp.core.data.PerfTrace
 import com.spellapp.core.model.SlotProgressionKeys
 
 @Database(
@@ -355,21 +356,23 @@ abstract class SpellDatabase : RoomDatabase() {
 
         fun create(context: Context): SpellDatabase {
             return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context,
-                    SpellDatabase::class.java,
-                    DATABASE_NAME,
-                ).addMigrations(MIGRATION_1_2)
-                    .addMigrations(MIGRATION_2_3)
-                    .addMigrations(MIGRATION_3_4)
-                    .addMigrations(MIGRATION_4_5)
-                    .addMigrations(MIGRATION_5_6)
-                    .addMigrations(MIGRATION_6_7)
-                    .addMigrations(MIGRATION_7_8)
-                    .addMigrations(MIGRATION_8_9)
-                    .addMigrations(MIGRATION_9_10)
-                    .build()
-                    .also { INSTANCE = it }
+                INSTANCE ?: PerfTrace.section("SpellDatabase.create") {
+                    Room.databaseBuilder(
+                        context,
+                        SpellDatabase::class.java,
+                        DATABASE_NAME,
+                    ).addMigrations(MIGRATION_1_2)
+                        .addMigrations(MIGRATION_2_3)
+                        .addMigrations(MIGRATION_3_4)
+                        .addMigrations(MIGRATION_4_5)
+                        .addMigrations(MIGRATION_5_6)
+                        .addMigrations(MIGRATION_6_7)
+                        .addMigrations(MIGRATION_7_8)
+                        .addMigrations(MIGRATION_8_9)
+                        .addMigrations(MIGRATION_9_10)
+                        .build()
+                        .also { INSTANCE = it }
+                }
             }
         }
     }

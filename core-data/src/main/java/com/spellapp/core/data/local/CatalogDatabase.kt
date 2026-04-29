@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.spellapp.core.data.PerfTrace
 
 @Database(
     entities = [
@@ -31,15 +32,17 @@ abstract class CatalogDatabase : RoomDatabase() {
 
         fun create(context: Context): CatalogDatabase {
             return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    CatalogDatabase::class.java,
-                    DATABASE_NAME,
-                )
-                    .createFromAsset(ASSET_PATH)
-                    .fallbackToDestructiveMigration()
-                    .build()
-                    .also { INSTANCE = it }
+                INSTANCE ?: PerfTrace.section("CatalogDatabase.create") {
+                    Room.databaseBuilder(
+                        context.applicationContext,
+                        CatalogDatabase::class.java,
+                        DATABASE_NAME,
+                    )
+                        .createFromAsset(ASSET_PATH)
+                        .fallbackToDestructiveMigration()
+                        .build()
+                        .also { INSTANCE = it }
+                }
             }
         }
     }

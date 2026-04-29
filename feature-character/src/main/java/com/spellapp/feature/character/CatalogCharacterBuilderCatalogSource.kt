@@ -3,6 +3,7 @@ package com.spellapp.feature.character
 import com.spellapp.core.data.local.CatalogBuilderAssetEntity
 import com.spellapp.core.data.local.CatalogDao
 import com.spellapp.core.data.local.CatalogRecordTextRow
+import com.spellapp.core.data.PerfTrace
 import com.spellapp.core.model.AbilityScore
 import com.spellapp.core.model.normalizeClassId
 import kotlinx.coroutines.Dispatchers
@@ -26,30 +27,36 @@ class CatalogCharacterBuilderCatalogSource(
 
     override suspend fun loadCatalog(): CharacterBuilderCatalogResult {
         cachedResult?.let { return it }
-        return withContext(Dispatchers.IO) {
-            val loaded = loadCatalogResult()
-            synchronized(this@CatalogCharacterBuilderCatalogSource) {
-                cachedResult ?: loaded.also { cachedResult = it }
+        return PerfTrace.suspendSection("CatalogCharacterBuilderCatalogSource.loadCatalog") {
+            withContext(Dispatchers.IO) {
+                val loaded = loadCatalogResult()
+                synchronized(this@CatalogCharacterBuilderCatalogSource) {
+                    cachedResult ?: loaded.also { cachedResult = it }
+                }
             }
         }
     }
 
     override suspend fun loadAvailableSourceTitles(): List<String> {
         cachedSourceTitles?.let { return it }
-        return withContext(Dispatchers.IO) {
-            val loaded = catalogDao.getAvailableBuilderSourceTitles()
-            synchronized(this@CatalogCharacterBuilderCatalogSource) {
-                cachedSourceTitles ?: loaded.also { cachedSourceTitles = it }
+        return PerfTrace.suspendSection("CatalogCharacterBuilderCatalogSource.sourceTitles") {
+            withContext(Dispatchers.IO) {
+                val loaded = catalogDao.getAvailableBuilderSourceTitles()
+                synchronized(this@CatalogCharacterBuilderCatalogSource) {
+                    cachedSourceTitles ?: loaded.also { cachedSourceTitles = it }
+                }
             }
         }
     }
 
     override suspend fun loadFeatRecords(): List<BuilderFeatRecord> {
         cachedFeatRecords?.let { return it }
-        return withContext(Dispatchers.IO) {
-            val loaded = loadFeatRecordsResult()
-            synchronized(this@CatalogCharacterBuilderCatalogSource) {
-                cachedFeatRecords ?: loaded.also { cachedFeatRecords = it }
+        return PerfTrace.suspendSection("CatalogCharacterBuilderCatalogSource.loadFeatRecords") {
+            withContext(Dispatchers.IO) {
+                val loaded = loadFeatRecordsResult()
+                synchronized(this@CatalogCharacterBuilderCatalogSource) {
+                    cachedFeatRecords ?: loaded.also { cachedFeatRecords = it }
+                }
             }
         }
     }
@@ -132,24 +139,28 @@ class CatalogCharacterBuilderCatalogSource(
     }
 
     private suspend fun loadAssets(names: List<String>): Map<String, LoadedBuilderAsset> {
-        val rows = catalogDao.getCatalogBuilderAssets(names)
-        val byName = rows.associateBy { row -> row.name }
-        val missing = names.filterNot(byName::containsKey)
-        if (missing.isNotEmpty()) {
-            error("Catalog builder assets are missing: ${missing.joinToString()}")
+        return PerfTrace.suspendSection("CatalogCharacterBuilderCatalogSource.loadAssets count=${names.size}") {
+            val rows = catalogDao.getCatalogBuilderAssets(names)
+            val byName = rows.associateBy { row -> row.name }
+            val missing = names.filterNot(byName::containsKey)
+            if (missing.isNotEmpty()) {
+                error("Catalog builder assets are missing: ${missing.joinToString()}")
+            }
+            byName.mapValues { (_, row) -> LoadedBuilderAsset(row.name, row.payloadJsonObject()) }
         }
-        return byName.mapValues { (_, row) -> LoadedBuilderAsset(row.name, row.payloadJsonObject()) }
     }
 
     private suspend fun loadDescriptions(assets: Collection<LoadedBuilderAsset>): Map<String, String> {
-        val recordIds = assets
-            .flatMap { asset -> asset.root.catalogRecordIds() }
-            .distinct()
-        if (recordIds.isEmpty()) return emptyMap()
-        return recordIds
-            .chunked(SQLITE_BIND_CHUNK_SIZE)
-            .flatMap { chunk -> catalogDao.getCatalogRecordTexts(chunk) }
-            .associate { row -> row.id to row.detailText }
+        return PerfTrace.suspendSection("CatalogCharacterBuilderCatalogSource.loadDescriptions") {
+            val recordIds = assets
+                .flatMap { asset -> asset.root.catalogRecordIds() }
+                .distinct()
+            if (recordIds.isEmpty()) return@suspendSection emptyMap()
+            recordIds
+                .chunked(SQLITE_BIND_CHUNK_SIZE)
+                .flatMap { chunk -> catalogDao.getCatalogRecordTexts(chunk) }
+                .associate { row -> row.id to row.detailText }
+        }
     }
 
     private companion object {

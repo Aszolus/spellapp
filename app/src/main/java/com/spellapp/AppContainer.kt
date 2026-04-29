@@ -5,6 +5,7 @@ import com.spellapp.core.data.AcceptedSpellSourceRepository
 import com.spellapp.core.data.CharacterRepository
 import com.spellapp.core.data.CatalogRecordRepository
 import com.spellapp.core.data.KnownSpellRepository
+import com.spellapp.core.data.PerfTrace
 import com.spellapp.core.data.RulesReferenceRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.data.SpellRulesTextRepository
@@ -39,11 +40,15 @@ class AppContainer(
 ) {
     private val appContext = context.applicationContext
     private val spellDatabase: SpellDatabase by lazy {
-        SpellDatabase.create(appContext)
+        PerfTrace.section("AppContainer.spellDatabase") {
+            SpellDatabase.create(appContext)
+        }
     }
 
     private val catalogDatabase: CatalogDatabase by lazy {
-        CatalogDatabase.create(appContext)
+        PerfTrace.section("AppContainer.catalogDatabase") {
+            CatalogDatabase.create(appContext)
+        }
     }
 
     private val legacySpellRepository: RoomSpellRepository by lazy {
@@ -175,13 +180,15 @@ class AppContainer(
     }
 
     suspend fun seedSpellsIfNeeded() {
-        if (catalogSpellRepository.isAvailable()) {
-            return
+        PerfTrace.suspendSection("AppContainer.seedSpellsIfNeeded") {
+            if (catalogSpellRepository.isAvailable()) {
+                return@suspendSection
+            }
+            val datasetJson = appContext.assets
+                .open("spells.normalized.json")
+                .bufferedReader()
+                .use { it.readText() }
+            spellRepository.seedFromDatasetIfEmpty(datasetJson)
         }
-        val datasetJson = appContext.assets
-            .open("spells.normalized.json")
-            .bufferedReader()
-            .use { it.readText() }
-        spellRepository.seedFromDatasetIfEmpty(datasetJson)
     }
 }

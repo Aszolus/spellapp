@@ -3,6 +3,7 @@ package com.spellapp.feature.spells
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.spellapp.core.data.PerfTrace
 import com.spellapp.core.data.RulesReferenceRepository
 import com.spellapp.core.data.SpellRepository
 import com.spellapp.core.data.SpellRulesTextRepository
@@ -61,76 +62,78 @@ class SpellDetailViewModel(
 
     private fun loadSpellDetail() {
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    spell = null,
-                    isLoading = true,
-                    traitLookups = emptyList(),
-                    rulesDocument = RulesTextDocument(),
-                    heightenedEntryDocuments = emptyList(),
-                    referenceLookups = emptyMap(),
-                )
-            }
-            val spell = spellRepository.getSpellDetail(spellId)
-            val spellRank = spell?.let { detail ->
-                _uiState.value.heightenedAt ?: detail.rank.takeIf { it > 0 } ?: 1
-            }
-            val parsedRulesText = if (spell != null) {
-                spellRulesTextRepository.getSpellRulesText(
-                    spellId = spellId,
-                    spellRank = spellRank,
-                )
-                    ?: RulesTextDocument.fromPlainText(spell.description)
-            } else {
-                RulesTextDocument()
-            }
-            val heightenedEntryDocuments = if (spell != null) {
-                spellRulesTextRepository.getSpellHeightenedRulesText(
-                    spellId = spellId,
-                    spellRank = spellRank,
-                )
-            } else {
-                emptyList()
-            }
-            val lookupEntries = if (spell != null) {
-                val keys = buildSet {
-                    spell.traits.forEach { trait ->
-                        add(TraitReferenceKey.fromSlug(trait))
-                    }
-                    addAll(parsedRulesText.referenceKeys())
-                    heightenedEntryDocuments.forEach { document ->
-                        addAll(document.referenceKeys())
-                    }
+            PerfTrace.suspendSection("SpellDetailViewModel.load $spellId") {
+                _uiState.update {
+                    it.copy(
+                        spell = null,
+                        isLoading = true,
+                        traitLookups = emptyList(),
+                        rulesDocument = RulesTextDocument(),
+                        heightenedEntryDocuments = emptyList(),
+                        referenceLookups = emptyMap(),
+                    )
                 }
-                rulesReferenceRepository.getEntries(keys)
-            } else {
-                emptyMap()
-            }
-            _uiState.update {
-                it.copy(
-                    spell = spell,
-                    isLoading = false,
-                    traitLookups = spell?.traits.orEmpty().map { trait ->
-                        val key = TraitReferenceKey.fromSlug(trait)
-                        val entry = lookupEntries[key]
-                        SpellTraitLookupUiState(
-                            label = entry?.label ?: trait.toDisplayLabel(),
-                            document = entry?.document,
-                        )
-                    },
-                    rulesDocument = parsedRulesText,
-                    heightenedEntryDocuments = heightenedEntryDocuments,
-                    referenceLookups = lookupEntries
-                        .filterKeys { it is CompendiumReferenceKey }
-                        .mapValues { (key, entry) ->
-                            SpellReferenceLookupUiState(
-                                key = key,
-                                category = entry.key.category,
-                                label = entry.label,
-                                document = entry.document,
+                val spell = spellRepository.getSpellDetail(spellId)
+                val spellRank = spell?.let { detail ->
+                    _uiState.value.heightenedAt ?: detail.rank.takeIf { it > 0 } ?: 1
+                }
+                val parsedRulesText = if (spell != null) {
+                    spellRulesTextRepository.getSpellRulesText(
+                        spellId = spellId,
+                        spellRank = spellRank,
+                    )
+                        ?: RulesTextDocument.fromPlainText(spell.description)
+                } else {
+                    RulesTextDocument()
+                }
+                val heightenedEntryDocuments = if (spell != null) {
+                    spellRulesTextRepository.getSpellHeightenedRulesText(
+                        spellId = spellId,
+                        spellRank = spellRank,
+                    )
+                } else {
+                    emptyList()
+                }
+                val lookupEntries = if (spell != null) {
+                    val keys = buildSet {
+                        spell.traits.forEach { trait ->
+                            add(TraitReferenceKey.fromSlug(trait))
+                        }
+                        addAll(parsedRulesText.referenceKeys())
+                        heightenedEntryDocuments.forEach { document ->
+                            addAll(document.referenceKeys())
+                        }
+                    }
+                    rulesReferenceRepository.getEntries(keys)
+                } else {
+                    emptyMap()
+                }
+                _uiState.update {
+                    it.copy(
+                        spell = spell,
+                        isLoading = false,
+                        traitLookups = spell?.traits.orEmpty().map { trait ->
+                            val key = TraitReferenceKey.fromSlug(trait)
+                            val entry = lookupEntries[key]
+                            SpellTraitLookupUiState(
+                                label = entry?.label ?: trait.toDisplayLabel(),
+                                document = entry?.document,
                             )
                         },
-                )
+                        rulesDocument = parsedRulesText,
+                        heightenedEntryDocuments = heightenedEntryDocuments,
+                        referenceLookups = lookupEntries
+                            .filterKeys { it is CompendiumReferenceKey }
+                            .mapValues { (key, entry) ->
+                                SpellReferenceLookupUiState(
+                                    key = key,
+                                    category = entry.key.category,
+                                    label = entry.label,
+                                    document = entry.document,
+                                )
+                            },
+                    )
+                }
             }
         }
     }
