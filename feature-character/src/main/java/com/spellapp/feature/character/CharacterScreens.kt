@@ -61,6 +61,8 @@ private val coreSpellSourceBooks = setOf(
 @Composable
 fun CharacterListRoute(
     characters: List<CharacterProfile>,
+    isLoading: Boolean,
+    loadError: String?,
     onAddCharacter: () -> Unit,
     onEditCharacter: (CharacterProfile) -> Unit,
     onDeleteCharacter: (CharacterProfile) -> Unit,
@@ -80,6 +82,44 @@ fun CharacterListRoute(
             )
         },
     ) { innerPadding ->
+        if (isLoading) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "Loading characters...",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+            return@Scaffold
+        }
+
+        if (loadError != null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "Characters could not be loaded.",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Text(
+                    text = loadError,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            return@Scaffold
+        }
+
         if (characters.isEmpty()) {
             Column(
                 modifier = Modifier

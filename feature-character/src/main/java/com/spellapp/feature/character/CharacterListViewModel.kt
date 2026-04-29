@@ -4,38 +4,89 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.spellapp.core.data.CharacterCrudRepository
+import com.spellapp.core.data.PerfTrace
 import com.spellapp.core.model.CharacterProfile
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class CharacterListUiState(
     val characters: List<CharacterProfile> = emptyList(),
+    val isLoading: Boolean = true,
+    val loadError: String? = null,
 )
 
 class CharacterListViewModel(
-    private val characterCrudRepository: CharacterCrudRepository,
+    private val characterCrudRepositoryProvider: () -> CharacterCrudRepository,
 ) : ViewModel() {
-    val uiState = characterCrudRepository.observeCharacters()
-        .map { characters ->
-            CharacterListUiState(characters = characters)
+    private val _uiState = MutableStateFlow(CharacterListUiState())
+    val uiState: StateFlow<CharacterListUiState> = _uiState.asStateFlow()
+
+    @Volatile
+    private var characterCrudRepository: CharacterCrudRepository? = null
+
+    init {
+        viewModelScope.launch {
+            runCatching {
+                PerfTrace.suspendSection("CharacterListViewModel.observeCharacters") {
+                    val repository = withContext(Dispatchers.IO) {
+                        characterCrudRepositoryProvider().also { loaded ->
+                            characterCrudRepository = loaded
+                        }
+                    }
+                    PerfTrace.firstEmission(
+                        name = "CharacterListViewModel.characters",
+                        source = repository.observeCharacters(),
+                        sizeOf = List<CharacterProfile>::size,
+                    )
+                        .catch { error ->
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    loadError = error.message ?: "Characters could not be loaded.",
+                                )
+                            }
+                        }
+                        .collect { characters ->
+                            _uiState.update {
+                                it.copy(
+                                    characters = characters,
+                                    isLoading = false,
+                                    loadError = null,
+                                )
+                            }
+                        }
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        loadError = error.message ?: "Characters could not be loaded.",
+                    )
+                }
+            }
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = CharacterListUiState(),
-        )
+    }
 
     fun deleteCharacter(characterId: Long) {
         viewModelScope.launch {
-            characterCrudRepository.deleteCharacter(characterId)
+            val repository = withContext(Dispatchers.IO) {
+                characterCrudRepository ?: characterCrudRepositoryProvider().also { loaded ->
+                    characterCrudRepository = loaded
+                }
+            }
+            repository.deleteCharacter(characterId)
         }
     }
 }
 
 class CharacterListViewModelFactory(
-    private val characterCrudRepository: CharacterCrudRepository,
+    private val characterCrudRepositoryProvider: () -> CharacterCrudRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -43,7 +94,7 @@ class CharacterListViewModelFactory(
             throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
         }
         return CharacterListViewModel(
-            characterCrudRepository = characterCrudRepository,
+            characterCrudRepositoryProvider = characterCrudRepositoryProvider,
         ) as T
     }
 }

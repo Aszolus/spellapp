@@ -84,6 +84,8 @@ private fun NavGraphBuilder.characterListDestination(
         val characterListUiState by characterListViewModel.uiState.collectAsState()
         CharacterListRoute(
             characters = characterListUiState.characters,
+            isLoading = characterListUiState.isLoading,
+            loadError = characterListUiState.loadError,
             onAddCharacter = {
                 navController.navigate(AppDestinations.CharacterBuilder.routeFor(0L))
             },

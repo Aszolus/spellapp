@@ -58,7 +58,7 @@ class AppCharacterFeatureFactoryProvider(
 ) : CharacterFeatureFactoryProvider {
     override fun characterListFactory(): ViewModelProvider.Factory {
         return CharacterListViewModelFactory(
-            characterCrudRepository = characterCrudRepositoryProvider(),
+            characterCrudRepositoryProvider = characterCrudRepositoryProvider,
         )
     }
 
