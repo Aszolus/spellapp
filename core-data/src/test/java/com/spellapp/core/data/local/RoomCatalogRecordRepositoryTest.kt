@@ -227,4 +227,8 @@ private class RecordingCatalogRecordDao(
     ): Flow<List<SpellListItem>> = emptyFlow()
 
     override suspend fun getSpellDetail(spellId: String): CatalogSpellDetailRow? = null
+
+    override suspend fun getSpellDetails(spellIds: List<String>): List<CatalogSpellDetailRow> = emptyList()
+
+    override suspend fun getSpellRanks(spellIds: List<String>): List<SpellRankRow> = emptyList()
 }

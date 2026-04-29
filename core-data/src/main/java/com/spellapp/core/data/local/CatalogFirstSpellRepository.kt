@@ -39,6 +39,26 @@ class CatalogFirstSpellRepository(
             ?: fallbackRepository.getSpellDetail(spellId)
     }
 
+    override suspend fun getSpellDetails(spellIds: Collection<String>): Map<String, SpellDetail> {
+        val distinctIds = spellIds.map(String::trim).filter(String::isNotBlank).distinct()
+        if (distinctIds.isEmpty()) return emptyMap()
+        val catalogDetails = runCatching { catalogRepository.getSpellDetails(distinctIds) }
+            .getOrDefault(emptyMap())
+        val missingIds = distinctIds.filterNot { id -> id in catalogDetails }
+        if (missingIds.isEmpty()) return catalogDetails
+        return catalogDetails + fallbackRepository.getSpellDetails(missingIds)
+    }
+
+    override suspend fun getSpellRanks(spellIds: Collection<String>): Map<String, Int> {
+        val distinctIds = spellIds.map(String::trim).filter(String::isNotBlank).distinct()
+        if (distinctIds.isEmpty()) return emptyMap()
+        val catalogRanks = runCatching { catalogRepository.getSpellRanks(distinctIds) }
+            .getOrDefault(emptyMap())
+        val missingIds = distinctIds.filterNot { id -> id in catalogRanks }
+        if (missingIds.isEmpty()) return catalogRanks
+        return catalogRanks + fallbackRepository.getSpellRanks(missingIds)
+    }
+
     override suspend fun seedFromDatasetIfEmpty(datasetJson: String) {
         if (!isCatalogAvailable()) {
             fallbackRepository.seedFromDatasetIfEmpty(datasetJson)

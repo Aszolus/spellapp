@@ -42,39 +42,74 @@ class CatalogSpellRepository(
 
     override suspend fun getSpellDetail(spellId: String): SpellDetail? {
         val row = catalogDao.getSpellDetail(spellId) ?: return null
-        val heightenedEntries = HeightenedDescriptionParser.parse(
-            descriptionRaw = null,
-            description = row.description,
-        )
-        return SpellDetail(
-            id = row.id,
-            name = row.name,
-            rank = row.rank,
-            tradition = row.traditionSummary,
-            rarity = row.rarity,
-            traits = row.traitsCsv.split(',')
-                .map { it.trim() }
-                .filter { it.isNotBlank() },
-            castTime = row.castTime,
-            range = row.rangeText,
-            area = row.areaText.orEmpty(),
-            target = row.targetText,
-            defense = row.defenseText.orEmpty(),
-            duration = row.durationText,
-            description = row.description,
-            license = row.license,
-            sourceBook = row.sourceBook,
-            sourcePage = row.sourcePageText?.toIntOrNull(),
-            heightenedEntries = heightenedEntries,
-        )
+        return row.toSpellDetail()
+    }
+
+    override suspend fun getSpellDetails(spellIds: Collection<String>): Map<String, SpellDetail> {
+        val ids = spellIds.asSequence()
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+            .toList()
+        return buildMap {
+            ids.chunked(SQLITE_BIND_LIMIT).forEach { chunk ->
+                catalogDao.getSpellDetails(chunk).forEach { row ->
+                    put(row.id, row.toSpellDetail())
+                }
+            }
+        }
+    }
+
+    override suspend fun getSpellRanks(spellIds: Collection<String>): Map<String, Int> {
+        val ids = spellIds.asSequence()
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+            .toList()
+        return buildMap {
+            ids.chunked(SQLITE_BIND_LIMIT).forEach { chunk ->
+                catalogDao.getSpellRanks(chunk).forEach { row ->
+                    put(row.id, row.rank)
+                }
+            }
+        }
     }
 
     override suspend fun seedFromDatasetIfEmpty(datasetJson: String) {
         // The catalog DB is prebuilt. Seeding remains only for the legacy fallback repository.
     }
 
+    private fun CatalogSpellDetailRow.toSpellDetail(): SpellDetail {
+        val heightenedEntries = HeightenedDescriptionParser.parse(
+            descriptionRaw = null,
+            description = description,
+        )
+        return SpellDetail(
+            id = id,
+            name = name,
+            rank = rank,
+            tradition = traditionSummary,
+            rarity = rarity,
+            traits = traitsCsv.split(',')
+                .map { it.trim() }
+                .filter { it.isNotBlank() },
+            castTime = castTime,
+            range = rangeText,
+            area = areaText.orEmpty(),
+            target = targetText,
+            defense = defenseText.orEmpty(),
+            duration = durationText,
+            description = description,
+            license = license,
+            sourceBook = sourceBook,
+            sourcePage = sourcePageText?.toIntOrNull(),
+            heightenedEntries = heightenedEntries,
+        )
+    }
+
     private companion object {
         private const val CATALOG_SCHEMA_VERSION_KEY = "catalog_schema_version"
         private const val SUPPORTED_CATALOG_SCHEMA_VERSION = 1
+        private const val SQLITE_BIND_LIMIT = 900
     }
 }

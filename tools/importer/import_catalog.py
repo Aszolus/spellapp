@@ -28,7 +28,7 @@ from import_builder_catalog import (
 
 
 CATALOG_SCHEMA_VERSION = 1
-CATALOG_ROOM_DATABASE_VERSION = 2
+CATALOG_ROOM_DATABASE_VERSION = 3
 DEFAULT_WARN_SIZE_BYTES = 40 * 1024 * 1024
 DEFAULT_MAX_SIZE_BYTES = 80 * 1024 * 1024
 
@@ -836,6 +836,21 @@ def create_catalog_db(
                 relative_path TEXT NOT NULL
             );
 
+            CREATE TABLE catalog_record_summaries (
+                id TEXT PRIMARY KEY NOT NULL,
+                uuid TEXT,
+                pack_name TEXT NOT NULL,
+                record_type TEXT NOT NULL,
+                category TEXT,
+                name TEXT NOT NULL,
+                level INTEGER,
+                rarity TEXT,
+                source_title TEXT,
+                image_path TEXT,
+                image_missing INTEGER NOT NULL,
+                automation_status TEXT NOT NULL
+            );
+
             CREATE TABLE catalog_spell_index (
                 record_id TEXT PRIMARY KEY NOT NULL,
                 spell_id TEXT NOT NULL,
@@ -848,6 +863,19 @@ def create_catalog_db(
                 duration_text TEXT NOT NULL,
                 area_text TEXT,
                 defense_text TEXT
+            );
+
+            CREATE TABLE catalog_spell_list (
+                spell_id TEXT PRIMARY KEY NOT NULL,
+                record_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                rank INTEGER NOT NULL,
+                traditions_csv TEXT NOT NULL,
+                tradition_summary TEXT NOT NULL,
+                traits_csv TEXT NOT NULL,
+                rarity TEXT NOT NULL,
+                source_book TEXT NOT NULL,
+                is_cantrip INTEGER NOT NULL
             );
 
             CREATE TABLE catalog_builder_assets (
@@ -904,16 +932,10 @@ def create_catalog_db(
                 detail_json TEXT NOT NULL
             );
 
-            CREATE INDEX index_catalog_records_name ON catalog_records(name);
-            CREATE INDEX index_catalog_records_type_name ON catalog_records(record_type, name);
-            CREATE INDEX index_catalog_records_pack_name ON catalog_records(pack_name, name);
-            CREATE INDEX index_catalog_records_category_name ON catalog_records(category, name);
-            CREATE INDEX index_catalog_records_level ON catalog_records(level);
-            CREATE INDEX index_catalog_records_automation ON catalog_records(automation_status);
+            CREATE INDEX index_catalog_record_summaries_type_name ON catalog_record_summaries(record_type, name);
+            CREATE INDEX index_catalog_record_summaries_level_name ON catalog_record_summaries(level, name);
             CREATE INDEX index_catalog_spell_index_spell_id ON catalog_spell_index(spell_id);
-            CREATE INDEX index_catalog_spell_index_rank ON catalog_spell_index(rank);
-            CREATE INDEX index_catalog_spell_index_traditions ON catalog_spell_index(traditions_csv);
-            CREATE INDEX index_catalog_spell_index_traits ON catalog_spell_index(traits_csv);
+            CREATE INDEX index_catalog_spell_list_rank_name ON catalog_spell_list(rank, name);
             CREATE INDEX index_catalog_builder_assets_type_category ON catalog_builder_assets(builder_type, category);
             CREATE INDEX index_catalog_links_from_record_id ON catalog_links(from_record_id);
             CREATE INDEX index_catalog_links_to_record_id ON catalog_links(to_record_id);
@@ -955,6 +977,31 @@ def create_catalog_db(
                     gzip.compress(record["rawJson"].encode("utf-8")),
                     record["normalizedJson"],
                     record["relativePath"],
+                )
+                for record in records
+            ],
+        )
+        connection.executemany(
+            """
+            INSERT INTO catalog_record_summaries(
+                id, uuid, pack_name, record_type, category, name, level, rarity,
+                source_title, image_path, image_missing, automation_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    record["id"],
+                    record["uuidAliases"][0] if record["uuidAliases"] else None,
+                    record["packName"],
+                    record["recordType"],
+                    record["category"],
+                    record["name"],
+                    record["level"],
+                    record["rarity"],
+                    record["sourceTitle"],
+                    record["imagePath"],
+                    record["imageMissing"],
+                    record["automationStatus"],
                 )
                 for record in records
             ],
@@ -1010,6 +1057,31 @@ def create_catalog_db(
                     spell["durationText"],
                     spell["areaText"],
                     spell["defenseText"],
+                )
+                for record in records
+                for spell in [record.get("spellIndex")]
+                if spell is not None
+            ],
+        )
+        connection.executemany(
+            """
+            INSERT INTO catalog_spell_list(
+                spell_id, record_id, name, rank, traditions_csv, tradition_summary,
+                traits_csv, rarity, source_book, is_cantrip
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    spell["spellId"],
+                    spell["recordId"],
+                    record["name"],
+                    spell["rank"],
+                    spell["traditionsCsv"],
+                    spell["traditionsCsv"].replace(",", ", "),
+                    spell["traitsCsv"],
+                    record["rarity"] or "",
+                    record["sourceTitle"] or "",
+                    int(spell["rank"] == 0),
                 )
                 for record in records
                 for spell in [record.get("spellIndex")]

@@ -23,9 +23,10 @@ class ToggleKnownSpellUseCase(
             return null
         }
 
+        val detailsById = spellRepository.getSpellDetails(unknownSpellIds)
         val warnedSpellNames = buildList {
             unknownSpellIds.forEach { spellId ->
-                val detail = spellRepository.getSpellDetail(spellId) ?: return@forEach
+                val detail = detailsById[spellId] ?: return@forEach
                 val warning = warningPolicy.warningFor(
                     detail = detail,
                     preferredTradition = mode.preferredTradition,

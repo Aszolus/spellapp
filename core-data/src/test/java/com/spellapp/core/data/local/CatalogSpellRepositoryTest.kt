@@ -150,6 +150,12 @@ private class RecordingCatalogDao(
     ): Flow<List<SpellListItem>> = flowOf(spellList)
 
     override suspend fun getSpellDetail(spellId: String): CatalogSpellDetailRow? = detailRow
+
+    override suspend fun getSpellDetails(spellIds: List<String>): List<CatalogSpellDetailRow> =
+        listOfNotNull(detailRow)
+
+    override suspend fun getSpellRanks(spellIds: List<String>): List<SpellRankRow> =
+        detailRow?.let { listOf(SpellRankRow(id = it.id, rank = it.rank)) }.orEmpty()
 }
 
 private class RecordingSpellRepository(

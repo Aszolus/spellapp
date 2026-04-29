@@ -35,26 +35,60 @@ class RoomSpellRepository(
 
     override suspend fun getSpellDetail(spellId: String): SpellDetail? {
         val entity = spellDao.getSpellById(spellId) ?: return null
+        return entity.toSpellDetail()
+    }
+
+    override suspend fun getSpellDetails(spellIds: Collection<String>): Map<String, SpellDetail> {
+        val ids = spellIds.asSequence()
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+            .toList()
+        return buildMap {
+            ids.chunked(SQLITE_BIND_LIMIT).forEach { chunk ->
+                spellDao.getSpellsByIds(chunk).forEach { entity ->
+                    put(entity.id, entity.toSpellDetail())
+                }
+            }
+        }
+    }
+
+    override suspend fun getSpellRanks(spellIds: Collection<String>): Map<String, Int> {
+        val ids = spellIds.asSequence()
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+            .toList()
+        return buildMap {
+            ids.chunked(SQLITE_BIND_LIMIT).forEach { chunk ->
+                spellDao.getSpellRanks(chunk).forEach { row ->
+                    put(row.id, row.rank)
+                }
+            }
+        }
+    }
+
+    private fun SpellEntity.toSpellDetail(): SpellDetail {
         return SpellDetail(
-            id = entity.id,
-            name = entity.name,
-            rank = entity.rank,
-            tradition = entity.traditionSummary,
-            rarity = entity.rarity,
-            traits = entity.traitsCsv.split(',')
+            id = id,
+            name = name,
+            rank = rank,
+            tradition = traditionSummary,
+            rarity = rarity,
+            traits = traitsCsv.split(',')
                 .map { it.trim() }
                 .filter { it.isNotBlank() },
-            castTime = entity.castTime,
-            range = entity.rangeText,
-            area = entity.areaText.orEmpty(),
-            target = entity.targetText,
-            defense = entity.defenseText.orEmpty(),
-            duration = entity.durationText,
-            description = entity.description,
-            license = entity.license,
-            sourceBook = entity.sourceBook,
-            sourcePage = entity.sourcePage,
-            heightenedEntries = HeightenedEntryCodec.decode(entity.heightenedEntriesJson),
+            castTime = castTime,
+            range = rangeText,
+            area = areaText.orEmpty(),
+            target = targetText,
+            defense = defenseText.orEmpty(),
+            duration = durationText,
+            description = description,
+            license = license,
+            sourceBook = sourceBook,
+            sourcePage = sourcePage,
+            heightenedEntries = HeightenedEntryCodec.decode(heightenedEntriesJson),
         )
     }
 
@@ -112,6 +146,7 @@ class RoomSpellRepository(
 }
 
 private const val CLEAR_MIND_SPELL_ID = "clear-mind"
+private const val SQLITE_BIND_LIMIT = 900
 private val CLEAR_MIND_BARE_UUID_REPAIR_MARKERS = listOf(
     "Add , , and",
     "plus add .",

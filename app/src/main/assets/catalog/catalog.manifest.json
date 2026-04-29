@@ -86,7 +86,7 @@
     "maxSizeBytes": 83886080,
     "rawPayloadEncoding": "omitted_from_runtime_db",
     "relativePath": "catalog.db",
-    "sizeBytes": 41390080,
+    "sizeBytes": 45940736,
     "warnSizeBytes": 41943040
   },
   "deprecatedDatasetScripts": [
@@ -377,7 +377,7 @@
   "pf2e_system_id": "pf2e",
   "pf2e_system_version": "8.0.2",
   "runtimeDatabase": {
-    "catalogRoomDatabaseVersion": 2,
+    "catalogRoomDatabaseVersion": 3,
     "fileName": "catalog.db",
     "omittedPayloads": [
       "raw_json_gzip",
@@ -388,7 +388,7 @@
     ],
     "profile": "android_compact",
     "relativePath": "catalog.db",
-    "sizeBytes": 41390080
+    "sizeBytes": 45940736
   },
   "source_commit": "cd1f3cac4b960b726b846e4b280151de13f43fd5",
   "strict_references": false,

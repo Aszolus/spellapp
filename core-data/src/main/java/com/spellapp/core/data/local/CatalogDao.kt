@@ -16,7 +16,7 @@ interface CatalogDao {
     @Query(
         """
         SELECT DISTINCT COALESCE(source_title, '')
-        FROM catalog_records
+        FROM catalog_record_summaries
         WHERE TRIM(COALESCE(source_title, '')) != ''
           AND pack_name IN (
               'classes',
@@ -71,17 +71,16 @@ interface CatalogDao {
             image_path AS imagePath,
             image_missing AS imageMissing,
             automation_status AS automationStatus
-        FROM catalog_records
+        FROM catalog_record_summaries
         WHERE (:recordType = '' OR record_type = :recordType)
           AND (:category = '' OR COALESCE(category, '') = :category)
-          AND (:query = '' OR name LIKE '%' || :query || '%' OR detail_text LIKE '%' || :query || '%')
+          AND (:query = '' OR name LIKE '%' || :query || '%')
           AND (:sourceTitle = '' OR COALESCE(source_title, '') = :sourceTitle)
           AND (:rarity = '' OR LOWER(COALESCE(rarity, '')) = LOWER(:rarity))
           AND (:maxLevel IS NULL OR level IS NULL OR level <= :maxLevel)
         ORDER BY
-            CASE WHEN level IS NULL THEN 0 ELSE 1 END ASC,
             level ASC,
-            name COLLATE NOCASE ASC
+            name ASC
         LIMIT :limit
         """,
     )
@@ -195,17 +194,16 @@ interface CatalogDao {
 
     @Query(
         """
-        SELECT DISTINCT COALESCE(r.source_title, '') FROM catalog_spell_index s
-        INNER JOIN catalog_records r ON r.id = s.record_id
-        WHERE TRIM(COALESCE(r.source_title, '')) != ''
-        ORDER BY COALESCE(r.source_title, '') ASC
+        SELECT DISTINCT COALESCE(source_book, '') FROM catalog_spell_list
+        WHERE TRIM(COALESCE(source_book, '')) != ''
+        ORDER BY COALESCE(source_book, '') ASC
         """,
     )
     fun observeAvailableSpellSources(): Flow<List<String>>
 
     @Query(
         """
-        SELECT traits_csv FROM catalog_spell_index
+        SELECT traits_csv FROM catalog_spell_list
         WHERE TRIM(traits_csv) != ''
         """,
     )
@@ -214,33 +212,32 @@ interface CatalogDao {
     @Query(
         """
         SELECT
-            s.spell_id AS id,
-            r.name AS name,
-            s.rank AS rank,
-            REPLACE(s.traditions_csv, ',', ', ') AS tradition,
-            COALESCE(r.rarity, '') AS rarity,
-            COALESCE(r.source_title, '') AS sourceBook,
-            (s.rank = 0) AS isCantrip
-        FROM catalog_spell_index s
-        INNER JOIN catalog_records r ON r.id = s.record_id
-        WHERE (:query = '' OR r.name LIKE '%' || :query || '%')
-          AND (:rank IS NULL OR s.rank = :rank)
+            spell_id AS id,
+            name AS name,
+            rank AS rank,
+            tradition_summary AS tradition,
+            rarity AS rarity,
+            source_book AS sourceBook,
+            is_cantrip AS isCantrip
+        FROM catalog_spell_list
+        WHERE (:query = '' OR name LIKE '%' || :query || '%')
+          AND (:rank IS NULL OR rank = :rank)
           AND (
               :tradition = ''
-              OR LOWER(s.traditions_csv) = LOWER(:tradition)
-              OR LOWER(s.traditions_csv) LIKE LOWER(:tradition) || ',%'
-              OR LOWER(s.traditions_csv) LIKE '%,' || LOWER(:tradition)
-              OR LOWER(s.traditions_csv) LIKE '%,' || LOWER(:tradition) || ',%'
+              OR LOWER(traditions_csv) = LOWER(:tradition)
+              OR LOWER(traditions_csv) LIKE LOWER(:tradition) || ',%'
+              OR LOWER(traditions_csv) LIKE '%,' || LOWER(:tradition)
+              OR LOWER(traditions_csv) LIKE '%,' || LOWER(:tradition) || ',%'
           )
-          AND (:rarity = '' OR LOWER(COALESCE(r.rarity, '')) = LOWER(:rarity))
+          AND (:rarity = '' OR LOWER(COALESCE(rarity, '')) = LOWER(:rarity))
           AND (
               :trait = ''
-              OR LOWER(s.traits_csv) = LOWER(:trait)
-              OR LOWER(s.traits_csv) LIKE LOWER(:trait) || ',%'
-              OR LOWER(s.traits_csv) LIKE '%,' || LOWER(:trait)
-              OR LOWER(s.traits_csv) LIKE '%,' || LOWER(:trait) || ',%'
+              OR LOWER(traits_csv) = LOWER(:trait)
+              OR LOWER(traits_csv) LIKE LOWER(:trait) || ',%'
+              OR LOWER(traits_csv) LIKE '%,' || LOWER(:trait)
+              OR LOWER(traits_csv) LIKE '%,' || LOWER(:trait) || ',%'
           )
-        ORDER BY s.rank ASC, r.name ASC
+        ORDER BY rank ASC, name ASC
         """,
     )
     fun observeSpellList(
@@ -250,6 +247,42 @@ interface CatalogDao {
         rarity: String,
         trait: String,
     ): Flow<List<SpellListItem>>
+
+    @Query(
+        """
+        SELECT spell_id AS id, rank
+        FROM catalog_spell_list
+        WHERE spell_id IN (:spellIds)
+        """,
+    )
+    suspend fun getSpellRanks(spellIds: List<String>): List<SpellRankRow>
+
+    @Query(
+        """
+        SELECT
+            s.spell_id AS id,
+            r.name AS name,
+            s.rank AS rank,
+            s.tradition_summary AS traditionSummary,
+            COALESCE(r.rarity, '') AS rarity,
+            s.traits_csv AS traitsCsv,
+            i.cast_time AS castTime,
+            i.range_text AS rangeText,
+            i.target_text AS targetText,
+            i.duration_text AS durationText,
+            i.area_text AS areaText,
+            i.defense_text AS defenseText,
+            r.detail_text AS description,
+            COALESCE(r.source_license, '') AS license,
+            COALESCE(r.source_title, '') AS sourceBook,
+            r.source_page AS sourcePageText
+        FROM catalog_spell_list s
+        INNER JOIN catalog_spell_index i ON i.record_id = s.record_id
+        INNER JOIN catalog_records r ON r.id = s.record_id
+        WHERE s.spell_id IN (:spellIds)
+        """,
+    )
+    suspend fun getSpellDetails(spellIds: List<String>): List<CatalogSpellDetailRow>
 
     @Query(
         """

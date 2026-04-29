@@ -13,11 +13,10 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private val appContainer by lazy { AppContainer(applicationContext) }
-    private var seedUiState: SeedUiState by mutableStateOf(SeedUiState.Loading)
+    private var seedUiState: SeedUiState by mutableStateOf(SeedUiState.Ready)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        syncSpellData()
         setContent {
             SpellApp(
                 characterFeatureFactoryProvider = appContainer.characterFeatureFactoryProvider,

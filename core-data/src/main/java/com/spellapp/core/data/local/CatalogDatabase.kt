@@ -13,8 +13,10 @@ import androidx.room.RoomDatabase
         CatalogUuidIndexEntity::class,
         CatalogLinkEntity::class,
         CatalogBuilderAssetEntity::class,
+        CatalogRecordSummaryEntity::class,
+        CatalogSpellListEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class CatalogDatabase : RoomDatabase() {

@@ -7,6 +7,7 @@ import com.spellapp.core.data.local.CatalogRecordLinkRow
 import com.spellapp.core.data.local.CatalogRecordSummaryRow
 import com.spellapp.core.data.local.CatalogRecordTextRow
 import com.spellapp.core.data.local.CatalogSpellDetailRow
+import com.spellapp.core.data.local.SpellRankRow
 import com.spellapp.core.model.SpellListItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -170,6 +171,10 @@ private class RecordingCatalogDao(
     ): Flow<List<SpellListItem>> = emptyFlow()
 
     override suspend fun getSpellDetail(spellId: String): CatalogSpellDetailRow? = null
+
+    override suspend fun getSpellDetails(spellIds: List<String>): List<CatalogSpellDetailRow> = emptyList()
+
+    override suspend fun getSpellRanks(spellIds: List<String>): List<SpellRankRow> = emptyList()
 }
 
 private fun sampleDescriptions(): Map<String, String> {

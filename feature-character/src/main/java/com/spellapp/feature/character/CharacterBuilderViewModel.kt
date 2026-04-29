@@ -158,20 +158,13 @@ class CharacterBuilderViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList(),
         )
-    private val classDefinitionsByClass: Map<String, CharacterClassDefinition> =
-        classDefinitionSource.allDefinitions().associateBy { normalizeClassId(it.classId) }
-    private val availableClasses: List<CharacterClassDefinition> =
-        classDefinitionSource.phaseOneDefinitions()
+    private var classDefinitionsByClass: Map<String, CharacterClassDefinition> = emptyMap()
+    private var availableClasses: List<CharacterClassDefinition> = emptyList()
     private var builderCatalog: CharacterBuilderCatalog? = null
     private var builderSourceTitles: List<String> = emptyList()
-    private val archetypeSpellcastingPackages: List<ArchetypeSpellcastingPackage> =
-        archetypeSpellcastingCatalogSource.phaseOnePackages()
-    private val managedArchetypeOptionIds: Set<String> =
-        archetypeSpellcastingCatalogSource.managedOptionIds()
-    private val managedClassChoiceOptionIds: Set<String> =
-        classSpellcastingCatalogSource.managedOptionIds()
-    private val managedBuildOptionIds: Set<String> =
-        managedArchetypeOptionIds + managedClassChoiceOptionIds
+    private var archetypeSpellcastingPackages: List<ArchetypeSpellcastingPackage> = emptyList()
+    private var managedClassChoiceOptionIds: Set<String> = emptySet()
+    private var managedBuildOptionIds: Set<String> = emptySet()
 
     private val _uiState = MutableStateFlow(CharacterBuilderUiState())
     val uiState: StateFlow<CharacterBuilderUiState> = _uiState.asStateFlow()
@@ -613,6 +606,7 @@ class CharacterBuilderViewModel(
     }
 
     private suspend fun loadDraftUnsafe() {
+        loadStaticBuilderData()
         val sources = spellRepository.observeAvailableSources().first()
         builderSourceTitles = characterBuilderCatalogSource.loadAvailableSourceTitles()
         val availableSourceBooks = combinedSourceBooks(sources, builderSourceTitles)
@@ -750,6 +744,28 @@ class CharacterBuilderViewModel(
         )
         initialSnapshot = snapshot(loadedState)
         _uiState.value = loadedState
+    }
+
+    private suspend fun loadStaticBuilderData() {
+        if (classDefinitionsByClass.isNotEmpty() && availableClasses.isNotEmpty()) {
+            return
+        }
+        val loaded = withContext(Dispatchers.IO) {
+            StaticBuilderData(
+                classDefinitionsByClass = classDefinitionSource.allDefinitions()
+                    .associateBy { normalizeClassId(it.classId) },
+                availableClasses = classDefinitionSource.phaseOneDefinitions(),
+                archetypeSpellcastingPackages = archetypeSpellcastingCatalogSource.phaseOnePackages(),
+                managedClassChoiceOptionIds = classSpellcastingCatalogSource.managedOptionIds(),
+                managedBuildOptionIds = archetypeSpellcastingCatalogSource.managedOptionIds() +
+                    classSpellcastingCatalogSource.managedOptionIds(),
+            )
+        }
+        classDefinitionsByClass = loaded.classDefinitionsByClass
+        availableClasses = loaded.availableClasses
+        archetypeSpellcastingPackages = loaded.archetypeSpellcastingPackages
+        managedClassChoiceOptionIds = loaded.managedClassChoiceOptionIds
+        managedBuildOptionIds = loaded.managedBuildOptionIds
     }
 
     private fun ensureFeatDetailsLoaded() {
@@ -1735,6 +1751,14 @@ private fun ArchetypeSpellcastingPackage.optionIdFor(tier: ArchetypeTier): Strin
     ArchetypeTier.EXPERT -> expertSpellcastingOptionId
     ArchetypeTier.MASTER -> masterSpellcastingOptionId
 }
+
+private data class StaticBuilderData(
+    val classDefinitionsByClass: Map<String, CharacterClassDefinition>,
+    val availableClasses: List<CharacterClassDefinition>,
+    val archetypeSpellcastingPackages: List<ArchetypeSpellcastingPackage>,
+    val managedClassChoiceOptionIds: Set<String>,
+    val managedBuildOptionIds: Set<String>,
+)
 
 private fun BuilderPromptSource.optionType(): CharacterBuildOptionType = when (this) {
     BuilderPromptSource.ANCESTRY -> CharacterBuildOptionType.ANCESTRY

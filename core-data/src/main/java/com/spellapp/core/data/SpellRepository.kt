@@ -15,5 +15,13 @@ interface SpellRepository {
         trait: String? = null,
     ): Flow<List<SpellListItem>>
     suspend fun getSpellDetail(spellId: String): SpellDetail?
+    suspend fun getSpellDetails(spellIds: Collection<String>): Map<String, SpellDetail> {
+        return spellIds.distinct()
+            .mapNotNull { spellId -> getSpellDetail(spellId)?.let { detail -> spellId to detail } }
+            .toMap()
+    }
+    suspend fun getSpellRanks(spellIds: Collection<String>): Map<String, Int> {
+        return getSpellDetails(spellIds).mapValues { (_, detail) -> detail.rank }
+    }
     suspend fun seedFromDatasetIfEmpty(datasetJson: String)
 }

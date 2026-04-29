@@ -106,10 +106,13 @@ class SpellListViewModel(
     )
 
     private val knownSpellBaseRanksById = knownSpells.mapLatest { known ->
-        known.mapNotNull { knownSpell ->
-            val rank = knownSpell.knownRank ?: spellRepository.getSpellDetail(knownSpell.spellId)?.rank
-            rank?.let { knownSpell.spellId to it }
+        val storedRanks = known.mapNotNull { knownSpell ->
+            knownSpell.knownRank?.let { rank -> knownSpell.spellId to rank }
         }.toMap()
+        val unresolvedIds = known
+            .filter { knownSpell -> knownSpell.knownRank == null }
+            .map { knownSpell -> knownSpell.spellId }
+        storedRanks + spellRepository.getSpellRanks(unresolvedIds)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.spellapp.core.data.CharacterCrudRepository
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.core.model.normalizeClassId
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -18,25 +20,31 @@ data class CharacterListUiState(
 
 class CharacterListViewModel(
     private val characterCrudRepository: CharacterCrudRepository,
-    classDefinitionSource: CharacterClassDefinitionSource,
+    private val classDefinitionSource: CharacterClassDefinitionSource,
 ) : ViewModel() {
-    private val classDefinitionsByClass: Map<String, CharacterClassDefinition> =
-        classDefinitionSource.allDefinitions().associateBy { normalizeClassId(it.classId) }
+    private val classDefinitionsByClass = MutableStateFlow<Map<String, CharacterClassDefinition>>(emptyMap())
 
-    val uiState = characterCrudRepository.observeCharacters()
-        .map { characters ->
+    val uiState = combine(
+        characterCrudRepository.observeCharacters(),
+        classDefinitionsByClass,
+    ) { characters, definitionsByClass ->
             CharacterListUiState(
                 characters = characters,
-                classDefinitionsByClass = classDefinitionsByClass,
+                classDefinitionsByClass = definitionsByClass,
             )
         }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = CharacterListUiState(
-                classDefinitionsByClass = classDefinitionsByClass,
-            ),
+            initialValue = CharacterListUiState(),
         )
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            classDefinitionsByClass.value = classDefinitionSource.allDefinitions()
+                .associateBy { normalizeClassId(it.classId) }
+        }
+    }
 
     fun deleteCharacter(characterId: Long) {
         viewModelScope.launch {

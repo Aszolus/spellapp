@@ -162,9 +162,7 @@ class PreparedSlotsService(
         ).first()
         if (knownSpellIds.isEmpty()) return
 
-        val filteredSpells = knownSpellIds.mapNotNull { spellId ->
-            spellRepository.getSpellDetail(spellId)
-        }
+        val filteredSpells = spellRepository.getSpellDetails(knownSpellIds).values.toList()
         val preferredTradition = castingTrackRepository.getCastingTracks(characterId)
             .firstOrNull { track -> track.trackKey == trackKey }
             ?.preferredSpellTradition()
@@ -177,7 +175,9 @@ class PreparedSlotsService(
             }
         } ?: filteredSpells
         if (candidateSpells.isEmpty()) return
-        val heightenProgressionBySpellId = mutableMapOf<String, HeightenedProgression>()
+        val heightenProgressionBySpellId = filteredSpells
+            .associate { spell -> spell.id to HeightenedProgression.from(spell.heightenedEntries) }
+            .toMutableMap()
 
         val slotsByRank = emptySlots.groupBy { it.rank }
         for ((slotRank, rankSlots) in slotsByRank) {
@@ -236,18 +236,7 @@ class PreparedSlotsService(
             return cached
         }
         val entries = spellRepository.getSpellDetail(spellId)?.heightenedEntries.orEmpty()
-        val progression = if (entries.isEmpty()) {
-            HeightenedProgression.EMPTY
-        } else {
-            HeightenedProgression(
-                incrementSteps = entries
-                    .mapNotNull { (it.trigger as? HeightenTrigger.Step)?.increment }
-                    .toSet(),
-                absoluteRanks = entries
-                    .mapNotNull { (it.trigger as? HeightenTrigger.Absolute)?.rank }
-                    .toSet(),
-            )
-        }
+        val progression = HeightenedProgression.from(entries)
         heightenProgressionBySpellId[spellId] = progression
         return progression
     }
@@ -275,6 +264,18 @@ class PreparedSlotsService(
                 incrementSteps = emptySet(),
                 absoluteRanks = emptySet(),
             )
+
+            fun from(entries: List<com.spellapp.core.model.HeightenedEntry>): HeightenedProgression {
+                if (entries.isEmpty()) return EMPTY
+                return HeightenedProgression(
+                    incrementSteps = entries
+                        .mapNotNull { (it.trigger as? HeightenTrigger.Step)?.increment }
+                        .toSet(),
+                    absoluteRanks = entries
+                        .mapNotNull { (it.trigger as? HeightenTrigger.Absolute)?.rank }
+                        .toSet(),
+                )
+            }
         }
     }
 }

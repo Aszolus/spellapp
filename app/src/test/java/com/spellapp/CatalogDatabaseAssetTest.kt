@@ -19,7 +19,7 @@ class CatalogDatabaseAssetTest {
         val dao = database.catalogDao()
         assertEquals("1", dao.getMetadataValue("catalog_schema_version"))
         assertEquals("android_compact", dao.getMetadataValue("catalog_runtime_profile"))
-        assertEquals("2", dao.getMetadataValue("catalog_room_database_version"))
+        assertEquals("3", dao.getMetadataValue("catalog_room_database_version"))
         assertTrue(dao.getSpellIndexCount() > 1_000)
         assertEquals("Force Barrage", dao.getSpellDetail("force-barrage")?.name)
         assertTrue(dao.getBuilderAssetCount() >= 12)

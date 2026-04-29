@@ -2,20 +2,9 @@ package com.spellapp.core.data.local
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(
-    tableName = "catalog_records",
-    indices = [
-        Index("name", name = "index_catalog_records_name"),
-        Index("record_type", "name", name = "index_catalog_records_type_name"),
-        Index("pack_name", "name", name = "index_catalog_records_pack_name"),
-        Index("category", "name", name = "index_catalog_records_category_name"),
-        Index("level", name = "index_catalog_records_level"),
-        Index("automation_status", name = "index_catalog_records_automation"),
-    ],
-)
+@Entity(tableName = "catalog_records")
 data class CatalogRecordEntity(
     @PrimaryKey
     @ColumnInfo(name = "id")

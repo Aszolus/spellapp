@@ -56,6 +56,12 @@ interface SpellDao {
     @Query("SELECT * FROM spells WHERE id = :spellId LIMIT 1")
     suspend fun getSpellById(spellId: String): SpellEntity?
 
+    @Query("SELECT * FROM spells WHERE id IN (:spellIds)")
+    suspend fun getSpellsByIds(spellIds: List<String>): List<SpellEntity>
+
+    @Query("SELECT id, rank FROM spells WHERE id IN (:spellIds)")
+    suspend fun getSpellRanks(spellIds: List<String>): List<SpellRankRow>
+
     @Query("SELECT COUNT(*) FROM spells")
     suspend fun getSpellCount(): Int
 

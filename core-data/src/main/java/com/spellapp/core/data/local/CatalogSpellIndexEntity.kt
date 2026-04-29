@@ -9,9 +9,6 @@ import androidx.room.PrimaryKey
     tableName = "catalog_spell_index",
     indices = [
         Index("spell_id", name = "index_catalog_spell_index_spell_id"),
-        Index("rank", name = "index_catalog_spell_index_rank"),
-        Index("traditions_csv", name = "index_catalog_spell_index_traditions"),
-        Index("traits_csv", name = "index_catalog_spell_index_traits"),
     ],
 )
 data class CatalogSpellIndexEntity(

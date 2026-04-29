@@ -70,9 +70,9 @@ class SpellcastingSupportService(
     }
 
     suspend fun resolveSpellSummaries(spellIds: Set<String>): Map<String, SpellSlotSummary> {
-        return spellIds.mapNotNull { spellId ->
-            spellRepository.getSpellDetail(spellId)?.let { detail ->
-                spellId to SpellSlotSummary(
+        return spellRepository.getSpellDetails(spellIds)
+            .mapValues { (_, detail) ->
+                SpellSlotSummary(
                     spellId = detail.id,
                     name = detail.name,
                     rank = detail.rank,
@@ -87,7 +87,6 @@ class SpellcastingSupportService(
                     heightenedEntries = detail.heightenedEntries,
                 )
             }
-        }.toMap()
     }
 
     fun formatRecentEventLines(
