@@ -14,7 +14,7 @@ import androidx.room.RoomDatabase
         CatalogLinkEntity::class,
         CatalogBuilderAssetEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class CatalogDatabase : RoomDatabase() {

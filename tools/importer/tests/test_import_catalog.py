@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from import_catalog import INCLUDED_PACKS, build_catalog  # noqa: E402
+from import_catalog import CATALOG_ROOM_DATABASE_VERSION, INCLUDED_PACKS, build_catalog  # noqa: E402
 
 
 def write_json(path: Path, payload) -> None:
@@ -98,9 +98,12 @@ class CatalogImporterTest(unittest.TestCase):
             self.assertEqual(manifest["counts"]["spellIndexRecords"], 1)
             self.assertEqual(manifest["counts"]["builderIndexRecords"], 1)
             self.assertEqual(manifest["counts"]["links"]["resolved"], 1)
+            self.assertEqual("android_compact", manifest["runtimeDatabase"]["profile"])
+            self.assertTrue((output / "catalog.runtime.db").is_file())
 
             connection = sqlite3.connect(output / "catalog.db")
             try:
+                self.assertEqual(CATALOG_ROOM_DATABASE_VERSION, connection.execute("PRAGMA user_version").fetchone()[0])
                 row = connection.execute(
                     "SELECT detail_text FROM catalog_records WHERE name = ?",
                     ("Irongut Goblin",),
@@ -128,6 +131,26 @@ class CatalogImporterTest(unittest.TestCase):
                 self.assertNotIn("description", builder_payload["heritages"][0])
             finally:
                 connection.close()
+
+            runtime_connection = sqlite3.connect(output / "catalog.runtime.db")
+            try:
+                self.assertEqual(CATALOG_ROOM_DATABASE_VERSION, runtime_connection.execute("PRAGMA user_version").fetchone()[0])
+                runtime_row = runtime_connection.execute(
+                    "SELECT detail_text, raw_json_gzip, normalized_json FROM catalog_records WHERE name = ?",
+                    ("Irongut Goblin",),
+                ).fetchone()
+                self.assertIsNotNone(runtime_row)
+                self.assertIn("Subsist", runtime_row[0])
+                self.assertEqual(b"", runtime_row[1])
+                self.assertEqual("", runtime_row[2])
+                self.assertEqual(
+                    [],
+                    runtime_connection.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('catalog_issues', 'catalog_pack_stats', 'catalog_traits')",
+                    ).fetchall(),
+                )
+            finally:
+                runtime_connection.close()
 
     def test_strict_references_fail_unresolved_included_uuid(self):
         with tempfile.TemporaryDirectory() as temp:

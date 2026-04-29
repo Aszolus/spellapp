@@ -7,7 +7,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private val appContainer by lazy { AppContainer(applicationContext) }
@@ -32,7 +34,9 @@ class MainActivity : ComponentActivity() {
         seedUiState = SeedUiState.Loading
         lifecycleScope.launch {
             runCatching {
-                appContainer.seedSpellsIfNeeded()
+                withContext(Dispatchers.IO) {
+                    appContainer.seedSpellsIfNeeded()
+                }
             }.onSuccess {
                 seedUiState = SeedUiState.Ready
             }.onFailure { throwable ->

@@ -28,6 +28,7 @@ from import_builder_catalog import (
 
 
 CATALOG_SCHEMA_VERSION = 1
+CATALOG_ROOM_DATABASE_VERSION = 2
 DEFAULT_WARN_SIZE_BYTES = 40 * 1024 * 1024
 DEFAULT_MAX_SIZE_BYTES = 80 * 1024 * 1024
 
@@ -804,6 +805,7 @@ def create_catalog_db(
     try:
         connection.execute("PRAGMA journal_mode=OFF")
         connection.execute("PRAGMA synchronous=OFF")
+        connection.execute(f"PRAGMA user_version={CATALOG_ROOM_DATABASE_VERSION}")
         connection.executescript(
             """
             CREATE TABLE catalog_metadata (
@@ -1071,6 +1073,40 @@ def create_catalog_db(
         connection.close()
 
 
+def create_runtime_catalog_db(source_db_path: Path, runtime_db_path: Path) -> None:
+    if runtime_db_path.exists():
+        runtime_db_path.unlink()
+    shutil.copy2(source_db_path, runtime_db_path)
+    connection = sqlite3.connect(str(runtime_db_path))
+    try:
+        connection.execute("PRAGMA journal_mode=OFF")
+        connection.execute("PRAGMA synchronous=OFF")
+        connection.execute(f"PRAGMA user_version={CATALOG_ROOM_DATABASE_VERSION}")
+        connection.executescript(
+            """
+            DROP TABLE IF EXISTS catalog_issues;
+            DROP TABLE IF EXISTS catalog_pack_stats;
+            DROP TABLE IF EXISTS catalog_traits;
+            UPDATE catalog_records
+            SET raw_json_gzip = x'',
+                normalized_json = '';
+            """
+        )
+        connection.executemany(
+            "INSERT OR REPLACE INTO catalog_metadata(key, value) VALUES (?, ?)",
+            [
+                ("catalog_runtime_profile", "android_compact"),
+                ("catalog_room_database_version", str(CATALOG_ROOM_DATABASE_VERSION)),
+                ("raw_json_gzip", "omitted_from_runtime_db"),
+                ("normalized_json", "omitted_from_runtime_db"),
+            ],
+        )
+        connection.commit()
+        connection.execute("VACUUM")
+    finally:
+        connection.close()
+
+
 def summarize_issues(issues: list[dict[str, Any]]) -> dict[str, Any]:
     by_severity = Counter(item["severity"] for item in issues)
     by_code = Counter(item["code"] for item in issues)
@@ -1089,6 +1125,7 @@ def summarize_issues(issues: list[dict[str, Any]]) -> dict[str, Any]:
 def write_outputs(
     output_dir: Path,
     db_path: Path,
+    runtime_db_path: Path,
     records: list[dict[str, Any]],
     links: list[dict[str, Any]],
     builder_assets: list[dict[str, Any]],
@@ -1100,6 +1137,7 @@ def write_outputs(
     allow_oversize: bool,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     db_size = db_path.stat().st_size if db_path.exists() else 0
+    runtime_db_size = runtime_db_path.stat().st_size if runtime_db_path.exists() else 0
     if db_size > warn_size_bytes:
         issues.append(
             issue(
@@ -1141,6 +1179,14 @@ def write_outputs(
             "maxSizeBytes": max_size_bytes,
             "rawPayloadEncoding": "gzip",
         },
+        "runtimeDatabase": {
+            "fileName": runtime_db_path.name,
+            "relativePath": str(runtime_db_path.relative_to(output_dir)).replace("\\", "/"),
+            "sizeBytes": runtime_db_size,
+            "profile": "android_compact",
+            "catalogRoomDatabaseVersion": CATALOG_ROOM_DATABASE_VERSION,
+            "omittedPayloads": ["raw_json_gzip", "normalized_json", "catalog_issues", "catalog_pack_stats", "catalog_traits"],
+        },
         "counts": {
             "records": len(records),
             "spellIndexRecords": spell_index_count,
@@ -1165,6 +1211,7 @@ def write_outputs(
         **metadata,
         "status": "failed" if error_count else "ok",
         "database": manifest["database"],
+        "runtimeDatabase": manifest["runtimeDatabase"],
         "counts": manifest["counts"],
         "issueSummary": summarize_issues(issues),
         "skippedRecords": [item for item in issues if item["code"] in {"MALFORMED_JSON", "UNEXPECTED_JSON_SHAPE", "DUPLICATE_RECORD_ID"}],
@@ -1233,10 +1280,13 @@ def build_catalog(
     }
 
     db_path = output_dir / "catalog.db"
+    runtime_db_path = output_dir / "catalog.runtime.db"
     create_catalog_db(db_path, records, links, builder_assets, pack_stats, issues, metadata, uuid_to_record_id)
+    create_runtime_catalog_db(db_path, runtime_db_path)
     manifest, audit = write_outputs(
         output_dir,
         db_path,
+        runtime_db_path,
         records,
         links,
         builder_assets,
@@ -1282,6 +1332,7 @@ def main(argv: list[str]) -> int:
     print(f"  Records: {counts['records']}")
     print(f"  Links: {counts['links']['total']} ({counts['links']['resolved']} resolved)")
     print(f"  DB size: {manifest['database']['sizeBytes']} bytes")
+    print(f"  Runtime DB size: {manifest['runtimeDatabase']['sizeBytes']} bytes")
     print(f"  Output: {Path(args.output_dir)}")
     return 0
 
