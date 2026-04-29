@@ -28,8 +28,10 @@ import com.spellapp.feature.character.ArchetypeSpellcastingCatalogSource
 import com.spellapp.feature.character.AssetArchetypeSpellcastingCatalogSource
 import com.spellapp.feature.character.AssetCharacterBuilderCatalogSource
 import com.spellapp.feature.character.AssetCharacterClassDefinitionSource
+import com.spellapp.feature.character.CatalogCharacterBuilderCatalogSource
 import com.spellapp.feature.character.CharacterBuilderCatalogSource
 import com.spellapp.feature.character.CharacterClassDefinitionSource
+import com.spellapp.feature.character.FallbackCharacterBuilderCatalogSource
 import com.spellapp.feature.spells.AssignPreparedSpellUseCase
 
 class AppContainer(
@@ -112,7 +114,10 @@ class AppContainer(
     }
 
     val characterBuilderCatalogSource: CharacterBuilderCatalogSource by lazy {
-        AssetCharacterBuilderCatalogSource(appContext)
+        FallbackCharacterBuilderCatalogSource(
+            primary = CatalogCharacterBuilderCatalogSource(catalogDatabase.catalogDao()),
+            fallback = AssetCharacterBuilderCatalogSource(appContext),
+        )
     }
 
     val characterFeatureFactoryProvider: CharacterFeatureFactoryProvider by lazy {

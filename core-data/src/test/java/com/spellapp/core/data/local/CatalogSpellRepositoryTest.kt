@@ -111,6 +111,12 @@ private class RecordingCatalogDao(
 ) : CatalogDao {
     override suspend fun getMetadataValue(key: String): String? = metadata[key]
 
+    override suspend fun getBuilderAssetCount(): Int = 0
+
+    override suspend fun getCatalogBuilderAssets(names: List<String>): List<CatalogBuilderAssetEntity> = emptyList()
+
+    override suspend fun getCatalogRecordTexts(recordIds: List<String>): List<CatalogRecordTextRow> = emptyList()
+
     override fun observeCatalogRecordSummaries(
         recordType: String,
         category: String,

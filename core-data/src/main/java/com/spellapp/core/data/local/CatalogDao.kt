@@ -10,6 +10,33 @@ interface CatalogDao {
     @Query("SELECT value FROM catalog_metadata WHERE key = :key LIMIT 1")
     suspend fun getMetadataValue(key: String): String?
 
+    @Query("SELECT COUNT(*) FROM catalog_builder_assets")
+    suspend fun getBuilderAssetCount(): Int
+
+    @Query(
+        """
+        SELECT
+            name,
+            builder_type,
+            category,
+            record_count,
+            payload_json_gzip
+        FROM catalog_builder_assets
+        WHERE name IN (:names)
+        ORDER BY name ASC
+        """,
+    )
+    suspend fun getCatalogBuilderAssets(names: List<String>): List<CatalogBuilderAssetEntity>
+
+    @Query(
+        """
+        SELECT id, detail_text AS detailText
+        FROM catalog_records
+        WHERE id IN (:recordIds)
+        """,
+    )
+    suspend fun getCatalogRecordTexts(recordIds: List<String>): List<CatalogRecordTextRow>
+
     @Query(
         """
         SELECT
