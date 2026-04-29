@@ -418,6 +418,7 @@ private fun AncestryHeritageSection(
     onPromptChoiceSelected: (String, String?) -> Unit,
 ) {
     var picker by remember { mutableStateOf<BuilderPickerKind?>(null) }
+    var detailDialog by remember { mutableStateOf<BuilderDetailDialogContent?>(null) }
     val selectedAncestry = uiState.selectedAncestryId
         ?.let { id -> uiState.availableAncestries.firstOrNull { it.id == id } }
     val selectedHeritage = uiState.selectedHeritageId
@@ -436,14 +437,30 @@ private fun AncestryHeritageSection(
     )
     selectedAncestry?.let { ancestry ->
         BuilderDetailBlock(
+            title = ancestry.name,
             lines = ancestry.detailLines(),
             description = ancestry.description,
+            onDetails = {
+                detailDialog = BuilderDetailDialogContent(
+                    title = ancestry.name,
+                    lines = ancestry.detailLines(),
+                    description = ancestry.description,
+                )
+            },
         )
     }
     selectedHeritage?.let { heritage ->
         BuilderDetailBlock(
+            title = heritage.name,
             lines = heritage.detailLines(),
             description = heritage.description,
+            onDetails = {
+                detailDialog = BuilderDetailDialogContent(
+                    title = heritage.name,
+                    lines = heritage.detailLines(),
+                    description = heritage.description,
+                )
+            },
         )
     }
     PromptChoices(
@@ -482,6 +499,12 @@ private fun AncestryHeritageSection(
 
         null -> Unit
     }
+    detailDialog?.let { content ->
+        BuilderDetailDialog(
+            content = content,
+            onDismiss = { detailDialog = null },
+        )
+    }
 }
 
 @Composable
@@ -491,6 +514,7 @@ private fun BackgroundSection(
     onPromptChoiceSelected: (String, String?) -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }
+    var detailDialog by remember { mutableStateOf<BuilderDetailDialogContent?>(null) }
     val selectedBackground = uiState.selectedBackgroundId
         ?.let { id -> uiState.availableBackgrounds.firstOrNull { it.id == id } }
     BuilderSelectionRow(
@@ -500,8 +524,16 @@ private fun BackgroundSection(
     )
     selectedBackground?.let { background ->
         BuilderDetailBlock(
-            lines = background.detailLines(),
+            title = background.name,
+            lines = background.summaryLines(),
             description = background.description,
+            onDetails = {
+                detailDialog = BuilderDetailDialogContent(
+                    title = background.name,
+                    lines = background.detailLines(),
+                    description = background.description,
+                )
+            },
         )
         BackgroundGrantedResults(background)
     }
@@ -522,6 +554,12 @@ private fun BackgroundSection(
                 showPicker = false
             },
             onDismiss = { showPicker = false },
+        )
+    }
+    detailDialog?.let { content ->
+        BuilderDetailDialog(
+            content = content,
+            onDismiss = { detailDialog = null },
         )
     }
 }
@@ -1832,6 +1870,12 @@ private data class BuilderPickerItem(
     val subtitle: String,
 )
 
+private data class BuilderDetailDialogContent(
+    val title: String,
+    val lines: List<String>,
+    val description: String,
+)
+
 private fun BuilderGrantRecord.displayName(): String? {
     return name
         ?: uuid
@@ -1841,14 +1885,35 @@ private fun BuilderGrantRecord.displayName(): String? {
 
 @Composable
 private fun BuilderDetailBlock(
+    title: String? = null,
     lines: List<String>,
     description: String,
+    onDetails: (() -> Unit)? = null,
 ) {
     val visibleLines = lines.filter { it.isNotBlank() }
-    val summary = description.shortDescription()
+    val summary = description.shortDescription(140)
     if (visibleLines.isEmpty() && summary.isBlank()) return
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        visibleLines.forEach { line ->
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (title != null || onDetails != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                title?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                }
+                if (onDetails != null) {
+                    TextButton(onClick = onDetails) {
+                        Text("Details")
+                    }
+                }
+            }
+        }
+        visibleLines.take(4).forEach { line ->
             Text(
                 text = line,
                 style = MaterialTheme.typography.bodySmall,
@@ -1863,6 +1928,52 @@ private fun BuilderDetailBlock(
             )
         }
     }
+}
+
+@Composable
+private fun BuilderDetailDialog(
+    content: BuilderDetailDialogContent,
+    onDismiss: () -> Unit,
+) {
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+    val visibleLines = content.lines.filter { it.isNotBlank() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(content.title) },
+        text = {
+            LazyColumn(
+                modifier = Modifier.heightIn(max = screenHeightDp * 0.65f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (visibleLines.isNotEmpty()) {
+                    item("facts") {
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            visibleLines.forEach { line ->
+                                Text(
+                                    text = line,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+                if (content.description.isNotBlank()) {
+                    item("description") {
+                        Text(
+                            text = content.description.trim(),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Done")
+            }
+        },
+    )
 }
 
 private fun BuilderAncestryRecord.detailLines(): List<String> {
@@ -1908,6 +2019,14 @@ private fun BuilderBackgroundRecord.detailLines(): List<String> {
         traits.displayLine(),
         source.title?.let { "Source: $it" },
     )
+}
+
+private fun BuilderBackgroundRecord.summaryLines(): List<String> {
+    return detailLines().filterNot { line ->
+        line.startsWith("Trained skill:") ||
+            line.startsWith("Lore:") ||
+            line.startsWith("Skill feat:")
+    }
 }
 
 private fun BuilderBackgroundRecord.pickerSubtitle(): String {

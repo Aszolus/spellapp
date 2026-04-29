@@ -4,10 +4,11 @@ Android-first Pathfinder 2e character builder and table companion with a strict 
 
 ## Current Product Direction
 1. SpellApp is shifting from its earlier spell-focused scope into a full PF2e character builder.
-2. The level-one character creation workflow is the primary builder path right now.
-3. Leveling choices after level one belong in the Level Workbench.
-4. Spell browsing and spellcasting support remain important, but they are supporting features inside the broader character tool.
-5. Runtime behavior stays fully offline: no network permission, no HTTP client dependencies, no telemetry, and no cloud sync.
+2. The long-term goal is a player-facing character sheet that can be used as the source of truth during play.
+3. The level-one character creation workflow is the primary builder path right now.
+4. Leveling choices after level one belong in the Level Workbench.
+5. Spell browsing and spellcasting support remain important, but they are supporting features inside the broader character sheet.
+6. Runtime behavior stays fully offline: no network permission, no HTTP client dependencies, no telemetry, and no cloud sync.
 
 ## Current Status
 1. Multi-module Android project scaffolded with Compose navigation.
@@ -37,9 +38,10 @@ Android-first Pathfinder 2e character builder and table companion with a strict 
 ## Near-Term Focus
 1. Make level-one creation match `docs/CharacterCreation.md` clearly and completely.
 2. Keep every post-level-one choice in the Level Workbench.
-3. Improve rules explanations and validation messages before adding optional rules.
-4. Continue deriving character facts from selected build choices instead of ad-hoc UI fields.
-5. Preserve offline build gates and local-only data updates.
+3. Build toward a sheet view where derived facts are complete, explainable, and trusted at the table.
+4. Improve rules explanations and validation messages before adding optional rules.
+5. Continue deriving character facts from selected build choices instead of ad-hoc UI fields.
+6. Preserve offline build gates and local-only data updates.
 
 ## Local Validation Helpers
 1. `scripts/check_no_network.ps1`: checks for `INTERNET` permission and banned network dependency patterns.

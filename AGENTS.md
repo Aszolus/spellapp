@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Project Overview
 
-Android Pathfinder 2e character builder and table companion. The app began with a spell-focused scope, but the product direction is now a full character builder with spell support as one part of the broader character workflow.
+Android Pathfinder 2e character builder and table companion. The app began with a spell-focused scope, but the product direction is now a full character builder with spell support as one part of the broader character workflow. The long-term goal is an authoritative player-facing character sheet that can be used as the source of truth during play.
 
 **Strictly offline**: no network permissions, no HTTP libraries, no telemetry, no cloud sync. Build-time Gradle tasks (`checkNoInternetPermission`, `checkNoBannedNetworkDependencies`) gate `preBuild` and fail the build if `android.permission.INTERNET` or banned networking dependencies (okhttp, retrofit, ktor, volley) are detected.
 
@@ -14,8 +14,10 @@ Android Pathfinder 2e character builder and table companion. The app began with 
 2. `docs/CharacterCreation.md` and `docs/LevelingUp.md` are the local rules source of truth for builder behavior.
 3. Post-level-one choices belong in the Level Workbench, not in the level-one creation sections.
 4. Rules errors should appear where the user can fix them and explain what went wrong.
-5. Optional rules, legacy/pre-remaster terminology toggles, voluntary flaws, and alternate ancestry boost handling are out of scope until explicitly reintroduced.
-6. Spell browsing, spell preparation, and spellcasting support remain important, but they support the character builder rather than defining the whole app.
+5. Derived sheet facts should come from selected build choices, level choices, local rules data, and tracked play state.
+6. Manual overrides should be explicit and visible; do not hide them as normal derived values.
+7. Optional rules, legacy/pre-remaster terminology toggles, voluntary flaws, and alternate ancestry boost handling are out of scope until explicitly reintroduced.
+8. Spell browsing, spell preparation, and spellcasting support remain important, but they support the character sheet rather than defining the whole app.
 
 ## Build & Run Commands
 
