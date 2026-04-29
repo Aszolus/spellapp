@@ -1,5 +1,6 @@
 package com.spellapp.core.data
 
+import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
@@ -39,7 +40,7 @@ object PerfTrace {
 
     fun mark(message: String) {
         if (enabled) {
-            println("$TAG $message")
+            Log.d(TAG, message)
         }
     }
 
@@ -70,7 +71,7 @@ object PerfTrace {
         if (!enabled) return
         val elapsedMillis = (System.nanoTime() - startNanos) / 1_000_000
         if (elapsedMillis >= minElapsedMillis) {
-            println("$TAG $name ${elapsedMillis}ms")
+            Log.d(TAG, "$name ${elapsedMillis}ms")
         }
     }
 

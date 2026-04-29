@@ -13,6 +13,7 @@ import com.spellapp.core.data.local.AssetClassSpellcastingCatalogSource
 import com.spellapp.core.data.local.AssetRulesReferenceRepository
 import com.spellapp.core.data.local.AssetSpellRulesTextRepository
 import com.spellapp.core.data.local.CatalogDatabase
+import com.spellapp.core.data.local.CatalogRulesReferenceRepository
 import com.spellapp.core.data.local.CatalogFirstSpellRepository
 import com.spellapp.core.data.local.CatalogSpellRepository
 import com.spellapp.core.data.local.CatalogSpellRulesTextRepository
@@ -97,7 +98,10 @@ class AppContainer(
     }
 
     val rulesReferenceRepository: RulesReferenceRepository by lazy {
-        AssetRulesReferenceRepository(appContext)
+        CatalogRulesReferenceRepository(
+            catalogDao = catalogDatabase.catalogDao(),
+            fallback = AssetRulesReferenceRepository(appContext),
+        )
     }
 
     val spellRulesTextRepository: SpellRulesTextRepository by lazy {

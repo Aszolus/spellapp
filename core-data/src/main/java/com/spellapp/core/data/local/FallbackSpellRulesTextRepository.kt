@@ -12,7 +12,7 @@ class FallbackSpellRulesTextRepository(
         spellRank: Int?,
     ): RulesTextDocument? {
         return runCatching { primary.getSpellRulesText(spellId, spellRank) }.getOrNull()
-            ?: fallback.getSpellRulesText(spellId, spellRank)
+            ?: runCatching { fallback.getSpellRulesText(spellId, spellRank) }.getOrNull()
     }
 
     override suspend fun getSpellHeightenedRulesText(
@@ -23,7 +23,7 @@ class FallbackSpellRulesTextRepository(
             primary.getSpellHeightenedRulesText(spellId, spellRank)
         }.getOrDefault(emptyList())
         return primaryResult.ifEmpty {
-            fallback.getSpellHeightenedRulesText(spellId, spellRank)
+            runCatching { fallback.getSpellHeightenedRulesText(spellId, spellRank) }.getOrDefault(emptyList())
         }
     }
 }

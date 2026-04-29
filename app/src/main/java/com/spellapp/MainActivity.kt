@@ -21,7 +21,9 @@ class MainActivity : ComponentActivity() {
         PerfTrace.enabled = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
         PerfTrace.mark("MainActivity.onCreate")
         super.onCreate(savedInstanceState)
+        PerfTrace.mark("MainActivity.beforeSetContent")
         setContent {
+            PerfTrace.mark("MainActivity.setContent")
             SpellApp(
                 characterFeatureFactoryProvider = appContainer.characterFeatureFactoryProvider,
                 spellCatalogFeatureFactoryProvider = appContainer.spellCatalogFeatureFactoryProvider,
@@ -31,6 +33,7 @@ class MainActivity : ComponentActivity() {
                 onRetrySeed = ::syncSpellData,
             )
         }
+        PerfTrace.mark("MainActivity.afterSetContent")
     }
 
     private fun syncSpellData() {

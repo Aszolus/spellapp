@@ -36,6 +36,28 @@ android {
         compose = true
     }
 
+    androidResources {
+        ignoreAssetsPattern = listOf(
+            "*.attribution.json",
+            "*.changelog.json",
+            "*.normalized.json",
+            "*.normalized.json.gz",
+            "rules.reference.actions.json",
+            "rules.reference.actions.json.gz",
+            "rules.reference.conditions.json",
+            "rules.reference.conditions.json.gz",
+            "rules.reference.feats.json",
+            "rules.reference.feats.json.gz",
+            "rules.reference.index.json",
+            "rules.reference.items.json",
+            "rules.reference.items.json.gz",
+            "rules.reference.spell-effects.json",
+            "rules.reference.spell-effects.json.gz",
+            "rules.reference.spells.json",
+            "rules.reference.spells.json.gz",
+        ).joinToString(":")
+    }
+
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
@@ -118,7 +140,6 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
 
@@ -130,6 +151,4 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
 
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
 }

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
+import com.spellapp.core.data.PerfTrace
 import com.spellapp.core.ui.SpellAppTheme
 import com.spellapp.core.ui.SpellAppThemeMode
 
@@ -17,6 +18,7 @@ fun SpellApp(
     onRetrySeed: () -> Unit,
     themeMode: SpellAppThemeMode = SpellAppThemeMode.DARK,
 ) {
+    PerfTrace.mark("SpellApp.compose")
     val navController = rememberNavController()
     val navigationViewModel: SpellAppNavigationViewModel = viewModel(
         key = "app-navigation",

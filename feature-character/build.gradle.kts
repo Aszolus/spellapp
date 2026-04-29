@@ -38,7 +38,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
     constraints {
@@ -49,6 +48,4 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
-
-    debugImplementation(libs.androidx.ui.tooling)
 }

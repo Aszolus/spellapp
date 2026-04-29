@@ -39,15 +39,12 @@ dependencies {
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
     constraints {
         implementation("androidx.core:core:1.13.1")
         implementation("androidx.core:core-ktx:1.13.1")
     }
-
-    debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)

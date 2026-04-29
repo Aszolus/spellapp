@@ -13,6 +13,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.spellapp.core.data.PerfTrace
 import com.spellapp.core.model.CharacterProfile
 import com.spellapp.feature.character.CharacterBuilderRoute
 import com.spellapp.feature.character.CharacterBuilderViewModel
@@ -36,6 +37,7 @@ fun SpellAppNavGraph(
     seedUiState: SeedUiState,
     onRetrySeed: () -> Unit,
 ) {
+    PerfTrace.mark("SpellAppNavGraph.compose")
     NavHost(
         navController = navController,
         startDestination = AppDestinations.CharacterList.route,
@@ -75,6 +77,7 @@ private fun NavGraphBuilder.characterListDestination(
     navigationViewModel: SpellAppNavigationViewModel,
 ) {
     composable(route = AppDestinations.CharacterList.route) {
+        PerfTrace.mark("CharacterListDestination.compose")
         val characterListViewModel: CharacterListViewModel = viewModel(
             key = "character-list",
             factory = remember(characterFeatureFactoryProvider) {
