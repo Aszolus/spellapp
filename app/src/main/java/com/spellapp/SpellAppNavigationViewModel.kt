@@ -21,8 +21,9 @@ data class SpellAppNavigationUiState(
 )
 
 class SpellAppNavigationViewModel(
-    private val assignPreparedSpellUseCase: AssignPreparedSpellUseCase,
+    private val assignPreparedSpellUseCaseProvider: () -> AssignPreparedSpellUseCase,
 ) : ViewModel() {
+    private val assignPreparedSpellUseCase: AssignPreparedSpellUseCase by lazy(assignPreparedSpellUseCaseProvider)
     private val _uiState = MutableStateFlow(SpellAppNavigationUiState())
     val uiState: StateFlow<SpellAppNavigationUiState> = _uiState.asStateFlow()
     private val _slotAssignmentResult = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
@@ -117,7 +118,7 @@ class SpellAppNavigationViewModel(
 }
 
 class SpellAppNavigationViewModelFactory(
-    private val assignPreparedSpellUseCase: AssignPreparedSpellUseCase,
+    private val assignPreparedSpellUseCaseProvider: () -> AssignPreparedSpellUseCase,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -125,7 +126,7 @@ class SpellAppNavigationViewModelFactory(
             throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
         }
         return SpellAppNavigationViewModel(
-            assignPreparedSpellUseCase = assignPreparedSpellUseCase,
+            assignPreparedSpellUseCaseProvider = assignPreparedSpellUseCaseProvider,
         ) as T
     }
 }

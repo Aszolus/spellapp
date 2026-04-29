@@ -44,35 +44,39 @@ interface PreparedCastingFeatureFactoryProvider {
 }
 
 class AppCharacterFeatureFactoryProvider(
-    private val characterCrudRepository: CharacterCrudRepository,
-    private val characterBuildRepository: CharacterBuildRepository,
-    private val acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
-    private val spellRepository: SpellRepository,
-    private val knownSpellRepository: KnownSpellRepository,
-    private val castingTrackRepository: com.spellapp.core.data.CastingTrackRepository,
-    private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
-    private val classDefinitionSource: CharacterClassDefinitionSource,
-    private val characterBuilderCatalogSource: CharacterBuilderCatalogSource,
-    private val archetypeSpellcastingCatalogSource: ArchetypeSpellcastingCatalogSource,
-    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource,
+    private val characterCrudRepositoryProvider: () -> CharacterCrudRepository,
+    private val characterBuildRepositoryProvider: () -> CharacterBuildRepository,
+    private val acceptedSpellSourceRepositoryProvider: () -> AcceptedSpellSourceRepository,
+    private val spellRepositoryProvider: () -> SpellRepository,
+    private val knownSpellRepositoryProvider: () -> KnownSpellRepository,
+    private val castingTrackRepositoryProvider: () -> com.spellapp.core.data.CastingTrackRepository,
+    private val preparedSlotSyncRepositoryProvider: () -> PreparedSlotSyncRepository,
+    private val classDefinitionSourceProvider: () -> CharacterClassDefinitionSource,
+    private val characterBuilderCatalogSourceProvider: () -> CharacterBuilderCatalogSource,
+    private val archetypeSpellcastingCatalogSourceProvider: () -> ArchetypeSpellcastingCatalogSource,
+    private val classSpellcastingCatalogSourceProvider: () -> ClassSpellcastingCatalogSource,
 ) : CharacterFeatureFactoryProvider {
     override fun characterListFactory(): ViewModelProvider.Factory {
         return CharacterListViewModelFactory(
-            characterCrudRepository = characterCrudRepository,
-            classDefinitionSource = classDefinitionSource,
+            characterCrudRepository = characterCrudRepositoryProvider(),
+            classDefinitionSource = classDefinitionSourceProvider(),
         )
     }
 
     override fun characterBuilderFactory(characterId: Long): ViewModelProvider.Factory {
+        val spellRepository = spellRepositoryProvider()
+        val knownSpellRepository = knownSpellRepositoryProvider()
+        val archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSourceProvider()
+        val classSpellcastingCatalogSource = classSpellcastingCatalogSourceProvider()
         return CharacterBuilderViewModelFactory(
             characterId = characterId,
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = characterBuildRepository,
-            acceptedSpellSourceRepository = acceptedSpellSourceRepository,
+            characterCrudRepository = characterCrudRepositoryProvider(),
+            characterBuildRepository = characterBuildRepositoryProvider(),
+            acceptedSpellSourceRepository = acceptedSpellSourceRepositoryProvider(),
             spellRepository = spellRepository,
             refreshSpellcastingProjectionUseCase = RefreshSpellcastingProjectionUseCase(
-                castingTrackRepository = castingTrackRepository,
-                preparedSlotSyncRepository = preparedSlotSyncRepository,
+                castingTrackRepository = castingTrackRepositoryProvider(),
+                preparedSlotSyncRepository = preparedSlotSyncRepositoryProvider(),
                 knownSpellsSeeder = DefaultKnownSpellsSeeder(
                     spellRepository = spellRepository,
                     knownSpellRepository = knownSpellRepository,
@@ -80,8 +84,8 @@ class AppCharacterFeatureFactoryProvider(
                 ),
                 archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
             ),
-            classDefinitionSource = classDefinitionSource,
-            characterBuilderCatalogSource = characterBuilderCatalogSource,
+            classDefinitionSource = classDefinitionSourceProvider(),
+            characterBuilderCatalogSource = characterBuilderCatalogSourceProvider(),
             archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
             classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )
@@ -89,17 +93,20 @@ class AppCharacterFeatureFactoryProvider(
 }
 
 class AppSpellCatalogFeatureFactoryProvider(
-    private val spellRepository: SpellRepository,
-    private val acceptedSpellSourceRepository: AcceptedSpellSourceRepository,
-    private val knownSpellRepository: KnownSpellRepository,
-    private val rulesReferenceRepository: RulesReferenceRepository,
-    private val spellRulesTextRepository: SpellRulesTextRepository,
-    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource,
+    private val spellRepositoryProvider: () -> SpellRepository,
+    private val acceptedSpellSourceRepositoryProvider: () -> AcceptedSpellSourceRepository,
+    private val knownSpellRepositoryProvider: () -> KnownSpellRepository,
+    private val rulesReferenceRepositoryProvider: () -> RulesReferenceRepository,
+    private val spellRulesTextRepositoryProvider: () -> SpellRulesTextRepository,
+    private val classSpellcastingCatalogSourceProvider: () -> ClassSpellcastingCatalogSource,
 ) : SpellCatalogFeatureFactoryProvider {
     override fun spellListFactory(): ViewModelProvider.Factory {
+        val spellRepository = spellRepositoryProvider()
+        val knownSpellRepository = knownSpellRepositoryProvider()
+        val classSpellcastingCatalogSource = classSpellcastingCatalogSourceProvider()
         return SpellListViewModelFactory(
             spellRepository = spellRepository,
-            acceptedSpellSourceRepository = acceptedSpellSourceRepository,
+            acceptedSpellSourceRepository = acceptedSpellSourceRepositoryProvider(),
             knownSpellRepository = knownSpellRepository,
             toggleKnownSpellUseCase = ToggleKnownSpellUseCase(
                 knownSpellRepository = knownSpellRepository,
@@ -116,39 +123,39 @@ class AppSpellCatalogFeatureFactoryProvider(
     ): ViewModelProvider.Factory {
         return SpellDetailViewModelFactory(
             spellId = spellId,
-            spellRepository = spellRepository,
-            rulesReferenceRepository = rulesReferenceRepository,
-            spellRulesTextRepository = spellRulesTextRepository,
+            spellRepository = spellRepositoryProvider(),
+            rulesReferenceRepository = rulesReferenceRepositoryProvider(),
+            spellRulesTextRepository = spellRulesTextRepositoryProvider(),
             initialHeightenedAt = heightenedAt,
         )
     }
 }
 
 class AppPreparedCastingFeatureFactoryProvider(
-    private val preparedSlotRepository: PreparedSlotRepository,
-    private val castingTrackRepository: com.spellapp.core.data.CastingTrackRepository,
-    private val preparedSlotSyncRepository: PreparedSlotSyncRepository,
-    private val sessionEventRepository: SessionEventRepository,
-    private val focusStateRepository: FocusStateRepository,
-    private val knownSpellRepository: KnownSpellRepository,
-    private val spellRepository: SpellRepository,
-    private val characterCrudRepository: CharacterCrudRepository,
-    private val characterBuildRepository: CharacterBuildRepository,
-    private val classSpellcastingCatalogSource: ClassSpellcastingCatalogSource,
+    private val preparedSlotRepositoryProvider: () -> PreparedSlotRepository,
+    private val castingTrackRepositoryProvider: () -> com.spellapp.core.data.CastingTrackRepository,
+    private val preparedSlotSyncRepositoryProvider: () -> PreparedSlotSyncRepository,
+    private val sessionEventRepositoryProvider: () -> SessionEventRepository,
+    private val focusStateRepositoryProvider: () -> FocusStateRepository,
+    private val knownSpellRepositoryProvider: () -> KnownSpellRepository,
+    private val spellRepositoryProvider: () -> SpellRepository,
+    private val characterCrudRepositoryProvider: () -> CharacterCrudRepository,
+    private val characterBuildRepositoryProvider: () -> CharacterBuildRepository,
+    private val classSpellcastingCatalogSourceProvider: () -> ClassSpellcastingCatalogSource,
 ) : PreparedCastingFeatureFactoryProvider {
     override fun preparedSlotsFactory(characterId: Long): ViewModelProvider.Factory {
         return PreparedSlotsViewModelFactory(
             characterId = characterId,
-            preparedSlotRepository = preparedSlotRepository,
-            castingTrackRepository = castingTrackRepository,
-            preparedSlotSyncRepository = preparedSlotSyncRepository,
-            sessionEventRepository = sessionEventRepository,
-            focusStateRepository = focusStateRepository,
-            knownSpellRepository = knownSpellRepository,
-            spellRepository = spellRepository,
-            characterCrudRepository = characterCrudRepository,
-            characterBuildRepository = characterBuildRepository,
-            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
+            preparedSlotRepository = preparedSlotRepositoryProvider(),
+            castingTrackRepository = castingTrackRepositoryProvider(),
+            preparedSlotSyncRepository = preparedSlotSyncRepositoryProvider(),
+            sessionEventRepository = sessionEventRepositoryProvider(),
+            focusStateRepository = focusStateRepositoryProvider(),
+            knownSpellRepository = knownSpellRepositoryProvider(),
+            spellRepository = spellRepositoryProvider(),
+            characterCrudRepository = characterCrudRepositoryProvider(),
+            characterBuildRepository = characterBuildRepositoryProvider(),
+            classSpellcastingCatalogSource = classSpellcastingCatalogSourceProvider(),
         )
     }
 }

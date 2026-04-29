@@ -122,53 +122,55 @@ class AppContainer(
 
     val characterFeatureFactoryProvider: CharacterFeatureFactoryProvider by lazy {
         AppCharacterFeatureFactoryProvider(
-            characterCrudRepository = characterRepository,
-            characterBuildRepository = characterRepository,
-            acceptedSpellSourceRepository = acceptedSpellSourceRepository,
-            spellRepository = spellRepository,
-            knownSpellRepository = knownSpellRepository,
-            castingTrackRepository = characterRepository,
-            preparedSlotSyncRepository = characterRepository,
-            classDefinitionSource = characterClassDefinitionSource,
-            characterBuilderCatalogSource = characterBuilderCatalogSource,
-            archetypeSpellcastingCatalogSource = archetypeSpellcastingCatalogSource,
-            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
+            characterCrudRepositoryProvider = { characterRepository },
+            characterBuildRepositoryProvider = { characterRepository },
+            acceptedSpellSourceRepositoryProvider = { acceptedSpellSourceRepository },
+            spellRepositoryProvider = { spellRepository },
+            knownSpellRepositoryProvider = { knownSpellRepository },
+            castingTrackRepositoryProvider = { characterRepository },
+            preparedSlotSyncRepositoryProvider = { characterRepository },
+            classDefinitionSourceProvider = { characterClassDefinitionSource },
+            characterBuilderCatalogSourceProvider = { characterBuilderCatalogSource },
+            archetypeSpellcastingCatalogSourceProvider = { archetypeSpellcastingCatalogSource },
+            classSpellcastingCatalogSourceProvider = { classSpellcastingCatalogSource },
         )
     }
 
     val spellCatalogFeatureFactoryProvider: SpellCatalogFeatureFactoryProvider by lazy {
         AppSpellCatalogFeatureFactoryProvider(
-            spellRepository = spellRepository,
-            acceptedSpellSourceRepository = acceptedSpellSourceRepository,
-            knownSpellRepository = knownSpellRepository,
-            rulesReferenceRepository = rulesReferenceRepository,
-            spellRulesTextRepository = spellRulesTextRepository,
-            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
+            spellRepositoryProvider = { spellRepository },
+            acceptedSpellSourceRepositoryProvider = { acceptedSpellSourceRepository },
+            knownSpellRepositoryProvider = { knownSpellRepository },
+            rulesReferenceRepositoryProvider = { rulesReferenceRepository },
+            spellRulesTextRepositoryProvider = { spellRulesTextRepository },
+            classSpellcastingCatalogSourceProvider = { classSpellcastingCatalogSource },
         )
     }
 
     val preparedCastingFeatureFactoryProvider: PreparedCastingFeatureFactoryProvider by lazy {
         AppPreparedCastingFeatureFactoryProvider(
-            preparedSlotRepository = characterRepository,
-            castingTrackRepository = characterRepository,
-            preparedSlotSyncRepository = characterRepository,
-            sessionEventRepository = characterRepository,
-            focusStateRepository = characterRepository,
-            knownSpellRepository = knownSpellRepository,
-            spellRepository = spellRepository,
-            characterCrudRepository = characterRepository,
-            characterBuildRepository = characterRepository,
-            classSpellcastingCatalogSource = classSpellcastingCatalogSource,
+            preparedSlotRepositoryProvider = { characterRepository },
+            castingTrackRepositoryProvider = { characterRepository },
+            preparedSlotSyncRepositoryProvider = { characterRepository },
+            sessionEventRepositoryProvider = { characterRepository },
+            focusStateRepositoryProvider = { characterRepository },
+            knownSpellRepositoryProvider = { knownSpellRepository },
+            spellRepositoryProvider = { spellRepository },
+            characterCrudRepositoryProvider = { characterRepository },
+            characterBuildRepositoryProvider = { characterRepository },
+            classSpellcastingCatalogSourceProvider = { classSpellcastingCatalogSource },
         )
     }
 
     val navigationViewModelFactory: SpellAppNavigationViewModelFactory by lazy {
         SpellAppNavigationViewModelFactory(
-            assignPreparedSpellUseCase = AssignPreparedSpellUseCase(
-                knownSpellRepository = knownSpellRepository,
-                preparedSlotRepository = characterRepository,
-                spellRepository = spellRepository,
-            ),
+            assignPreparedSpellUseCaseProvider = {
+                AssignPreparedSpellUseCase(
+                    knownSpellRepository = knownSpellRepository,
+                    preparedSlotRepository = characterRepository,
+                    spellRepository = spellRepository,
+                )
+            },
         )
     }
 
