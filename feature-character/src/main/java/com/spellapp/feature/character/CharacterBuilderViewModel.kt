@@ -670,7 +670,7 @@ class CharacterBuilderViewModel(
         val baseState = CharacterBuilderUiState(
             characterId = existingCharacter?.id ?: 0L,
             isNewCharacter = isNew,
-            isLoading = false,
+            isLoading = true,
             name = existingCharacter?.name.orEmpty(),
             levelText = (existingCharacter?.level ?: 1).toString(),
             selectedClassId = initialClassId,
@@ -696,15 +696,14 @@ class CharacterBuilderViewModel(
             archetypeSpellcastingPackages = archetypeSpellcastingPackages,
             expandedSection = CharacterBuilderSectionId.SPELL_SOURCES,
         )
-        initialSnapshot = snapshot(baseState)
-        _uiState.value = derive(baseState)
 
         val catalogResult = characterBuilderCatalogSource.loadCatalog()
         val catalog = catalogResult.catalog
         builderCatalog = catalog
         if (catalogResult.loadError != null || catalog == null) {
             _uiState.value = derive(
-                _uiState.value.copy(
+                baseState.copy(
+                    isLoading = false,
                     loadError = catalogResult.loadError ?: "Character builder catalog could not be loaded.",
                     availableSpellSources = availableSourceBooks,
                     classDefinitionsByClass = classDefinitionsByClass,
@@ -715,34 +714,34 @@ class CharacterBuilderViewModel(
         }
 
         builderSourceTitles = catalog.sourceTitles()
-        val latestState = _uiState.value
-        val sourceCatalog = catalog.filteredBySources(latestState.acceptedSourceBooks)
+        val sourceCatalog = catalog.filteredBySources(baseState.acceptedSourceBooks)
         val sourceAllowedClasses = availableClasses.filter { definition ->
             sourceCatalog.classesById.containsKey(normalizeClassId(definition.classId))
         }
         val selectedClassStillAvailable = sourceAllowedClasses.any { definition ->
-            normalizeClassId(definition.classId) == normalizeClassId(latestState.selectedClassId)
+            normalizeClassId(definition.classId) == normalizeClassId(baseState.selectedClassId)
         }
-        val selectedClassId = if (latestState.isNewCharacter && !selectedClassStillAvailable) {
-            sourceAllowedClasses.firstOrNull()?.classId ?: latestState.selectedClassId
+        val selectedClassId = if (baseState.isNewCharacter && !selectedClassStillAvailable) {
+            sourceAllowedClasses.firstOrNull()?.classId ?: baseState.selectedClassId
         } else {
-            latestState.selectedClassId
+            baseState.selectedClassId
         }
         val loadedState = derive(
-            latestState.copy(
+            baseState.copy(
+                isLoading = false,
                 loadError = null,
                 availableSpellSources = combinedSourceBooks(sources, builderSourceTitles),
                 selectedClassId = selectedClassId,
-                keyAbility = if (selectedClassId != latestState.selectedClassId) {
+                keyAbility = if (selectedClassId != baseState.selectedClassId) {
                     defaultKeyAbility(selectedClassId, classDefinitionsByClass)
                 } else {
-                    latestState.keyAbility
+                    baseState.keyAbility
                 },
                 classDefinitionsByClass = classDefinitionsByClass,
                 availableClasses = availableClasses,
                 availableClassRecords = sourceCatalog.classes,
                 availableAncestries = sourceCatalog.ancestries,
-                availableHeritages = sourceCatalog.heritagesForAncestry(latestState.selectedAncestryId),
+                availableHeritages = sourceCatalog.heritagesForAncestry(baseState.selectedAncestryId),
                 availableBackgrounds = sourceCatalog.backgrounds,
                 featIndexById = sourceCatalog.featIndexById,
                 featsById = sourceCatalog.featsById,
@@ -1414,6 +1413,7 @@ class CharacterBuilderViewModel(
             id = CharacterBuilderSectionId.CLASS_SPELLCASTING,
             title = "Class",
             status = when {
+                state.isLoading -> CharacterBuilderSectionStatus.BLOCKED
                 state.availableClasses.isEmpty() -> CharacterBuilderSectionStatus.BLOCKED
                 state.availableClasses.none { normalizeClassId(it.classId) == normalizeClassId(state.selectedClassId) } -> CharacterBuilderSectionStatus.NEEDS_REVIEW
                 state.missingRequiredClassChoices.isNotEmpty() -> CharacterBuilderSectionStatus.NEEDS_REVIEW
@@ -1422,6 +1422,7 @@ class CharacterBuilderViewModel(
             },
             summary = classSpellcastingSummary(state),
             validationMessage = when {
+                state.isLoading -> null
                 state.availableClasses.isEmpty() -> "No classes are available."
                 state.saveAttempted &&
                     state.availableClasses.none { normalizeClassId(it.classId) == normalizeClassId(state.selectedClassId) } -> {

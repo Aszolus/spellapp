@@ -104,6 +104,17 @@ class CatalogCharacterBuilderCatalogSourceTest {
         assertEquals(fallbackCatalog, result.catalog)
         assertFalse(source.loadAvailableSourceTitles().isNotEmpty())
     }
+
+    @Test
+    fun fallbackSource_toleratesMissingFallbackAssetsForOptionalLoads() = runBlocking {
+        val source = FallbackCharacterBuilderCatalogSource(
+            primary = EmptyCharacterBuilderCatalogSource,
+            fallback = ThrowingCharacterBuilderCatalogSource,
+        )
+
+        assertTrue(source.loadAvailableSourceTitles().isEmpty())
+        assertTrue(source.loadFeatRecords().isEmpty())
+    }
 }
 
 private class StaticCharacterBuilderCatalogSource(
@@ -111,6 +122,20 @@ private class StaticCharacterBuilderCatalogSource(
 ) : CharacterBuilderCatalogSource {
     override suspend fun loadCatalog(): CharacterBuilderCatalogResult {
         return CharacterBuilderCatalogResult(catalog = catalog)
+    }
+}
+
+private object ThrowingCharacterBuilderCatalogSource : CharacterBuilderCatalogSource {
+    override suspend fun loadCatalog(): CharacterBuilderCatalogResult {
+        error("Fallback catalog assets are not packaged.")
+    }
+
+    override suspend fun loadAvailableSourceTitles(): List<String> {
+        error("Fallback source assets are not packaged.")
+    }
+
+    override suspend fun loadFeatRecords(): List<BuilderFeatRecord> {
+        error("Fallback feat assets are not packaged.")
     }
 }
 

@@ -202,12 +202,14 @@ class FallbackCharacterBuilderCatalogSource(
 
     override suspend fun loadAvailableSourceTitles(): List<String> {
         val primaryTitles = runCatching { primary.loadAvailableSourceTitles() }.getOrDefault(emptyList())
-        return primaryTitles.takeIf { it.isNotEmpty() } ?: fallback.loadAvailableSourceTitles()
+        return primaryTitles.takeIf { it.isNotEmpty() }
+            ?: runCatching { fallback.loadAvailableSourceTitles() }.getOrDefault(emptyList())
     }
 
     override suspend fun loadFeatRecords(): List<BuilderFeatRecord> {
         val primaryFeats = runCatching { primary.loadFeatRecords() }.getOrDefault(emptyList())
-        return primaryFeats.takeIf { it.isNotEmpty() } ?: fallback.loadFeatRecords()
+        return primaryFeats.takeIf { it.isNotEmpty() }
+            ?: runCatching { fallback.loadFeatRecords() }.getOrDefault(emptyList())
     }
 }
 

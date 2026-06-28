@@ -24,6 +24,7 @@ import com.spellapp.core.model.SpellDetail
 import com.spellapp.core.model.SpellListItem
 import com.spellapp.feature.character.spellcasting.DefaultKnownSpellsSeeder
 import com.spellapp.feature.character.spellcasting.RefreshSpellcastingProjectionUseCase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -78,6 +79,31 @@ class CharacterBuilderViewModelTest {
             CharacterBuilderSectionStatus.NEEDS_REVIEW,
             state.sections.first { it.id == CharacterBuilderSectionId.IDENTITY }.status,
         )
+    }
+
+    @Test
+    fun newCharacter_keepsClassSectionLoadingUntilCatalogArrives() = runTest {
+        val catalogSource = SuspendedCharacterBuilderCatalogSource()
+        val viewModel = createViewModel(
+            characterId = 0L,
+            characterBuilderCatalogSource = catalogSource,
+        )
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isLoading)
+        assertFalse(
+            state.sections.any { section ->
+                section.id == CharacterBuilderSectionId.CLASS_SPELLCASTING &&
+                    section.validationMessage == "No classes are available."
+            },
+        )
+
+        catalogSource.release()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertTrue(viewModel.uiState.value.availableClasses.isNotEmpty())
     }
 
     @Test
@@ -623,6 +649,7 @@ class CharacterBuilderViewModelTest {
             availableSources = DEFAULT_ACCEPTED_SOURCES.toList(),
             spells = emptyList(),
         ),
+        characterBuilderCatalogSource: CharacterBuilderCatalogSource = FakeCharacterBuilderCatalogSource(),
     ): CharacterBuilderViewModel {
         return CharacterBuilderViewModel(
             characterId = characterId,
@@ -641,7 +668,7 @@ class CharacterBuilderViewModelTest {
                 archetypeSpellcastingCatalogSource = StaticArchetypeSpellcastingCatalogSource,
             ),
             classDefinitionSource = StaticCharacterClassDefinitionSource,
-            characterBuilderCatalogSource = FakeCharacterBuilderCatalogSource(),
+            characterBuilderCatalogSource = characterBuilderCatalogSource,
             archetypeSpellcastingCatalogSource = StaticArchetypeSpellcastingCatalogSource,
             classSpellcastingCatalogSource = classSpellcastingCatalogSource,
         )
@@ -967,6 +994,23 @@ private class FakeCharacterBuilderCatalogSource : CharacterBuilderCatalogSource 
                 ancestryFeatures = emptyList(),
             ),
         )
+    }
+}
+
+private class SuspendedCharacterBuilderCatalogSource : CharacterBuilderCatalogSource {
+    private val releaseSignal = CompletableDeferred<Unit>()
+
+    override suspend fun loadCatalog(): CharacterBuilderCatalogResult {
+        releaseSignal.await()
+        return FakeCharacterBuilderCatalogSource().loadCatalog()
+    }
+
+    override suspend fun loadAvailableSourceTitles(): List<String> {
+        return listOf("Player Core")
+    }
+
+    fun release() {
+        releaseSignal.complete(Unit)
     }
 }
 
